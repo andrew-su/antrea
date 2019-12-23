@@ -1,0 +1,9 @@
+%YAML 1.2
+---
+- antrea/src:
+   - name: antrea
+     version: ""
+     licenses: []
+     uses: []
+     url: https://github.com/vmware-tanzu/antrea
+     modified: false
