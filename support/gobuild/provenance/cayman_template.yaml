@@ -1,0 +1,9 @@
+%YAML 1.2
+---
+- template/src:
+   - name: "template"
+     version: "1.0"
+     licenses: [Public]
+     uses: [dynamic_with_oss]
+     url: https://example.com/template.git
+     modified: false
