@@ -6,7 +6,7 @@ Support code for building products with gobuild.
 """
 import helpers
 import helpers.access
-import targets.cayman_template
+import targets.cayman_antrea
 
 # The targets dictionary maps target names to classes which
 # implement the gobuild Target interface.  The dictionary is not
@@ -16,7 +16,7 @@ import targets.cayman_template
 # tree!
 
 TARGETS = {
-    'cayman_template': targets.cayman_template.CaymanTemplate,
+    'cayman_antrea': targets.cayman_antrea.CaymanAntrea,
 }
 
 # Add an access target for each already-defined target.
