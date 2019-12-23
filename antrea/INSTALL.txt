@@ -1,0 +1,2 @@
+This file describes in steps how to replace the cayman component in ESX with a
+custom compiled version from the OSS bundle.

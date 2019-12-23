@@ -1,0 +1,2 @@
+This file describes in steps how to take the OSS bundle and build it with our
+patches and toolchain.
