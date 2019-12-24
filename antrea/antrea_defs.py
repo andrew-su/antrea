@@ -66,6 +66,9 @@ class CaymanAntreaBuilderLin(CaymanAntreaBuilder):
 
         # install directly in the publish/$PRODUCT dir
         env['DESTDIR'] = os.path.join(env['PUBLISH_DIR'], env['PRODUCT'])
+        path = (env['PATH'], "/usr/bin", "/usr/sbin", "/bin", "/sbin",
+                "/build/toolchain/lin64/tar-1.23/bin/")
+        env['PATH'] = ":".join(path)
 
     @py.log.traced
     def configure(self, env):
@@ -83,8 +86,8 @@ class CaymanAntreaBuilderLin(CaymanAntreaBuilder):
         super(CaymanAntreaBuilderLin, self).install(env)
 
         # Expand environment variables.
-        sh_tools.DeepCopy(os.path.join(env['BUILDROOT'], 'output', 'scripts'),
-                          os.path.join(env['DESTDIR'], 'antrea', 'scripts'))
+        sh_tools.DeepCopy(os.path.join(env['BUILDROOT'], 'output'),
+                          os.path.join(env['DESTDIR'], 'antrea'))
 
 
 def getBuilder(product, env):

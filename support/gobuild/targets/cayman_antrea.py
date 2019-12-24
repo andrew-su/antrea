@@ -9,7 +9,6 @@ import os
 import helpers.env
 import helpers.python
 import helpers.target
-import helpers.msvc
 import specs.cayman_antrea
 
 
@@ -29,9 +28,6 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.PythonHelper):
     def _Environment(self, hosttype):
         env = helpers.env.SafeEnvironment(hosttype)
 
-        if hosttype.startswith('windows'):
-            return env  # done
-
         tcroot = os.environ.get('TCROOT', '/build/toolchain')
 
         paths = [os.path.join(tcroot, 'lin32', path)
@@ -46,6 +42,8 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.PythonHelper):
 
     def _Command(self, hosttype, product, target='install', args={}):
         entry = 'cayman_antrea/antrea/bootstrap.py'
+        print ("_Command cayman_antrea/antrea/bootstrap.py")
+        print ("%(gobuild_component_docker_tool_root)")
 
         return {'desc': 'Compiling target CaymanAntrea %s' % product,
                 'root': '%(buildroot)/cayman_antrea/antrea',
@@ -77,6 +75,15 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.PythonHelper):
             'change':    specs.cayman_antrea.CAYMAN_CLN,
             'buildtype': specs.cayman_antrea.CAYMAN_BUILDTYPE,
             'hosttypes': specs.cayman_antrea.CAYMAN_HOSTTYPES,
+        }
+
+        comps['docker-tool'] = {
+            'branch': specs.cayman_antrea.DOCKER_TOOL_BRANCH,
+            'change': specs.cayman_antrea.DOCKER_TOOL_CLN,
+            'buildtype': specs.cayman_antrea.DOCKER_TOOL_BUILDTYPE,
+            'hosttypes': specs.cayman_antrea.DOCKER_TOOL_HOSTTYPES,
+            # Specific files cannot work, env GOBUILD_DOCKER_TOOL_ROOT is None
+            #'files': specs.cayman_antrea.DOCKER_TOOL_FILES,
         }
 
         return comps
