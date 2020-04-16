@@ -9,7 +9,7 @@ import platform
 
 
 def GetTCArch():
-    sys_map = {'Linux': 'lin32', 'Windows': 'win32', 'Darwin': 'mac32'}
+    sys_map = {'Linux': 'lin64', 'Windows': 'win64'}
     return sys_map[platform.system()]
 
 
@@ -46,7 +46,7 @@ class PythonHelper:
             arguments[root_key] = root_value
 
         tcroot = os.environ.get('TCROOT', '/build/toolchain')
-        pythonver = 'python-2.7.1'
+        pythonver = 'python-2.7.17-openssl-1.0.2u/'
         pythondir = ''
         if not hosttype.startswith('windows'):
             # posix installs of python keep their binaries in bin/
@@ -79,3 +79,59 @@ class PythonHelper:
         return [{'type': 'build',
                  'src': 'build'
                  }]
+
+
+class CaymanPythonHelper(PythonHelper):
+    """
+    Helper class for targets that build with Python.
+    Assume the subclass component correctly sets PATH and LB_LIBRARY_PATH in
+    _Environment() method, for example
+
+    def _Environment(self, hosttype):
+        env['PATH'] = os.pathsep.join([
+            "%(gobuild_component_cayman_python_root)/lin64/bin",
+            "%(gobuild_component_cayman_openssl_root)/lin64/bin",
+        ])
+        env['LD_LIBRARY_PATH'] = os.pathsep.join([
+            "%(gobuild_component_cayman_python_root)/lin64/lib",
+            "%(gobuild_component_cayman_openssl_root)/lin64/lib64",
+        ])
+        return env
+    """
+
+    def _PythonCommand(self, hosttype, product, script, target, arguments={}):
+
+        arguments.update({
+            'OBJDIR': '"%(buildtype)"',  # still in use
+            'BUILDTYPE': '"%(buildtype)"',
+            'BUILD_NUMBER': '"%(buildnumber)"',
+            'PRODUCT_BUILD_NUMBER': '"%(productbuildnumber)"',
+            'CHANGE_NUMBER': '"%(changenumber)"',
+            'BRANCH_NAME': '"%(branch)"',
+            'RELEASETYPE': '"%(releasetype)"',
+            'PRODUCT': product,
+            'GOBUILD_AUTO_COMPONENTS': '0',
+        })
+
+        if 'PUBLISH_DIR' not in arguments:
+            arguments['PUBLISH_DIR'] = '%(buildroot)/publish'
+
+        # Handle verbosity
+        if 'VERBOSE' not in arguments:
+            arguments['VERBOSE'] = True
+
+        for d in self.GetComponentDependencyAliases():
+            d_no_hyphens = d.replace('-', '_')
+            root_key = 'GOBUILD_%s_ROOT' % d_no_hyphens.upper()
+            root_value = '%%(gobuild_component_%s_root)' % d_no_hyphens
+            arguments[root_key] = root_value
+
+        cmd = [
+            os.path.join("%(gobuild_component_cayman_python_root)/lin64/bin", 'python'),
+            os.path.join('%(buildroot)', script),
+        ]
+
+        cmd.extend(['%s=%s' % (k, v) for k, v in arguments.iteritems()])
+        cmd.extend([target])
+
+        return ' '.join(cmd)

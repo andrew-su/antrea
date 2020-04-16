@@ -12,7 +12,7 @@ import helpers.target
 import specs.cayman_antrea
 
 
-class _CaymanAntrea(helpers.target.Target, helpers.python.PythonHelper):
+class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
     """
     CaymanAntrea Open Source component
     """
@@ -28,15 +28,24 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.PythonHelper):
     def _Environment(self, hosttype):
         env = helpers.env.SafeEnvironment(hosttype)
 
+        paths = [
+            "%(gobuild_component_cayman_python_root)/lin64/bin",
+            "%(gobuild_component_cayman_openssl_root)/lin64/bin",
+        ]
+
         tcroot = os.environ.get('TCROOT', '/build/toolchain')
 
-        paths = [os.path.join(tcroot, 'lin32', path)
-                 for path in ['python-2.7.1/bin',
-                              'coreutils-5.97/bin',
-                              'findutils-4.2.27/bin',
-                              'grep-2.5.1a/bin']]
+        paths.extend([os.path.join(tcroot, 'lin64', path)
+                      for path in ['coreutils-5.97/bin',
+                                   'findutils-4.2.27/bin',
+                                   "git-1.8.3-1/bin",
+                                   'grep-2.5.1a/bin',]])
         paths.append(env['PATH'])
         env['PATH'] = os.pathsep.join(paths)
+        env['LD_LIBRARY_PATH'] = os.pathsep.join([
+            "%(gobuild_component_cayman_python_root)/lin64/lib",
+            "%(gobuild_component_cayman_openssl_root)/lin64/lib64",
+        ])
 
         return env
 
@@ -69,21 +78,32 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.PythonHelper):
 
     def GetComponentDependencies(self):
         buildtype = self.options.get('buildtype')
-        comps = {}
-        comps['cayman'] = {
-            'branch':    specs.cayman_antrea.CAYMAN_BRANCH,
-            'change':    specs.cayman_antrea.CAYMAN_CLN,
-            'buildtype': specs.cayman_antrea.CAYMAN_BUILDTYPE,
-            'hosttypes': specs.cayman_antrea.CAYMAN_HOSTTYPES,
-        }
-
-        comps['docker-tool'] = {
-            'branch': specs.cayman_antrea.DOCKER_TOOL_BRANCH,
-            'change': specs.cayman_antrea.DOCKER_TOOL_CLN,
-            'buildtype': specs.cayman_antrea.DOCKER_TOOL_BUILDTYPE,
-            'hosttypes': specs.cayman_antrea.DOCKER_TOOL_HOSTTYPES,
-            # Specific files cannot work, env GOBUILD_DOCKER_TOOL_ROOT is None
-            #'files': specs.cayman_antrea.DOCKER_TOOL_FILES,
+        comps = {
+            'cayman': {
+                'branch':    specs.cayman_antrea.CAYMAN_BRANCH,
+                'change':    specs.cayman_antrea.CAYMAN_CLN,
+                'buildtype': specs.cayman_antrea.CAYMAN_BUILDTYPE,
+                'hosttypes': specs.cayman_antrea.CAYMAN_HOSTTYPES},
+            "cayman_python": {
+                "branch": specs.cayman_antrea.CAYMAN_PYTHON_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_PYTHON_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_PYTHON_BUILDTYPE,
+                "hosttypes": specs.cayman_antrea.CAYMAN_PYTHON_HOSTTYPES},
+            "cayman_openssl": {
+                "branch": specs.cayman_antrea.CAYMAN_OPENSSL_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_OPENSSL_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_OPENSSL_BUILDTYPE,
+                "hosttypes": specs.cayman_antrea.CAYMAN_OPENSSL_HOSTTYPES},
+            'docker-tool': {
+                'branch': specs.cayman_antrea.DOCKER_TOOL_BRANCH,
+                'change': specs.cayman_antrea.DOCKER_TOOL_CLN,
+                'buildtype': specs.cayman_antrea.DOCKER_TOOL_BUILDTYPE,
+                'hosttypes': specs.cayman_antrea.DOCKER_TOOL_HOSTTYPES},
+            "nsbu-docker-images": {
+                "branch": specs.cayman_antrea.NSBU_DOCKER_IMAGES_BRANCH,
+                'change': specs.cayman_antrea.NSBU_DOCKER_IMAGES_CLN,
+                'buildtype': specs.cayman_antrea.NSBU_DOCKER_IMAGES_BUILDTYPE,
+                'files': specs.cayman_antrea.NSBU_DOCKER_IMAGES_FILES}
         }
 
         return comps

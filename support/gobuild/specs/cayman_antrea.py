@@ -1,4 +1,4 @@
-LINUX_HOSTTYPE = 'linux-centos64-kernel-3.18.21'
+LINUX_HOSTTYPE = 'linux-centos72-gc32'
 
 CAYMAN_BRANCH = 'master'
 CAYMAN_CLN = '71c887b9ee67bd2298b85464ff14401b978ff885'
@@ -7,12 +7,30 @@ CAYMAN_HOSTTYPES = {
     LINUX_HOSTTYPE: 'linux',
 }
 
+CAYMAN_PYTHON_BRANCH = "vmware-master"
+CAYMAN_PYTHON_CLN = "9dec3e3ec2bb443b7dddcde8f936b0d69e946692"
+CAYMAN_PYTHON_BUILDTYPE = "release"
+CAYMAN_PYTHON_HOSTTYPES = {
+    LINUX_HOSTTYPE: "linux64"
+}
+
+CAYMAN_OPENSSL_BRANCH = "vmware-master"
+CAYMAN_OPENSSL_CLN = "4bef6fc6dc831a68256eb3051eae39071f1080c3"
+CAYMAN_OPENSSL_BUILDTYPE = "release"
+CAYMAN_OPENSSL_HOSTTYPES = {
+    LINUX_HOSTTYPE: "linux64",
+}
+
 DOCKER_TOOL_BRANCH = "master"
-DOCKER_TOOL_CLN = 'de4a43fbaba7db782dee53ec81c2586c5b854df0'
+DOCKER_TOOL_CLN = '90b11ee5925ca2cd3d7be653449d62626adb492c'
 DOCKER_TOOL_BUILDTYPE = 'release'
 DOCKER_TOOL_HOSTTYPES = {
-    LINUX_HOSTTYPE: 'linux-centos64-kernel-3.18.21',
+    LINUX_HOSTTYPE: 'linux-centos8',
 }
-DOCKER_TOOL_FILES = {
-    "linux-centos64-kernel-3.18.21": ["publish/.*", "publish/.*/.*"]
-}
+
+NSBU_DOCKER_IMAGES_BRANCH = "nsx-highline-bionic"
+NSBU_DOCKER_IMAGES_CLN = "f7d35487c5ef44dc9e71be197e6d51fb72e9ab89"
+NSBU_DOCKER_IMAGES_BUILDTYPE = 'release'
+NSBU_DOCKER_IMAGES_FILES = {
+    LINUX_HOSTTYPE: ["publish/docker-images/ubuntu16.04-alias/.*",
+                     "publish/docker-images/blobs/.*"]}
