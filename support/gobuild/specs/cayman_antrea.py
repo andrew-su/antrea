@@ -28,9 +28,17 @@ DOCKER_TOOL_HOSTTYPES = {
     LINUX_HOSTTYPE: 'linux-centos8',
 }
 
-NSBU_DOCKER_IMAGES_BRANCH = "nsx-highline-bionic"
-NSBU_DOCKER_IMAGES_CLN = "f7d35487c5ef44dc9e71be197e6d51fb72e9ab89"
+NSBU_DOCKER_IMAGES_BRANCH = "nsx-highline"
+NSBU_DOCKER_IMAGES_CLN = "9e572766d42429646c3a1f7ad78f9288593406f7"
 NSBU_DOCKER_IMAGES_BUILDTYPE = 'release'
 NSBU_DOCKER_IMAGES_FILES = {
-    LINUX_HOSTTYPE: ["publish/docker-images/ubuntu16.04-alias/.*",
-                     "publish/docker-images/blobs/.*"]}
+    LINUX_HOSTTYPE: [r"publish/docker-images/ubuntu16.04-alias/.*",
+                     r"publish/docker-images/blobs/.*"]
+}
+
+NSBU_REPOS_BRANCH = "nsx-highline"
+NSBU_REPOS_CLN = "37582b3c8e0c7d7e17cbfa98cd2c95843a56590f"
+NSBU_REPOS_BUILDTYPE = 'release'
+NSBU_REPOS_FILES = {
+    LINUX_HOSTTYPE: [r'publish/default/.*']
+}

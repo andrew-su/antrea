@@ -61,9 +61,10 @@ COMPCACHE="$(readlink -f ${BUILDROOT}/../../compcache)"
   "--buildid=vmware-master.${BUILD_NUMBER}" --build-dir=${BUILDDIR} --jobs=4 \
   "--compcache=${COMPCACHE}"
 
-docker pull registry2.nicira.eng.vmware.com/ob-16069129/ubuntu16.04-alias
+#"${DOCKER_TOOL}" build "--build-dir=${BUILDDIR}" -s test-image
 
-"${DOCKER_TOOL}" build "--build-dir=${BUILDDIR}" -s test-image
+cp vmware-image-ubuntu/* "${REPO_ROOT}/"
+cp "${GOBUILD_NSBU_REPOS_ROOT}/default/nsbu-xenial.list" "${REPO_ROOT}/"
 
 # Build binary
 cd "${REPO_ROOT}"
@@ -74,7 +75,8 @@ make docker-bin
 
 echo "Building Image"
 
-VERSION=vmware-master make ubuntu
+#VERSION=vmware-master make ubuntu
+"${DOCKER_TOOL}" build "--build-dir=${BUILDDIR}" -s -n antrea-ubuntu .
 
 # Create archives for scripts and binaries
 echo "Saving Deliverables"
@@ -85,6 +87,7 @@ cd ${REPO_ROOT}/build/images/scripts
 tar -czf ${OUTPUT_DIR}/bin/scripts.tar.gz *
 cd ${REPO_ROOT}/bin
 tar -czf ${OUTPUT_DIR}/bin/bin.tar.gz *
-docker save -o ${OUTPUT_DIR}/images/antrea-ubuntu.tar antrea/antrea-ubuntu:vmware-master
+mv ${BUILDDIR}/antrea-ubuntu-*.tar ${OUTPUT_DIR}/images
+#docker save -o ${OUTPUT_DIR}/images/antrea-ubuntu.tar antrea/antrea-ubuntu:vmware-master
 
 echo "antrea_build.sh end"

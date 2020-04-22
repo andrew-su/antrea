@@ -1,3 +1,0 @@
-deb http://ubtmirror.nicira.eng.vmware.com/ubuntu bionic main restricted multiverse universe
-deb http://ubtmirror.nicira.eng.vmware.com/ubuntu bionic-updates main restricted multiverse universe
-deb http://ubtmirror.nicira.eng.vmware.com/ubuntu bionic-security main restricted multiverse universe

@@ -103,7 +103,12 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
                 "branch": specs.cayman_antrea.NSBU_DOCKER_IMAGES_BRANCH,
                 'change': specs.cayman_antrea.NSBU_DOCKER_IMAGES_CLN,
                 'buildtype': specs.cayman_antrea.NSBU_DOCKER_IMAGES_BUILDTYPE,
-                'files': specs.cayman_antrea.NSBU_DOCKER_IMAGES_FILES}
+                'files': specs.cayman_antrea.NSBU_DOCKER_IMAGES_FILES},
+            "nsbu-repos": {
+                "branch": specs.cayman_antrea.NSBU_REPOS_BRANCH,
+                "change": specs.cayman_antrea.NSBU_REPOS_CLN,
+                "buildtype": specs.cayman_antrea.NSBU_REPOS_BUILDTYPE,
+                "files": specs.cayman_antrea.NSBU_REPOS_FILES},
         }
 
         return comps
