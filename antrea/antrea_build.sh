@@ -8,9 +8,9 @@ set -o xtrace
 echo "antrea_build.sh start"
 
 env
+cat /proc/cpuinfo
 
-SRC_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-REPO_ROOT=$(pwd)/src
+REPO_ROOT="${PROJECT_DIR}/src"
 
 # Update Docker to a version that supports multi-stage builds
 echo  "Updating Docker"
@@ -57,14 +57,12 @@ docker version
 
 COMPCACHE="$(readlink -f ${BUILDROOT}/../../compcache)"
 
+IMAGE_VERSION="vmware-master.${BUILD_NUMBER}"
 "${DOCKER_TOOL}" --registry registry2.nicira.eng.vmware.com configure \
-  "--buildid=vmware-master.${BUILD_NUMBER}" --build-dir=${BUILDDIR} --jobs=4 \
+  "--buildid=${IMAGE_VERSION}" --build-dir=${BUILDDIR} --jobs=4 \
   "--compcache=${COMPCACHE}"
 
 #"${DOCKER_TOOL}" build "--build-dir=${BUILDDIR}" -s test-image
-
-cp vmware-image-ubuntu/* "${REPO_ROOT}/"
-cp "${GOBUILD_NSBU_REPOS_ROOT}/default/nsbu-xenial.list" "${REPO_ROOT}/"
 
 # Build binary
 cd "${REPO_ROOT}"
@@ -73,21 +71,34 @@ ls "${REPO_ROOT}"
 echo "Building Binaries"
 make docker-bin
 
-echo "Building Image"
+echo "Building Images"
 
-#VERSION=vmware-master make ubuntu
-"${DOCKER_TOOL}" build "--build-dir=${BUILDDIR}" -s -n antrea-ubuntu .
+cp "${GOBUILD_NSBU_REPOS_ROOT}/default/nsbu-xenial.list" "${PROJECT_DIR}/images/ovs-ubuntu"
+"${DOCKER_TOOL}" build "--build-dir=${BUILDDIR}" -n openvswitch "${PROJECT_DIR}/images/ovs-ubuntu"
+
+cp ${PROJECT_DIR}/images/antrea-ubuntu/* "${REPO_ROOT}/"
+cp "${GOBUILD_NSBU_REPOS_ROOT}/default/nsbu-xenial.list" "${REPO_ROOT}/"
+"${DOCKER_TOOL}" build "--build-dir=${BUILDDIR}" -n antrea-ubuntu .
 
 # Create archives for scripts and binaries
 echo "Saving Deliverables"
-OUTPUT_DIR=${BUILDROOT}/output
-mkdir -p ${OUTPUT_DIR}/images
-mkdir -p ${OUTPUT_DIR}/bin
-cd ${REPO_ROOT}/build/images/scripts
-tar -czf ${OUTPUT_DIR}/bin/scripts.tar.gz *
-cd ${REPO_ROOT}/bin
-tar -czf ${OUTPUT_DIR}/bin/bin.tar.gz *
-mv ${BUILDDIR}/antrea-ubuntu-*.tar ${OUTPUT_DIR}/images
-#docker save -o ${OUTPUT_DIR}/images/antrea-ubuntu.tar antrea/antrea-ubuntu:vmware-master
+OUTPUT_DIR="${BUILDROOT}/output"
+mkdir -p "${OUTPUT_DIR}/manifests"
+mkdir -p "${OUTPUT_DIR}/images"
+mkdir -p "${OUTPUT_DIR}/bin"
+
+cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests"
+
+cd "${REPO_ROOT}/build/images/scripts"
+tar -czf "${OUTPUT_DIR}/bin/scripts.tar.gz" *
+cd "${REPO_ROOT}/bin"
+tar -czf "${OUTPUT_DIR}/bin/bin.tar.gz" *
+
+# We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
+#docker tag registry.local/${IMAGE_VERSION}/openvswitch antrea/openvswitch:${IMAGE_VERSION}
+#docker save -o "${OUTPUT_DIR}/images/openvswitch-${IMAGE_VERSION}.tar" antrea/openvswitch:${IMAGE_VERSION}
+
+docker tag registry.local/${IMAGE_VERSION}/antrea-ubuntu antrea/antrea-ubuntu:${IMAGE_VERSION}
+docker save -o "${OUTPUT_DIR}/images/antrea-ubuntu-${IMAGE_VERSION}.tar" antrea/antrea-ubuntu:${IMAGE_VERSION}
 
 echo "antrea_build.sh end"

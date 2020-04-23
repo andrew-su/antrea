@@ -1,0 +1,52 @@
+FROM $(REGISTRY)/$(GOBUILD_NSBU_DOCKER_IMAGES_BUILDID)/ubuntu16.04-alias as ovs-debs
+
+ADD xenial.sources.list /etc/apt/sources.list
+ADD nsbu-xenial.list /etc/apt/sources.list.d/
+
+# Some patches may not apply cleanly if another version is provided.
+ARG OVS_VERSION=2.13.0
+
+# Install dependencies for building OVS deb packages
+# We install both python2 and python3 packages (required to build the OVS debs)
+# so that this Dockerfile can be used to build different versions of OVS if
+# needed (python3 is required starting with OVS 2.13.0).
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends --allow-unauthenticated apt-utils && \
+    apt-get install -y --no-install-recommends --allow-unauthenticated wget curl git ca-certificates build-essential fakeroot graphviz \
+            bzip2 autoconf automake debhelper dh-autoreconf libssl-dev libtool openssl procps \
+            python-all python-twisted-conch python-zopeinterface python-six \
+            python3-all python3-twisted python3-zope.interface \
+            libunbound-dev
+
+COPY apply-patches.sh /
+
+# Download OVS source code and build debs
+RUN wget -q -O - https://www.openvswitch.org/releases/openvswitch-$OVS_VERSION.tar.gz  | tar xz -C /tmp && \
+    rm -rf openvswitch-$OVS_VERSION.tar.gz && \
+    cd /tmp/openvswitch* && \
+    for F in ./debian/*.manpages ; do echo > "${F}" ; done && \
+    /apply-patches.sh && \
+    DEB_BUILD_OPTIONS='parallel=8 nocheck' fakeroot debian/rules binary && \
+    cd /tmp && mkdir ovs-debs && \
+    mv libopenvswitch_*.deb openvswitch-common_*.deb openvswitch-switch_*.deb python*-openvswitch_*.deb \
+       openvswitch-ipsec_*.deb ovs-debs/ && \
+    cd / && rm -rf /tmp/openvswitch*
+
+
+FROM $(REGISTRY)/$(GOBUILD_NSBU_DOCKER_IMAGES_BUILDID)/ubuntu16.04-alias
+
+LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
+LABEL description="A Docker image based on Ubuntu 18.04 which includes Open vSwitch built from source."
+
+COPY --from=ovs-debs /tmp/ovs-debs/* /tmp/ovs-debs/
+COPY charon-logging.conf /tmp
+
+# We clean-up apt cache after installing packages to reduce the size of the
+# final image
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends --allow-unauthenticated apt-utils && \
+    apt-get install -y --no-install-recommends --allow-unauthenticated iptables libstrongswan-standard-plugins && \
+    (dpkg -i /tmp/ovs-debs/*.deb || apt-get -f -y --no-install-recommends --allow-unauthenticated install) && \
+    rm -rf /var/cache/apt/* /var/lib/apt/lists/* && \
+    sed -i "/^.*filelog.*{/r /tmp/charon-logging.conf" /etc/strongswan.d/charon-logging.conf && \
+    rm -rf /tmp/*
