@@ -59,8 +59,8 @@ curl https://github.com/openvswitch/ovs/commit/7cc77b301f80a63cd4893198d82be0eef
 
 if version_get "$OVS_VERSION" "2.13.0"; then
     # OVS hardcodes the installation path to /usr/lib/python3.7/dist-packages/ but this location
-    # does not seem to be in the Python path in Ubuntu 18.04. There may be a better way to do this,
+    # does not seem to be in the Python path in Ubuntu 16.04. There may be a better way to do this,
     # but this seems like an acceptable workaround.
-    sed -i 's/python3\.7/python3\.6/' debian/openvswitch-test.install
-    sed -i 's/python3\.7/python3\.6/' debian/python3-openvswitch.install
+    sed -i 's/python3\.7/python3\.5/' debian/openvswitch-test.install
+    sed -i 's/python3\.7/python3\.5/' debian/python3-openvswitch.install
 fi
