@@ -88,6 +88,10 @@ mkdir -p "${OUTPUT_DIR}/images"
 mkdir -p "${OUTPUT_DIR}/bin"
 
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests"
+cp "${REPO_ROOT}/build/yamls/antrea-ipsec.yml" "${OUTPUT_DIR}/manifests"
+for YAML in ${OUTPUT_DIR}/manifests/*.yml ; do
+  sed -i "s/image: antrea\/antrea-ubuntu:latest/image: antrea\/antrea-ubuntu:${IMAGE_VERSION}/g" "${YAML}"
+done
 
 cd "${REPO_ROOT}/build/images/scripts"
 tar -czf "${OUTPUT_DIR}/bin/scripts.tar.gz" *
