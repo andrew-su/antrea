@@ -62,23 +62,23 @@ IMAGE_VERSION="vmware-master.${BUILD_NUMBER}"
   "--buildid=${IMAGE_VERSION}" --build-dir=${BUILDDIR} --jobs=4 \
   "--compcache=${COMPCACHE}"
 
-#"${DOCKER_TOOL}" build "--build-dir=${BUILDDIR}" -s test-image
-
-# Build binary
 cd "${REPO_ROOT}"
-ls "${REPO_ROOT}"
+git status
+
+# Patching build scripts and Dockerfiles
+git cherry-pick HEAD..origin/build-debian
+git status
 
 echo "Building Binaries"
 make docker-bin
 
 echo "Building Images"
 
-cp "${GOBUILD_NSBU_REPOS_ROOT}/default/nsbu-xenial.list" "${PROJECT_DIR}/images/ovs-ubuntu"
-"${DOCKER_TOOL}" build "--build-dir=${BUILDDIR}" -n openvswitch "${PROJECT_DIR}/images/ovs-ubuntu"
+pushd build/images/ovs
+docker build -t antrea/openvswitch-debian .
+popd
 
-cp ${PROJECT_DIR}/images/antrea-ubuntu/* "${REPO_ROOT}/"
-cp "${GOBUILD_NSBU_REPOS_ROOT}/default/nsbu-xenial.list" "${REPO_ROOT}/"
-"${DOCKER_TOOL}" build "--build-dir=${BUILDDIR}" -n antrea-ubuntu .
+make debian VERSION=${IMAGE_VERSION}
 
 # Create archives for scripts and binaries
 echo "Saving Deliverables"
@@ -90,7 +90,7 @@ mkdir -p "${OUTPUT_DIR}/bin"
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests"
 cp "${REPO_ROOT}/build/yamls/antrea-ipsec.yml" "${OUTPUT_DIR}/manifests"
 for YAML in ${OUTPUT_DIR}/manifests/*.yml ; do
-  sed -i "s/image: antrea\/antrea-ubuntu:latest/image: antrea\/antrea-ubuntu:${IMAGE_VERSION}/g" "${YAML}"
+  sed -i "s/image: antrea\/antrea-.*:latest/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${YAML}"
 done
 
 cd "${REPO_ROOT}/build/images/scripts"
@@ -99,10 +99,8 @@ cd "${REPO_ROOT}/bin"
 tar -czf "${OUTPUT_DIR}/bin/bin.tar.gz" *
 
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
-#docker tag registry.local/${IMAGE_VERSION}/openvswitch antrea/openvswitch:${IMAGE_VERSION}
-#docker save -o "${OUTPUT_DIR}/images/openvswitch-${IMAGE_VERSION}.tar" antrea/openvswitch:${IMAGE_VERSION}
+# Just publish Antrea image.
 
-docker tag registry.local/${IMAGE_VERSION}/antrea-ubuntu antrea/antrea-ubuntu:${IMAGE_VERSION}
-docker save -o "${OUTPUT_DIR}/images/antrea-ubuntu-${IMAGE_VERSION}.tar" antrea/antrea-ubuntu:${IMAGE_VERSION}
+docker save -o "${OUTPUT_DIR}/images/antrea-debian-${IMAGE_VERSION}.tar" antrea/antrea-debian:${IMAGE_VERSION}
 
 echo "antrea_build.sh end"
