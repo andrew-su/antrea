@@ -109,6 +109,11 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
                 "change": specs.cayman_antrea.NSBU_REPOS_CLN,
                 "buildtype": specs.cayman_antrea.NSBU_REPOS_BUILDTYPE,
                 "files": specs.cayman_antrea.NSBU_REPOS_FILES},
+            "csc-photon": {
+                "branch": specs.cayman_antrea.CSC_PHOTON_BRANCH,
+                "change": specs.cayman_antrea.CSC_PHOTON_CLN,
+                "buildtype": specs.cayman_antrea.CSC_PHOTON_BUILDTYPE,
+                "files": specs.cayman_antrea.CSC_PHOTON_FILES},
         }
 
         return comps

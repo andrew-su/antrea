@@ -13,10 +13,11 @@ cat /proc/cpuinfo
 REPO_ROOT="${PROJECT_DIR}/src"
 
 # Update Docker to a version that supports multi-stage builds
-echo  "Updating Docker"
+echo  "====== Updating Docker ======"
 chmod a+x install_docker.sh
 sudo ./install_docker.sh
 
+echo "====== Installing docker-tool ======"
 # Install docker-tool
 pushd "${GOBUILD_DOCKER_TOOL_ROOT}"
 echo $PATH
@@ -51,13 +52,13 @@ PIP="${VENV}/bin/pip"
 
 DOCKER_TOOL="${VENV}/bin/docker-tool"
 
-echo "docker-tool installed"
+echo "====== docker-tool Installed ======"
 
 docker version
 
 COMPCACHE="$(readlink -f ${BUILDROOT}/../../compcache)"
 
-IMAGE_VERSION="vmware-master.${BUILD_NUMBER}"
+IMAGE_VERSION="${BRANCH_NAME}.${BUILD_NUMBER}"
 "${DOCKER_TOOL}" --registry registry2.nicira.eng.vmware.com configure \
   "--buildid=${IMAGE_VERSION}" --build-dir=${BUILDDIR} --jobs=4 \
   "--compcache=${COMPCACHE}"
@@ -65,23 +66,60 @@ IMAGE_VERSION="vmware-master.${BUILD_NUMBER}"
 cd "${REPO_ROOT}"
 git status
 
+echo "====== Patching Antrea Repo ======"
 # Patching build scripts and Dockerfiles
 git cherry-pick HEAD..origin/build-debian
 git status
 
-echo "Building Binaries"
+echo "====== Building Binaries ======"
 make docker-bin
 
-echo "Building Images"
+echo "====== Building Images ======"
 
+echo "====== Building Photon Images ======"
+echo "====== Preparing local Photon Yum Repo ======"
+mkdir -p /tmp/photo-iso
+sudo mount -o loop "${GOBUILD_CSC_PHOTON_ROOT}/csc-photon-3.0.0-x86_64.iso" /tmp/photo-iso
+pushd "/tmp/photo-iso"
+run_python -m SimpleHTTPServer 8080 &
+popd
+
+REPO_URL="http://`ip -f inet -o address show scope global | head -n 1| cut -f 7 -d ' ' | cut -f 1 -d '/'`:8080/RPMS"
+sed -i -e "s|baseurl=.*\$|baseurl=${REPO_URL}|g" "${PROJECT_DIR}/images/ovs-photon/photon-iso.repo"
+sed -i -e "s|baseurl=.*\$|baseurl=${REPO_URL}|g" "${PROJECT_DIR}/images/antrea-photon/photon-iso.repo"
+
+echo "====== Buildling openvswitch-photon Image ======"
+pushd "${PROJECT_DIR}/images/ovs-photon/"
+cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
+docker build -t antrea/openvswitch-photon .
+rm -f photon-rootfs.tar.gz
+popd
+
+echo "====== Buildling antrea-photon Image ======"
+cp -vf ${PROJECT_DIR}/images/antrea-photon/* .
+cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
+docker build -t antrea/antrea-photon:${IMAGE_VERSION} .
+rm -f photon-rootfs.tar.gz
+
+jobs -l
+ps aux | grep python
+pgrep -P $(jobs -p %?SimpleHTTPServer)
+pkill -SIGTERM -P $(jobs -p %?SimpleHTTPServer)
+wait %?SimpleHTTPServer || echo wait returns error $? as expected
+sudo lsof /tmp/photo-iso || true  # If no process is using photon-iso, lsof returns 1
+sudo umount /tmp/photo-iso
+
+echo "====== Building Debian Images ======"
+echo "====== Building openvswitch-debian Image ======"
 pushd build/images/ovs
 docker build -t antrea/openvswitch-debian .
 popd
 
+echo "====== Building antrea-debian Image ======"
 make debian VERSION=${IMAGE_VERSION}
 
 # Create archives for scripts and binaries
-echo "Saving Deliverables"
+echo "====== Saving Deliverables ======"
 OUTPUT_DIR="${BUILDROOT}/output"
 mkdir -p "${OUTPUT_DIR}/manifests"
 mkdir -p "${OUTPUT_DIR}/images"
@@ -100,7 +138,7 @@ tar -czf "${OUTPUT_DIR}/bin/bin.tar.gz" *
 
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
 # Just publish Antrea image.
-
+docker save -o "${OUTPUT_DIR}/images/antrea-photon-${IMAGE_VERSION}.tar" antrea/antrea-photon:${IMAGE_VERSION}
 docker save -o "${OUTPUT_DIR}/images/antrea-debian-${IMAGE_VERSION}.tar" antrea/antrea-debian:${IMAGE_VERSION}
 
 echo "antrea_build.sh end"

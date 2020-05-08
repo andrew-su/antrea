@@ -1,0 +1,42 @@
+From 7cc77b301f80a63cd4893198d82be0eef303f731 Mon Sep 17 00:00:00 2001
+From: Ben Pfaff <blp@ovn.org>
+Date: Fri, 28 Feb 2020 09:15:32 -0800
+Subject: [PATCH] ofproto-dpif: Only delete tunnel backer ports along with the
+ dpif.
+
+The admin can choose whether or not to delete flows from datapaths when
+they stop ovs-vswitchd.  The goal of not deleting flows it to allow
+existing traffic to continue being forwarded until ovs-vswitchd is
+restarted.  Until now, regardless of this choice, ovs-vswitchd has
+always deleted tunnel ports from the datapath.  When flows are not
+deleted, this nevertheless prevents tunnel traffic from being forwarded.
+
+With this patch, ovs-vswitchd no longer deletes tunnel ports in the
+case where it does not delete flows, allowing tunnel traffic to continue
+being forwarded.
+
+Reported-by: Antonin Bas <abas@vmware.com>
+Tested-by: Antonin Bas <abas@vmware.com>
+Tested-by: txfh2007 <txfh2007@aliyun.com>
+Signed-off-by: Ben Pfaff <blp@ovn.org>
+---
+ ofproto/ofproto-dpif.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/ofproto/ofproto-dpif.c b/ofproto/ofproto-dpif.c
+index 0222ec82f0..d56cece95e 100644
+--- a/ofproto/ofproto-dpif.c
++++ b/ofproto/ofproto-dpif.c
+@@ -698,8 +698,10 @@ close_dpif_backer(struct dpif_backer *backer, bool del)
+ 
+     udpif_destroy(backer->udpif);
+ 
+-    SIMAP_FOR_EACH (node, &backer->tnl_backers) {
+-        dpif_port_del(backer->dpif, u32_to_odp(node->data), false);
++    if (del) {
++        SIMAP_FOR_EACH (node, &backer->tnl_backers) {
++            dpif_port_del(backer->dpif, u32_to_odp(node->data), false);
++        }
+     }
+     simap_destroy(&backer->tnl_backers);
+     ovs_rwlock_destroy(&backer->odp_to_ofport_lock);

@@ -1,0 +1,133 @@
+From 79eadafeb1b47a3871cb792aa972f6e4d89d1a0b Mon Sep 17 00:00:00 2001
+From: Ben Pfaff <blp@ovn.org>
+Date: Thu, 9 Jan 2020 12:49:44 -0800
+Subject: [PATCH] ofproto: Do not delete datapath flows on exit by default.
+
+Commit e96a5c24e853 ("upcall: Remove datapath flows when setting
+n-threads.") caused OVS to delete datapath flows when it exits through
+any graceful means.  This is not necessarily desirable, especially when
+OVS is being stopped as part of an upgrade.  This commit changes OVS so
+that it only removes datapath flows when requested, via "ovs-appctl
+exit --cleanup".
+
+Acked-by: Numan Siddique <numans@ovn.org>
+Tested-by: Numan Siddique <numans@ovn.org>
+Signed-off-by: Ben Pfaff <blp@ovn.org>
+---
+ NEWS                          |  1 +
+ ofproto/ofproto-dpif-upcall.c | 26 ++++++++++++++++----------
+ ofproto/ofproto.c             |  8 ++++----
+ vswitchd/ovs-vswitchd.8.in    | 13 +++++++------
+ 4 files changed, 28 insertions(+), 20 deletions(-)
+
+diff --git a/ofproto/ofproto-dpif-upcall.c b/ofproto/ofproto-dpif-upcall.c
+index cff6d4bf34..483cebb52b 100644
+--- a/ofproto/ofproto-dpif-upcall.c
++++ b/ofproto/ofproto-dpif-upcall.c
+@@ -332,7 +332,7 @@ static size_t recv_upcalls(struct handler *);
+ static int process_upcall(struct udpif *, struct upcall *,
+                           struct ofpbuf *odp_actions, struct flow_wildcards *);
+ static void handle_upcalls(struct udpif *, struct upcall *, size_t n_upcalls);
+-static void udpif_stop_threads(struct udpif *);
++static void udpif_stop_threads(struct udpif *, bool delete_flows);
+ static void udpif_start_threads(struct udpif *, size_t n_handlers,
+                                 size_t n_revalidators);
+ static void udpif_pause_revalidators(struct udpif *);
+@@ -483,7 +483,7 @@ udpif_run(struct udpif *udpif)
+ void
+ udpif_destroy(struct udpif *udpif)
+ {
+-    udpif_stop_threads(udpif);
++    udpif_stop_threads(udpif, false);
+ 
+     dpif_register_dp_purge_cb(udpif->dpif, NULL, udpif);
+     dpif_register_upcall_cb(udpif->dpif, NULL, udpif);
+@@ -504,9 +504,15 @@ udpif_destroy(struct udpif *udpif)
+     free(udpif);
+ }
+ 
+-/* Stops the handler and revalidator threads. */
++/* Stops the handler and revalidator threads.
++ *
++ * If 'delete_flows' is true, we delete ukeys and delete all flows from the
++ * datapath.  Otherwise, we end up double-counting stats for flows that remain
++ * in the datapath.  If 'delete_flows' is false, we skip this step.  This is
++ * appropriate if OVS is about to exit anyway and it is desirable to let
++ * existing network connections continue being forwarded afterward. */
+ static void
+-udpif_stop_threads(struct udpif *udpif)
++udpif_stop_threads(struct udpif *udpif, bool delete_flows)
+ {
+     if (udpif && (udpif->n_handlers != 0 || udpif->n_revalidators != 0)) {
+         size_t i;
+@@ -526,10 +532,10 @@ udpif_stop_threads(struct udpif *udpif)
+         dpif_disable_upcall(udpif->dpif);
+         ovsrcu_quiesce_end();
+ 
+-        /* Delete ukeys, and delete all flows from the datapath to prevent
+-         * double-counting stats. */
+-        for (i = 0; i < udpif->n_revalidators; i++) {
+-            revalidator_purge(&udpif->revalidators[i]);
++        if (delete_flows) {
++            for (i = 0; i < udpif->n_revalidators; i++) {
++                revalidator_purge(&udpif->revalidators[i]);
++            }
+         }
+ 
+         latch_poll(&udpif->exit_latch);
+@@ -627,7 +633,7 @@ udpif_set_threads(struct udpif *udpif, size_t n_handlers_,
+ 
+     if (udpif->n_handlers != n_handlers_
+         || udpif->n_revalidators != n_revalidators_) {
+-        udpif_stop_threads(udpif);
++        udpif_stop_threads(udpif, true);
+     }
+ 
+     if (!udpif->handlers && !udpif->revalidators) {
+@@ -681,7 +687,7 @@ udpif_flush(struct udpif *udpif)
+     size_t n_handlers_ = udpif->n_handlers;
+     size_t n_revalidators_ = udpif->n_revalidators;
+ 
+-    udpif_stop_threads(udpif);
++    udpif_stop_threads(udpif, true);
+     dpif_flow_flush(udpif->dpif);
+     udpif_start_threads(udpif, n_handlers_, n_revalidators_);
+ }
+diff --git a/ofproto/ofproto.c b/ofproto/ofproto.c
+index 08830d8371..5d69a4332f 100644
+--- a/ofproto/ofproto.c
++++ b/ofproto/ofproto.c
+@@ -1601,13 +1601,13 @@ ofproto_rule_delete(struct ofproto *ofproto, struct rule *rule)
+ }
+ 
+ static void
+-ofproto_flush__(struct ofproto *ofproto)
++ofproto_flush__(struct ofproto *ofproto, bool del)
+     OVS_EXCLUDED(ofproto_mutex)
+ {
+     struct oftable *table;
+ 
+     /* This will flush all datapath flows. */
+-    if (ofproto->ofproto_class->flush) {
++    if (del && ofproto->ofproto_class->flush) {
+         ofproto->ofproto_class->flush(ofproto);
+     }
+ 
+@@ -1710,7 +1710,7 @@ ofproto_destroy(struct ofproto *p, bool del)
+         return;
+     }
+ 
+-    ofproto_flush__(p);
++    ofproto_flush__(p, del);
+     HMAP_FOR_EACH_SAFE (ofport, next_ofport, hmap_node, &p->ports) {
+         ofport_destroy(ofport, del);
+     }
+@@ -2288,7 +2288,7 @@ void
+ ofproto_flush_flows(struct ofproto *ofproto)
+ {
+     COVERAGE_INC(ofproto_flush);
+-    ofproto_flush__(ofproto);
++    ofproto_flush__(ofproto, false);
+     connmgr_flushed(ofproto->connmgr);
+ }
+ 

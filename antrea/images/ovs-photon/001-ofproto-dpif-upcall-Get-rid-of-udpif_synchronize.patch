@@ -1,0 +1,110 @@
+From 586cd3101e7fda54d14fb5bf12d847f35d968627 Mon Sep 17 00:00:00 2001
+From: Ben Pfaff <blp@ovn.org>
+Date: Thu, 9 Jan 2020 12:49:43 -0800
+Subject: [PATCH] ofproto-dpif-upcall: Get rid of udpif_synchronize().
+
+RCU provides the semantics we want from udpif_synchronize() and it
+should be much more lightweight than killing and restarting all the
+upcall threads.  It looks like udpif_synchronize() was written before
+the OVS tree had RCU support, which is probably why we didn't use it
+here from the beginning.  So we can just change udpif_synchronize()
+to a single ovsrcu_synchronize() call.
+
+However, udpif_synchronize() only has a single caller, which calls
+ovsrcu_synchronize() anyway just beforehand, via xlate_txn_commit().
+So we can get rid of udpif_synchronize() entirely, which this patch
+does.
+
+As a side effect, this eliminates one reason why terminating OVS cleanly
+clears the datapath flow table.  An upcoming patch will eliminate
+other reasons.
+
+Acked-by: Numan Siddique <numans@ovn.org>
+Signed-off-by: Ben Pfaff <blp@ovn.org>
+---
+ ofproto/ofproto-dpif-upcall.c | 17 -----------------
+ ofproto/ofproto-dpif-upcall.h |  1 -
+ ofproto/ofproto-dpif-xlate.c  | 14 +++++++++-----
+ ofproto/ofproto-dpif.c        |  4 ----
+ 4 files changed, 9 insertions(+), 27 deletions(-)
+
+diff --git a/ofproto/ofproto-dpif-upcall.c b/ofproto/ofproto-dpif-upcall.c
+index 3aef9a6c32..cff6d4bf34 100644
+--- a/ofproto/ofproto-dpif-upcall.c
++++ b/ofproto/ofproto-dpif-upcall.c
+@@ -644,23 +644,6 @@ udpif_set_threads(struct udpif *udpif, size_t n_handlers_,
+     }
+ }
+ 
+-/* Waits for all ongoing upcall translations to complete.  This ensures that
+- * there are no transient references to any removed ofprotos (or other
+- * objects).  In particular, this should be called after an ofproto is removed
+- * (e.g. via xlate_remove_ofproto()) but before it is destroyed. */
+-void
+-udpif_synchronize(struct udpif *udpif)
+-{
+-    /* This is stronger than necessary.  It would be sufficient to ensure
+-     * (somehow) that each handler and revalidator thread had passed through
+-     * its main loop once. */
+-    size_t n_handlers_ = udpif->n_handlers;
+-    size_t n_revalidators_ = udpif->n_revalidators;
+-
+-    udpif_stop_threads(udpif);
+-    udpif_start_threads(udpif, n_handlers_, n_revalidators_);
+-}
+-
+ /* Notifies 'udpif' that something changed which may render previous
+  * xlate_actions() results invalid. */
+ void
+diff --git a/ofproto/ofproto-dpif-upcall.h b/ofproto/ofproto-dpif-upcall.h
+index cef1d34198..693107ae56 100644
+--- a/ofproto/ofproto-dpif-upcall.h
++++ b/ofproto/ofproto-dpif-upcall.h
+@@ -33,7 +33,6 @@ struct udpif *udpif_create(struct dpif_backer *, struct dpif *);
+ void udpif_run(struct udpif *udpif);
+ void udpif_set_threads(struct udpif *, size_t n_handlers,
+                        size_t n_revalidators);
+-void udpif_synchronize(struct udpif *);
+ void udpif_destroy(struct udpif *);
+ void udpif_revalidate(struct udpif *);
+ void udpif_get_memory_usage(struct udpif *, struct simap *usage);
+diff --git a/ofproto/ofproto-dpif-xlate.c b/ofproto/ofproto-dpif-xlate.c
+index 4407f9c97a..0b45ecf3d4 100644
+--- a/ofproto/ofproto-dpif-xlate.c
++++ b/ofproto/ofproto-dpif-xlate.c
+@@ -1171,11 +1171,15 @@ xlate_xport_copy(struct xbridge *xbridge, struct xbundle *xbundle,
+  *
+  * A sample workflow:
+  *
+- * xlate_txn_start();
+- * ...
+- * edit_xlate_configuration();
+- * ...
+- * xlate_txn_commit(); */
++ *     xlate_txn_start();
++ *     ...
++ *     edit_xlate_configuration();
++ *     ...
++ *     xlate_txn_commit();
++ *
++ * The ovsrcu_synchronize() call here also ensures that the upcall threads
++ * retain no references to anything in the previous configuration.
++ */
+ void
+ xlate_txn_commit(void)
+ {
+diff --git a/ofproto/ofproto-dpif.c b/ofproto/ofproto-dpif.c
+index ded170588b..67a4ad46f5 100644
+--- a/ofproto/ofproto-dpif.c
++++ b/ofproto/ofproto-dpif.c
+@@ -1751,10 +1751,6 @@ destruct(struct ofproto *ofproto_, bool del)
+     xlate_remove_ofproto(ofproto);
+     xlate_txn_commit();
+ 
+-    /* Ensure that the upcall processing threads have no remaining references
+-     * to the ofproto or anything in it. */
+-    udpif_synchronize(ofproto->backer->udpif);
+-
+     hmap_remove(&all_ofproto_dpifs_by_name,
+                 &ofproto->all_ofproto_dpifs_by_name_node);
+     hmap_remove(&all_ofproto_dpifs_by_uuid,

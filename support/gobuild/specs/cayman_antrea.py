@@ -42,3 +42,11 @@ NSBU_REPOS_BUILDTYPE = 'release'
 NSBU_REPOS_FILES = {
     LINUX_HOSTTYPE: [r'publish/default/.*']
 }
+
+CSC_PHOTON_BRANCH = "photon3-vmw-updates"
+CSC_PHOTON_CLN = "7999124"
+CSC_PHOTON_BUILDTYPE = 'release'
+CSC_PHOTON_FILES = {
+    LINUX_HOSTTYPE: ["publish/docker-image/photon-rootfs.tar.gz",
+                     "publish/csc-photon-3.0.0-x86_64.iso"]
+}
