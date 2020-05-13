@@ -9,6 +9,7 @@ echo "antrea_build.sh start"
 
 env
 cat /proc/cpuinfo
+source release.config
 
 REPO_ROOT="${PROJECT_DIR}/src"
 
@@ -58,7 +59,11 @@ docker version
 
 COMPCACHE="$(readlink -f ${BUILDROOT}/../../compcache)"
 
-IMAGE_VERSION="${BRANCH_NAME}.${BUILD_NUMBER}"
+if [ "${BRANCH_NAME}" = "vmware-master" ]; then
+  IMAGE_VERSION=vmware-master
+else
+  IMAGE_VERSION="v${BRANCH_NAME#vmware-}_vmware.${VMWARE_RELEASE_VERSION}"
+fi
 "${DOCKER_TOOL}" --registry registry2.nicira.eng.vmware.com configure \
   "--buildid=${IMAGE_VERSION}" --build-dir=${BUILDDIR} --jobs=4 \
   "--compcache=${COMPCACHE}"
@@ -128,7 +133,7 @@ mkdir -p "${OUTPUT_DIR}/bin"
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests"
 cp "${REPO_ROOT}/build/yamls/antrea-ipsec.yml" "${OUTPUT_DIR}/manifests"
 for YAML in ${OUTPUT_DIR}/manifests/*.yml ; do
-  sed -i "s/image: antrea\/antrea-.*:latest/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${YAML}"
+  sed -i "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${YAML}"
 done
 
 cd "${REPO_ROOT}/build/images/scripts"
