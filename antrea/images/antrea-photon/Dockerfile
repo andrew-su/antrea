@@ -1,9 +1,8 @@
 FROM scratch as cni-binaries
 
 ADD photon-rootfs.tar.gz /
-RUN rm -rf /etc/yum.repos.d/*.repo
+RUN /usr/bin/sed -i -e 's/^enabled=.*/enabled=0/g' /etc/yum.repos.d/*.repo
 COPY photon-iso.repo /etc/yum.repos.d/
-
 RUN tdnf install -y wget ca-certificates tar gzip
 
 # Leading dot is required for the tar command below
@@ -25,7 +24,9 @@ RUN tdnf remove -y toybox && \
       ipset \
       sed \
       tar \
-      util-linux
+      util-linux && \
+    tdnf clean all && \
+    rm -rf /var/cache/tdnf/* /usr/share/doc/*  /usr/share/man/* /etc/yum.repos.d/photon-iso.repo
 
 COPY --from=cni-binaries /opt/cni/bin /opt/cni/bin
 

@@ -78,6 +78,7 @@ git status
 
 echo "====== Building Binaries ======"
 make docker-bin
+rm -f bin/antrea-octant-plugin
 
 echo "====== Building Images ======"
 
@@ -126,23 +127,30 @@ make debian VERSION=${IMAGE_VERSION}
 # Create archives for scripts and binaries
 echo "====== Saving Deliverables ======"
 OUTPUT_DIR="${BUILDROOT}/output"
-mkdir -p "${OUTPUT_DIR}/manifests"
-mkdir -p "${OUTPUT_DIR}/images"
-mkdir -p "${OUTPUT_DIR}/bin"
 
+# Antrea yamls for TKG
+mkdir -p "${OUTPUT_DIR}/manifests"
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests"
 cp "${REPO_ROOT}/build/yamls/antrea-ipsec.yml" "${OUTPUT_DIR}/manifests"
 for YAML in ${OUTPUT_DIR}/manifests/*.yml ; do
   sed -i "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${YAML}"
 done
 
-cd "${REPO_ROOT}/build/images/scripts"
-tar -czf "${OUTPUT_DIR}/bin/scripts.tar.gz" *
+# Antrea yamls for TGK Guest Cluster. antrea-ipsec is not supported yet
+for k8s_version in "1.16" "1.17" "1.18"; do
+  mkdir -p "${OUTPUT_DIR}/add-on/${k8s_version}"
+  cat "${REPO_ROOT}/build/yamls/antrea.yml" | \
+    sed "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-photon:${IMAGE_VERSION}/g" | \
+    gawk -f "${PROJECT_DIR}/update-gc-config.awk" > "${OUTPUT_DIR}/add-on/${k8s_version}/antrea.yml"
+done
+
+mkdir -p "${OUTPUT_DIR}/bin"
 cd "${REPO_ROOT}/bin"
 tar -czf "${OUTPUT_DIR}/bin/bin.tar.gz" *
 
+mkdir -p "${OUTPUT_DIR}/images"
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
-# Just publish Antrea image.
+# Just publish Antrea images.
 docker save -o "${OUTPUT_DIR}/images/antrea-photon-${IMAGE_VERSION}.tar" antrea/antrea-photon:${IMAGE_VERSION}
 docker save -o "${OUTPUT_DIR}/images/antrea-debian-${IMAGE_VERSION}.tar" antrea/antrea-debian:${IMAGE_VERSION}
 

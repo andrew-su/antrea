@@ -2,7 +2,7 @@ FROM scratch as ovs-rpms
 
 ADD photon-rootfs.tar.gz /
 
-RUN rm -rf /etc/yum.repos.d/*.repo
+RUN /usr/bin/sed -i -e 's/^enabled=.*/enabled=0/g' /etc/yum.repos.d/*.repo
 COPY photon-iso.repo /etc/yum.repos.d/
 COPY openvswitch.spec /tmp/
 COPY *.patch /tmp/
@@ -77,7 +77,7 @@ LABEL vendor="VMware, Inc."
 LABEL name="VMware Stateless Photon OS 3.0 Base Image"
 
 ADD photon-rootfs.tar.gz /
-RUN rm -rf /etc/yum.repos.d/*.repo
+RUN /usr/bin/sed -i -e 's/^enabled=.*/enabled=0/g' /etc/yum.repos.d/*.repo
 COPY photon-iso.repo /etc/yum.repos.d/
 COPY --from=ovs-rpms /tmp/ovs-rpms/* /tmp/ovs-rpms/
 COPY charon-logging.conf /tmp
@@ -98,4 +98,6 @@ RUN tdnf install -y strongswan iptables rpm && \
       python3-xml && \
     rpm -ivh /tmp/ovs-rpms/openvswitch-2.13.0*.rpm /tmp/ovs-rpms/python*-openvswitch*.rpm && \
     sed -i "/^.*filelog.*{/r /tmp/charon-logging.conf" /etc/strongswan.d/charon-logging.conf && \
-    rm -rf /tmp/*
+    rm -rf /tmp/* && \
+    tdnf clean all && \
+    rm -rf /var/cache/tdnf/* /usr/share/doc/*  /usr/share/man/*
