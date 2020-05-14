@@ -151,8 +151,8 @@ tar -czf "${OUTPUT_DIR}/bin/bin.tar.gz" *
 mkdir -p "${OUTPUT_DIR}/images"
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
 # Just publish Antrea images.
-docker save -o "${OUTPUT_DIR}/images/antrea-photon-${IMAGE_VERSION}.tar" antrea/antrea-photon:${IMAGE_VERSION}
-docker save -o "${OUTPUT_DIR}/images/antrea-debian-${IMAGE_VERSION}.tar" antrea/antrea-debian:${IMAGE_VERSION}
+docker save antrea/antrea-photon:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-photon-${IMAGE_VERSION}.tar.gz"
+docker save antrea/antrea-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-debian-${IMAGE_VERSION}.tar.gz"
 
 echo "====== Signing Image Deliverables ======"
 CHECKSUM_FILENAME="antrea-${IMAGE_VERSION}-image-checksums.txt"
