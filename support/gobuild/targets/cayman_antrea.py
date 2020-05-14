@@ -40,6 +40,7 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
                                    'findutils-4.2.27/bin',
                                    "git-1.8.3-1/bin",
                                    'grep-2.5.1a/bin',]])
+        paths.append("/build/toolchain/noarch/vmware/gpgsign/")
         paths.append(env['PATH'])
         env['PATH'] = os.pathsep.join(paths)
         env['LD_LIBRARY_PATH'] = os.pathsep.join([

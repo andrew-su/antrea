@@ -5,7 +5,7 @@ set -o nounset
 set -o pipefail
 set -o xtrace
 
-echo "antrea_build.sh start"
+echo "****** antrea_build.sh start ******"
 
 env
 cat /proc/cpuinfo
@@ -154,4 +154,10 @@ mkdir -p "${OUTPUT_DIR}/images"
 docker save -o "${OUTPUT_DIR}/images/antrea-photon-${IMAGE_VERSION}.tar" antrea/antrea-photon:${IMAGE_VERSION}
 docker save -o "${OUTPUT_DIR}/images/antrea-debian-${IMAGE_VERSION}.tar" antrea/antrea-debian:${IMAGE_VERSION}
 
-echo "antrea_build.sh end"
+echo "====== Signing Image Deliverables ======"
+CHECKSUM_FILENAME="antrea-${IMAGE_VERSION}-image-checksums.txt"
+cd "${OUTPUT_DIR}/images/"
+sha256sum -- * > ${CHECKSUM_FILENAME}
+gpgsignc textsign -i ${CHECKSUM_FILENAME} -o "${CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=001E5CC9
+
+echo "****** antrea_build.sh end ******"
