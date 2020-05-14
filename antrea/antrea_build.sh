@@ -128,8 +128,12 @@ make debian VERSION=${IMAGE_VERSION}
 echo "====== Saving Deliverables ======"
 OUTPUT_DIR="${BUILDROOT}/output"
 
-# Antrea yamls for TKG
 mkdir -p "${OUTPUT_DIR}/manifests"
+echo ANTREA_VERSION=${IMAGE_VERSION} >> "${OUTPUT_DIR}/manifests/version"
+echo ANTREA_BRANCH=${BRANCH_NAME} >> "${OUTPUT_DIR}/manifests/version"
+echo ANTREA_BUILD=${BUILD_NUMBER} >> "${OUTPUT_DIR}/manifests/version"
+
+# Antrea yamls for TKG
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests"
 cp "${REPO_ROOT}/build/yamls/antrea-ipsec.yml" "${OUTPUT_DIR}/manifests"
 for YAML in ${OUTPUT_DIR}/manifests/*.yml ; do
