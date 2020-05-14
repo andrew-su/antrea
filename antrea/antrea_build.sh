@@ -147,6 +147,8 @@ done
 mkdir -p "${OUTPUT_DIR}/bin"
 cd "${REPO_ROOT}/bin"
 tar -czf "${OUTPUT_DIR}/bin/bin.tar.gz" *
+cd "${REPO_ROOT}/build/images/scripts"
+tar -czf "${OUTPUT_DIR}/bin/scripts.tar.gz" *
 
 mkdir -p "${OUTPUT_DIR}/images"
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
