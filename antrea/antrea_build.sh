@@ -97,7 +97,8 @@ sed -i -e "s|baseurl=.*\$|baseurl=${REPO_URL}|g" "${PROJECT_DIR}/images/antrea-p
 echo "====== Buildling openvswitch-photon Image ======"
 pushd "${PROJECT_DIR}/images/ovs-photon/"
 cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
-docker build -t antrea/openvswitch-photon .
+docker build --target ovs-rpms -t antrea/openvswitch-rpms-photon .
+docker build --cache-from antrea/openvswitch-rpms-photon -t antrea/openvswitch-photon .
 rm -f photon-rootfs.tar.gz
 popd
 
@@ -165,5 +166,11 @@ CHECKSUM_FILENAME="antrea-${IMAGE_VERSION}-image-checksums.txt"
 cd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${CHECKSUM_FILENAME}
 gpgsignc textsign -i ${CHECKSUM_FILENAME} -o "${CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=001E5CC9
+
+echo "====== Saving OpenvSwitch RPMs ======"
+mkdir -p "${OUTPUT_DIR}/rpms/"
+docker run -idt --rm --name ovs-rpms antrea/openvswitch-rpms-photon sh
+docker cp ovs-rpms:/tmp/ovs-rpms "${OUTPUT_DIR}/rpms/photon"
+docker stop ovs-rpms
 
 echo "****** antrea_build.sh end ******"
