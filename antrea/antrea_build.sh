@@ -105,6 +105,7 @@ popd
 echo "====== Buildling antrea-photon Image ======"
 cp -vf ${PROJECT_DIR}/images/antrea-photon/* .
 cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
+cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 docker build -t vmware.io/antrea/antrea-photon:${IMAGE_VERSION} .
 rm -f photon-rootfs.tar.gz
 

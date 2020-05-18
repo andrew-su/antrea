@@ -3,13 +3,14 @@ FROM scratch as cni-binaries
 ADD photon-rootfs.tar.gz /
 RUN /usr/bin/sed -i -e 's/^enabled=.*/enabled=0/g' /etc/yum.repos.d/*.repo
 COPY photon-iso.repo /etc/yum.repos.d/
-RUN tdnf install -y wget ca-certificates tar gzip
+RUN tdnf install -y ca-certificates tar gzip
 
 # Leading dot is required for the tar command below
 ENV CNI_PLUGINS="./host-local ./loopback ./portmap"
+COPY cni-plugins-*.tgz /tmp
 
 RUN mkdir -p /opt/cni/bin && \
-    wget -q -O - https://dl.k8s.io/network-plugins/cni-plugins-amd64-v0.7.5.tgz | tar xz -C /opt/cni/bin $CNI_PLUGINS
+    tar -zxvf /tmp/cni-plugins-*.tgz -C /opt/cni/bin $CNI_PLUGINS
 
 
 FROM antrea/openvswitch-photon

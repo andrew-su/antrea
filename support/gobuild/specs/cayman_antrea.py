@@ -50,3 +50,11 @@ CSC_PHOTON_FILES = {
     LINUX_HOSTTYPE: ["publish/docker-image/photon-rootfs.tar.gz",
                      "publish/csc-photon-3.0.0-x86_64.iso"]
 }
+
+CAYMAN_CNI_PLUGINS_BRANCH = "vmware-0.7.5+vmware.6"
+CAYMAN_CNI_PLUGINS_CLN = "262b0fd5b3518bad0d96e4f3af28ac3b1ce44e0d"
+CAYMAN_CNI_PLUGINS_BUILDTYPE = 'release'
+CAYMAN_CNI_PLUGINS_FILES = {
+    LINUX_HOSTTYPE: [
+        "publish/lin64/cni_plugins/executables/.*"]
+}

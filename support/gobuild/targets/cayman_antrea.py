@@ -115,6 +115,11 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
                 "change": specs.cayman_antrea.CSC_PHOTON_CLN,
                 "buildtype": specs.cayman_antrea.CSC_PHOTON_BUILDTYPE,
                 "files": specs.cayman_antrea.CSC_PHOTON_FILES},
+            "cayman_cni_plugins": {
+                "branch": specs.cayman_antrea.CAYMAN_CNI_PLUGINS_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_CNI_PLUGINS_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_CNI_PLUGINS_BUILDTYPE,
+                "files": specs.cayman_antrea.CAYMAN_CNI_PLUGINS_FILES},
         }
 
         return comps
