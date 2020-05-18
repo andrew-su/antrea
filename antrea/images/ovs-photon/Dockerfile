@@ -83,9 +83,10 @@ COPY charon-logging.conf /tmp
 
 
 RUN tdnf install -y strongswan iptables rpm && \
-     tdnf install -y \
+    tdnf install -y \
       bash \
       gawk \
+      jq \
       libcap-ng \
       libgcc-atomic \
       openssl \
