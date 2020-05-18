@@ -73,7 +73,7 @@ git status
 
 echo "====== Patching Antrea Repo ======"
 # Patching build scripts and Dockerfiles
-git cherry-pick HEAD..origin/build-debian
+git cherry-pick HEAD..origin/topic/ovs
 git status
 
 echo "====== Building Binaries ======"
@@ -114,7 +114,7 @@ popd
 echo "====== Buildling openvswitch-photon Image ======"
 pushd "${PROJECT_DIR}/images/ovs-photon/"
 cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
-cp "${OPENVSWITCH_DIR}/openvswitch-2.13.0.tar.gz" .
+cp ${OPENVSWITCH_DIR}/openvswitch-*.tar.gz .
 docker build --target ovs-rpms -t antrea/openvswitch-rpms-photon .
 docker build --cache-from antrea/openvswitch-rpms-photon -t antrea/openvswitch-photon .
 rm -f photon-rootfs.tar.gz
@@ -130,10 +130,12 @@ rm -f photon-rootfs.tar.gz
 echo "====== Building Debian Images ======"
 echo "====== Building openvswitch-debian Image ======"
 pushd build/images/ovs
+cp ${OPENVSWITCH_DIR}/openvswitch-2.13.0.tar.gz .
 docker build -t antrea/openvswitch-debian .
 popd
 
 echo "====== Building antrea-debian Image ======"
+cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 make debian VERSION=${IMAGE_VERSION}
 
 # Create archives for scripts and binaries
