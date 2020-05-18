@@ -94,9 +94,16 @@ REPO_URL="http://`ip -f inet -o address show scope global | head -n 1| cut -f 7 
 sed -i -e "s|baseurl=.*\$|baseurl=${REPO_URL}|g" "${PROJECT_DIR}/images/ovs-photon/photon-iso.repo"
 sed -i -e "s|baseurl=.*\$|baseurl=${REPO_URL}|g" "${PROJECT_DIR}/images/antrea-photon/photon-iso.repo"
 
+echo "====== Archiving OpenvSwitch Source Code ======"
+OPENVSWITCH_DIR="$(readlink -e ${PROJECT_DIR}/../ovs/src)"
+pushd "${OPENVSWITCH_DIR}"
+git archive --format=tar.gz --prefix=openvswitch-2.13.0/ -o openvswitch-2.13.0.tar.gz HEAD
+popd
+
 echo "====== Buildling openvswitch-photon Image ======"
 pushd "${PROJECT_DIR}/images/ovs-photon/"
 cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
+cp "${OPENVSWITCH_DIR}/openvswitch-2.13.0.tar.gz" .
 docker build --target ovs-rpms -t antrea/openvswitch-rpms-photon .
 docker build --cache-from antrea/openvswitch-rpms-photon -t antrea/openvswitch-photon .
 rm -f photon-rootfs.tar.gz

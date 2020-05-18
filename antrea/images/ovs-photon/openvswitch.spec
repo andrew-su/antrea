@@ -11,10 +11,7 @@ Group:          System Environment/Daemons
 Vendor:         VMware, Inc.
 Distribution:   Photon
 
-Source0:        http://openvswitch.org/releases/%{name}-%{version}.tar.gz
-Patch0: 001-ofproto-dpif-upcall-Get-rid-of-udpif_synchronize.patch
-Patch1: 002-ofproto-Do-not-delete-datapath-flows-on-exit-by-default.patch
-Patch2: 003-ofproto-dpif-Only-delete-tunnel-backer-ports-along-with-the-dpif.patch
+Source0:        %{name}-%{version}.tar.gz
 
 BuildRequires:  gcc >= 4.0.0
 BuildRequires:  libcap-ng
@@ -79,9 +76,7 @@ It contains the documentation and manpages for openvswitch.
 
 %prep
 %setup -q
-%patch0 -p1
-%patch1 -p1
-%patch2 -p1
+autoreconf --install --force
 
 %build
 export PYTHON2=no

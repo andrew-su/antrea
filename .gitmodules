@@ -2,3 +2,6 @@
 	path = antrea/src
 	url = git@gitlab.eng.vmware.com:core-build/mirrors_github_antrea
 	branch = vmware-master
+[submodule "ovs/src"]
+	path = ovs/src
+	url = git@gitlab.eng.vmware.com:core-build/mirrors_github_openvswitch_ovs.git

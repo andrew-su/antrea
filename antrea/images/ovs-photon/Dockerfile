@@ -5,7 +5,7 @@ ADD photon-rootfs.tar.gz /
 RUN /usr/bin/sed -i -e 's/^enabled=.*/enabled=0/g' /etc/yum.repos.d/*.repo
 COPY photon-iso.repo /etc/yum.repos.d/
 COPY openvswitch.spec /tmp/
-COPY *.patch /tmp/
+COPY openvswitch-*.tar.gz /tmp/
 
 RUN tdnf remove -y toybox && \
     tdnf install -y \
@@ -65,8 +65,7 @@ RUN tdnf remove -y toybox && \
       wget
 RUN SOURCE_DIR=$(rpm --eval "%{_sourcedir}") RPM_DIR=$(rpm --eval "%{_rpmdir}") && \
     mkdir -p "${SOURCE_DIR}" && \
-    wget -q -O "${SOURCE_DIR}/openvswitch-2.13.0.tar.gz" https://www.openvswitch.org/releases/openvswitch-2.13.0.tar.gz && \
-    mv /tmp/*.patch "${SOURCE_DIR}" && \
+    mv /tmp/openvswitch-*.tar.gz "${SOURCE_DIR}" && \
     rpmbuild -bb --nocheck /tmp/openvswitch.spec && \
     mkdir -p /tmp/ovs-rpms && mv ${RPM_DIR}/*/*.rpm /tmp/ovs-rpms
 
