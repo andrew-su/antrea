@@ -105,7 +105,7 @@ popd
 echo "====== Buildling antrea-photon Image ======"
 cp -vf ${PROJECT_DIR}/images/antrea-photon/* .
 cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
-docker build -t antrea/antrea-photon:${IMAGE_VERSION} .
+docker build -t vmware.io/antrea/antrea-photon:${IMAGE_VERSION} .
 rm -f photon-rootfs.tar.gz
 
 jobs -l
@@ -145,7 +145,7 @@ done
 for k8s_version in "1.16" "1.17" "1.18"; do
   mkdir -p "${OUTPUT_DIR}/add-on/${k8s_version}"
   cat "${REPO_ROOT}/build/yamls/antrea.yml" | \
-    sed "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-photon:${IMAGE_VERSION}/g" | \
+    sed "s/image: antrea\/antrea-.*\$/image: vmware.io\/antrea\/antrea-photon:${IMAGE_VERSION}/g" | \
     gawk -f "${PROJECT_DIR}/update-gc-config.awk" > "${OUTPUT_DIR}/add-on/${k8s_version}/antrea.yml"
 done
 
@@ -158,7 +158,7 @@ tar -czf "${OUTPUT_DIR}/bin/scripts.tar.gz" *
 mkdir -p "${OUTPUT_DIR}/images"
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
 # Just publish Antrea images.
-docker save antrea/antrea-photon:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-photon-${IMAGE_VERSION}.tar.gz"
+docker save vmware.io/antrea/antrea-photon:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-photon-${IMAGE_VERSION}.tar.gz"
 docker save antrea/antrea-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-debian-${IMAGE_VERSION}.tar.gz"
 
 echo "====== Signing Image Deliverables ======"
