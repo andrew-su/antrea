@@ -90,6 +90,17 @@ pushd "/tmp/photo-iso"
 run_python -m SimpleHTTPServer 8080 &
 popd
 
+function stop_local_repo {
+  jobs -l
+  ps aux | grep python
+  pgrep -P $(jobs -p %?SimpleHTTPServer)
+  pkill -SIGTERM -P $(jobs -p %?SimpleHTTPServer)
+  wait %?SimpleHTTPServer || echo wait returns error $? as expected
+  sudo lsof /tmp/photo-iso || true  # If no process is using photon-iso, lsof returns 1
+  sudo umount /tmp/photo-iso
+}
+trap stop_local_repo Exit
+
 REPO_URL="http://`ip -f inet -o address show scope global | head -n 1| cut -f 7 -d ' ' | cut -f 1 -d '/'`:8080/RPMS"
 sed -i -e "s|baseurl=.*\$|baseurl=${REPO_URL}|g" "${PROJECT_DIR}/images/ovs-photon/photon-iso.repo"
 sed -i -e "s|baseurl=.*\$|baseurl=${REPO_URL}|g" "${PROJECT_DIR}/images/antrea-photon/photon-iso.repo"
@@ -115,14 +126,6 @@ cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 docker build -t vmware.io/antrea/antrea-photon:${IMAGE_VERSION} .
 rm -f photon-rootfs.tar.gz
-
-jobs -l
-ps aux | grep python
-pgrep -P $(jobs -p %?SimpleHTTPServer)
-pkill -SIGTERM -P $(jobs -p %?SimpleHTTPServer)
-wait %?SimpleHTTPServer || echo wait returns error $? as expected
-sudo lsof /tmp/photo-iso || true  # If no process is using photon-iso, lsof returns 1
-sudo umount /tmp/photo-iso
 
 echo "====== Building Debian Images ======"
 echo "====== Building openvswitch-debian Image ======"
