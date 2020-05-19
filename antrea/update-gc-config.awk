@@ -14,6 +14,11 @@ BEGIN { modify=0 }
     gsub("#tunnelType:.*", "tunnelType: geneve", $0)
   }
 }
+/#serviceCIDR:/ {
+  if (modify == 1) {
+    gsub("#serviceCIDR:.*", "serviceCIDR: {{.ClusterIPCIDR}}", $0)
+  }
+}
 /---/ {
   modify=0
 }
