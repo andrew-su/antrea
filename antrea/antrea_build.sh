@@ -73,7 +73,7 @@ git status
 
 echo "====== Patching Antrea Repo ======"
 # Patching build scripts and Dockerfiles
-git cherry-pick HEAD..origin/topic/ovs
+git cherry-pick HEAD..origin/build-debian
 git status
 
 echo "====== Building Binaries ======"
