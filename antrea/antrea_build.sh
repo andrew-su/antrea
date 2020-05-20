@@ -151,15 +151,16 @@ echo ANTREA_BUILD=${BUILD_NUMBER} >> "${OUTPUT_DIR}/manifests/version"
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests"
 cp "${REPO_ROOT}/build/yamls/antrea-ipsec.yml" "${OUTPUT_DIR}/manifests"
 for YAML in ${OUTPUT_DIR}/manifests/*.yml ; do
-  sed -i "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${YAML}"
+  sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" \
+    -e "s/#tunnelType:.*\$/tunnelType: geneve/g"  "${YAML}"
 done
 
-# Antrea yamls for TGK Guest Cluster. antrea-ipsec is not supported yet
+# Antrea yamls for TKG Guest Cluster. antrea-ipsec is not supported yet
 for k8s_version in "1.16" "1.17" "1.18"; do
-  mkdir -p "${OUTPUT_DIR}/add-on/${k8s_version}"
+  mkdir -p "${PUBLISH_DIR}/add-on/${k8s_version}"
   cat "${REPO_ROOT}/build/yamls/antrea.yml" | \
     sed "s/image: antrea\/antrea-.*\$/image: vmware.io\/antrea\/antrea-photon:${IMAGE_VERSION}/g" | \
-    gawk -f "${PROJECT_DIR}/update-gc-config.awk" > "${OUTPUT_DIR}/add-on/${k8s_version}/antrea.yml"
+    gawk -f "${PROJECT_DIR}/update-gc-config.awk" > "${PUBLISH_DIR}/add-on/${k8s_version}/antrea.yml"
 done
 
 mkdir -p "${OUTPUT_DIR}/bin"
