@@ -132,7 +132,7 @@ for YAML in ${OUTPUT_DIR}/manifests/*.yml ; do
 done
 
 # Antrea yamls for TKG Guest Cluster. antrea-ipsec is not supported yet
-git cherry-pick HEAD..origin/topic/gc
+git cherry-pick origin/topic/gc
 for k8s_version in "1.16" "1.17" "1.18"; do
   mkdir -p "${PUBLISH_DIR}/add-on/${k8s_version}"
   cat "${REPO_ROOT}/build/yamls/antrea.yml" | \
