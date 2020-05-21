@@ -95,21 +95,6 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
                 "change": specs.cayman_antrea.CAYMAN_OPENSSL_CLN,
                 "buildtype": specs.cayman_antrea.CAYMAN_OPENSSL_BUILDTYPE,
                 "hosttypes": specs.cayman_antrea.CAYMAN_OPENSSL_HOSTTYPES},
-            'docker-tool': {
-                'branch': specs.cayman_antrea.DOCKER_TOOL_BRANCH,
-                'change': specs.cayman_antrea.DOCKER_TOOL_CLN,
-                'buildtype': specs.cayman_antrea.DOCKER_TOOL_BUILDTYPE,
-                'hosttypes': specs.cayman_antrea.DOCKER_TOOL_HOSTTYPES},
-            "nsbu-docker-images": {
-                "branch": specs.cayman_antrea.NSBU_DOCKER_IMAGES_BRANCH,
-                'change': specs.cayman_antrea.NSBU_DOCKER_IMAGES_CLN,
-                'buildtype': specs.cayman_antrea.NSBU_DOCKER_IMAGES_BUILDTYPE,
-                'files': specs.cayman_antrea.NSBU_DOCKER_IMAGES_FILES},
-            "nsbu-repos": {
-                "branch": specs.cayman_antrea.NSBU_REPOS_BRANCH,
-                "change": specs.cayman_antrea.NSBU_REPOS_CLN,
-                "buildtype": specs.cayman_antrea.NSBU_REPOS_BUILDTYPE,
-                "files": specs.cayman_antrea.NSBU_REPOS_FILES},
             "csc-photon": {
                 "branch": specs.cayman_antrea.CSC_PHOTON_BRANCH,
                 "change": specs.cayman_antrea.CSC_PHOTON_CLN,

@@ -54,8 +54,6 @@ yum install -y docker-ce-18.09.5 docker-ce-cli-18.09.5 containerd.io-1.2.5
 #groupadd docker
 /usr/sbin/usermod -aG docker mts
 /usr/sbin/service docker restart
-chown mts:docker /var/run/docker.sock
-chown -R mts:docker /var/lib/docker
 echo "Installing Docker Version 18.09.5 complete... now fixing storage situation...."
 # Printing docker info
 #echo "Docker Version"
@@ -72,6 +70,12 @@ mkdir -m777 -p ${DOCKER_STORAGE_DIR}
 sed -i 's#ExecStart=/usr/bin/dockerd#ExecStart=/usr/bin/dockerd -g '"$DOCKER_STORAGE_DIR"' --icc --ip-forward --ip-masq --iptables#g' /lib/systemd/system/docker.service
 systemctl daemon-reload
 systemctl restart docker
+chown mts:docker /var/run/docker.sock
+chown -R mts:docker /var/lib/docker
+sysctl net.ipv4.conf.all.forwarding=1
+sysctl net.ipv4.conf.docker0.forwarding=1
+sysctl net.ipv4.conf.default.forwarding=1
+iptables -I FORWARD -j ACCEPT
 echo "*********"
 echo "*********"
 echo "*********"

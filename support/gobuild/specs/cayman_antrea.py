@@ -21,28 +21,6 @@ CAYMAN_OPENSSL_HOSTTYPES = {
     LINUX_HOSTTYPE: "linux64",
 }
 
-DOCKER_TOOL_BRANCH = "master"
-DOCKER_TOOL_CLN = '90b11ee5925ca2cd3d7be653449d62626adb492c'
-DOCKER_TOOL_BUILDTYPE = 'release'
-DOCKER_TOOL_HOSTTYPES = {
-    LINUX_HOSTTYPE: 'linux-centos8',
-}
-
-NSBU_DOCKER_IMAGES_BRANCH = "nsx-highline"
-NSBU_DOCKER_IMAGES_CLN = "9e572766d42429646c3a1f7ad78f9288593406f7"
-NSBU_DOCKER_IMAGES_BUILDTYPE = 'release'
-NSBU_DOCKER_IMAGES_FILES = {
-    LINUX_HOSTTYPE: [r"publish/docker-images/ubuntu16.04-alias/.*",
-                     r"publish/docker-images/blobs/.*"]
-}
-
-NSBU_REPOS_BRANCH = "nsx-highline"
-NSBU_REPOS_CLN = "37582b3c8e0c7d7e17cbfa98cd2c95843a56590f"
-NSBU_REPOS_BUILDTYPE = 'release'
-NSBU_REPOS_FILES = {
-    LINUX_HOSTTYPE: [r'publish/default/.*']
-}
-
 CSC_PHOTON_BRANCH = "photon3-vmw-updates"
 CSC_PHOTON_CLN = "7999124"
 CSC_PHOTON_BUILDTYPE = 'release'

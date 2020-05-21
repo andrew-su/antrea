@@ -18,20 +18,6 @@ echo  "====== Updating Docker ======"
 chmod a+x install_docker.sh
 sudo ./install_docker.sh
 
-echo "====== Installing docker-tool ======"
-# Install docker-tool
-pushd "${GOBUILD_DOCKER_TOOL_ROOT}"
-echo $PATH
-sudo ./prepare_build_slave.sh
-sudo bash -c "echo '172.17.0.2 registry.local' >> /etc/hosts"
-sudo bash -c "echo '172.17.0.3 registry2.nicira.eng.vmware.com' >> /etc/hosts"
-cat /etc/hosts
-sudo sysctl net.ipv4.conf.all.forwarding=1
-sudo sysctl net.ipv4.conf.docker0.forwarding=1
-sudo sysctl net.ipv4.conf.default.forwarding=1
-sudo iptables -I FORWARD -j ACCEPT
-popd
-
 function run_python {
   PYTHON="${GOBUILD_CAYMAN_PYTHON_ROOT}/lin64/bin/python"
   "${PYTHON}" "$@"
@@ -49,24 +35,14 @@ PIP="${VENV}/bin/pip"
 
 # old pip doesn't support --trusted-host
 "${PIP}" install "${PIP_INDEX_URL}" -U pip setuptools==44.0
-"${PIP}" "${PIP_TRUSTED_HOST}" install "${PIP_INDEX_URL}" "${GOBUILD_DOCKER_TOOL_ROOT}/vmware-docker-tool-1.0.tar.gz"
-
-DOCKER_TOOL="${VENV}/bin/docker-tool"
-
-echo "====== docker-tool Installed ======"
 
 docker version
-
-COMPCACHE="$(readlink -f ${BUILDROOT}/../../compcache)"
 
 if [ "${BRANCH_NAME}" = "vmware-master" ]; then
   IMAGE_VERSION=vmware-master
 else
   IMAGE_VERSION="v${BRANCH_NAME#vmware-}_vmware.${VMWARE_RELEASE_VERSION}"
 fi
-"${DOCKER_TOOL}" --registry registry2.nicira.eng.vmware.com configure \
-  "--buildid=${IMAGE_VERSION}" --build-dir=${BUILDDIR} --jobs=4 \
-  "--compcache=${COMPCACHE}"
 
 cd "${REPO_ROOT}"
 git status
@@ -156,11 +132,11 @@ for YAML in ${OUTPUT_DIR}/manifests/*.yml ; do
 done
 
 # Antrea yamls for TKG Guest Cluster. antrea-ipsec is not supported yet
+git cherry-pick HEAD..origin/topic/gc
 for k8s_version in "1.16" "1.17" "1.18"; do
   mkdir -p "${PUBLISH_DIR}/add-on/${k8s_version}"
   cat "${REPO_ROOT}/build/yamls/antrea.yml" | \
-    sed "s/image: antrea\/antrea-.*\$/image: vmware.io\/antrea\/antrea-photon:${IMAGE_VERSION}/g" | \
-    gawk -f "${PROJECT_DIR}/update-gc-config.awk" > "${PUBLISH_DIR}/add-on/${k8s_version}/antrea.yml"
+    sed "s/image: antrea\/antrea-.*\$/image: vmware.io\/antrea\/antrea-photon:${IMAGE_VERSION}/g" > "${PUBLISH_DIR}/add-on/${k8s_version}/antrea.yaml"
 done
 
 mkdir -p "${OUTPUT_DIR}/bin"
