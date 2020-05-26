@@ -1,4 +1,7 @@
 FROM scratch as ovs-rpms
+# Photon images are for local testing, they are not consumed by cayman_photon.
+# We maintain a dedicated Antrea Dockerfile in cayman_photon. Antrea photon
+# image is actually built there.
 
 ADD photon-rootfs.tar.gz /
 

@@ -59,6 +59,9 @@ rm -f bin/antrea-octant-plugin
 echo "====== Building Images ======"
 
 echo "====== Building Photon Images ======"
+echo Photon images are for local testing, they are not consumed by cayman_photon.
+echo We maintain a dedicated Antrea Dockerfile in cayman_photon. Antrea photon
+echo image is actually built there.
 echo "====== Preparing local Photon Yum Repo ======"
 mkdir -p /tmp/photo-iso
 sudo mount -o loop "${GOBUILD_CSC_PHOTON_ROOT}/csc-photon-3.0.0-x86_64.iso" /tmp/photo-iso
@@ -119,9 +122,14 @@ echo "====== Saving Deliverables ======"
 OUTPUT_DIR="${BUILDROOT}/output"
 
 mkdir -p "${OUTPUT_DIR}/manifests"
+# Define some variables in manifests/version
+# Used in cayman_photon when builing antrea image
 echo ANTREA_VERSION=${IMAGE_VERSION} >> "${OUTPUT_DIR}/manifests/version"
 echo ANTREA_BRANCH=${BRANCH_NAME} >> "${OUTPUT_DIR}/manifests/version"
 echo ANTREA_BUILD=${BUILD_NUMBER} >> "${OUTPUT_DIR}/manifests/version"
+# Used by cayman_photon support/scripts/customizeOvf/customizeGcOvf.py
+# to read add-on versions in a normalized way
+echo "${IMAGE_VERSION}" > "${PUBLISH_DIR}/VERSION"
 
 # Antrea yamls for TKG
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests"
