@@ -12,6 +12,7 @@ import (
 type templateVars struct {
 	UseCertFromProvider    bool
 	ProviderCertSecretName string
+	ClusterIPCIDR          string
 }
 
 func main() {
@@ -23,7 +24,7 @@ func main() {
 	if err != nil {
 		fmt.Errorf("Failed to parse template: %v", err)
 	}
-	vars := templateVars{true, "antrea-certificate"}
+	vars := templateVars{true, "antrea-certificate", "10.96.0.0/12"}
 	err = t.Execute(os.Stdout, vars)
 	if err != nil {
 		fmt.Errorf("Failed to render template: %v", err)
