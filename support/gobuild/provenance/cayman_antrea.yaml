@@ -2,7 +2,7 @@
 ---
 - antrea/src:
    - name: antrea
-     version: "v0.7.0"
+     version: "v0.7.1"
      licenses: [Apache-2.0]
      uses: []
      url: https://github.com/vmware-tanzu/antrea
