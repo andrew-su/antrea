@@ -40,8 +40,10 @@ docker version
 
 if [ "${BRANCH_NAME}" = "vmware-master" ]; then
   IMAGE_VERSION=vmware-master
+  BINARY_VERSION=vmware-master
 else
   IMAGE_VERSION="v${BRANCH_NAME#vmware-}_vmware.${VMWARE_RELEASE_VERSION}"
+  BINARY_VERSION="v${BRANCH_NAME#vmware-}+vmware.${VMWARE_RELEASE_VERSION}"
 fi
 
 cd "${REPO_ROOT}"
@@ -125,6 +127,7 @@ mkdir -p "${OUTPUT_DIR}/manifests"
 # Define some variables in manifests/version
 # Used in cayman_photon when builing antrea image
 echo ANTREA_VERSION=${IMAGE_VERSION} >> "${OUTPUT_DIR}/manifests/version"
+echo ANTREA_BINARY_VERSION=${BINARY_VERSION} >> "${OUTPUT_DIR}/manifests/version"
 echo ANTREA_BRANCH=${BRANCH_NAME} >> "${OUTPUT_DIR}/manifests/version"
 echo ANTREA_BUILD=${BUILD_NUMBER} >> "${OUTPUT_DIR}/manifests/version"
 # Used by cayman_photon support/scripts/customizeOvf/customizeGcOvf.py
@@ -132,14 +135,14 @@ echo ANTREA_BUILD=${BUILD_NUMBER} >> "${OUTPUT_DIR}/manifests/version"
 echo "${IMAGE_VERSION}" > "${PUBLISH_DIR}/VERSION"
 
 # Antrea yamls for TKG
-cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests"
-cp "${REPO_ROOT}/build/yamls/antrea-ipsec.yml" "${OUTPUT_DIR}/manifests"
+cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
+cp "${REPO_ROOT}/build/yamls/antrea-ipsec.yml" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
 for YAML in ${OUTPUT_DIR}/manifests/*.yml ; do
   sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" \
     -e "s/#tunnelType:.*\$/tunnelType: geneve/g"  "${YAML}"
 done
 
-# Antrea yamls for TKG Guest Cluster. antrea-ipsec is not supported yet
+# Antrea yamls for TKG Service. antrea-ipsec is not supported yet
 git cherry-pick origin/topic/gc
 for k8s_version in "1.16" "1.17" "1.18"; do
   mkdir -p "${PUBLISH_DIR}/add-on/${k8s_version}"
@@ -147,28 +150,53 @@ for k8s_version in "1.16" "1.17" "1.18"; do
     sed "s/image: antrea\/antrea-.*\$/image: vmware.io\/antrea\/antrea-photon:${IMAGE_VERSION}/g" > "${PUBLISH_DIR}/add-on/${k8s_version}/antrea.yaml"
 done
 
-mkdir -p "${OUTPUT_DIR}/bin"
+# Binaries for building Antrea Photon image for TKG Service
+mkdir -p "${PUBLISH_DIR}/photon/bin"
 cd "${REPO_ROOT}/bin"
-tar -czf "${OUTPUT_DIR}/bin/bin.tar.gz" *
+tar -czf "${PUBLISH_DIR}/photon/bin/bin.tar.gz" *
 cd "${REPO_ROOT}/build/images/scripts"
-tar -czf "${OUTPUT_DIR}/bin/scripts.tar.gz" *
+tar -czf "${PUBLISH_DIR}/photon/bin/scripts.tar.gz" *
 
+# RPMs for building Antrea Photon image for TKG Service
+echo "====== Saving OpenvSwitch RPMs ======"
+mkdir -p "${PUBLISH_DIR}/photon/rpms/"
+docker run -idt --rm --name ovs-rpms antrea/openvswitch-rpms-photon sh
+docker cp ovs-rpms:/tmp/ovs-rpms "${PUBLISH_DIR}/photon/rpms/"
+docker stop ovs-rpms
+
+echo "====== Saving and Signing Images ======"
+
+# A test photon image
+image_id="$(docker inspect -f '{{.ID}}' "vmware.io/antrea/antrea-photon:${IMAGE_VERSION}")"
+digest_filename="antrea-photon-${IMAGE_VERSION}-image-digests.txt"
+checksum_filename="antrea-photon-${IMAGE_VERSION}-image-checksums.txt"
+mkdir -p "${PUBLISH_DIR}/photon/images"
+docker save vmware.io/antrea/antrea-photon:${IMAGE_VERSION} | gzip -9 > "${PUBLISH_DIR}/photon/images/antrea-photon-${IMAGE_VERSION}.tar.gz"
+echo "vmware.io/antrea/antrea-photon@${image_id}" > "${PUBLISH_DIR}/photon/images/${digest_filename}"
+cd "${PUBLISH_DIR}/photon/images"
+sha256sum -- * > ${checksum_filename}
+gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
+
+# Image for TKG
+image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-debian:${IMAGE_VERSION}")"
+digest_filename="antrea-debian-${IMAGE_VERSION}-image-digests.txt"
+checksum_filename="antrea-debian-${IMAGE_VERSION}-image-checksums.txt"
 mkdir -p "${OUTPUT_DIR}/images"
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
 # Just publish Antrea images.
-docker save vmware.io/antrea/antrea-photon:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-photon-${IMAGE_VERSION}.tar.gz"
 docker save antrea/antrea-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-debian-${IMAGE_VERSION}.tar.gz"
-
-echo "====== Signing Image Deliverables ======"
-CHECKSUM_FILENAME="antrea-${IMAGE_VERSION}-image-checksums.txt"
+echo "antrea/antrea-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
 cd "${OUTPUT_DIR}/images/"
-sha256sum -- * > ${CHECKSUM_FILENAME}
-gpgsignc textsign -i ${CHECKSUM_FILENAME} -o "${CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=001E5CC9
+sha256sum -- * > ${checksum_filename}
+gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
 
-echo "====== Saving OpenvSwitch RPMs ======"
-mkdir -p "${OUTPUT_DIR}/rpms/"
-docker run -idt --rm --name ovs-rpms antrea/openvswitch-rpms-photon sh
-docker cp ovs-rpms:/tmp/ovs-rpms "${OUTPUT_DIR}/rpms/photon"
-docker stop ovs-rpms
+echo "====== Saving and Signing Executables ======"
+
+mkdir -p "${OUTPUT_DIR}/executables"
+cat "${REPO_ROOT}/bin/antctl" | gzip -9 > "${OUTPUT_DIR}/executables/antctl-${BINARY_VERSION}.gz"
+cd "${OUTPUT_DIR}/executables"
+BINARY_CHECKSUM_FILENAME="antctl-${BINARY_VERSION}-checksums.txt"
+sha256sum -- "antctl-${BINARY_VERSION}.gz" > ${BINARY_CHECKSUM_FILENAME}
+gpgsignc textsign -i ${BINARY_CHECKSUM_FILENAME} -o "${BINARY_CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=001E5CC9
 
 echo "****** antrea_build.sh end ******"
