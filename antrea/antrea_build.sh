@@ -51,7 +51,7 @@ git status
 
 echo "====== Patching Antrea Repo ======"
 # Patching build scripts and Dockerfiles
-git cherry-pick HEAD..origin/build-debian
+git cherry-pick HEAD..origin/topic/build-debian
 git status
 
 echo "====== Building Binaries ======"
