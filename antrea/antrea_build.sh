@@ -48,10 +48,11 @@ fi
 
 cd "${REPO_ROOT}"
 git status
+UPSTREAM_COMMIT=$(git log -1 --pretty=format:%H)
 
 echo "====== Patching Antrea Repo ======"
 # Patching build scripts and Dockerfiles
-git cherry-pick HEAD..origin/topic/build-debian
+git cherry-pick HEAD..origin/topic/tkg
 git status
 
 echo "====== Building Binaries ======"
@@ -135,15 +136,19 @@ echo ANTREA_BUILD=${BUILD_NUMBER} >> "${OUTPUT_DIR}/manifests/version"
 echo "${IMAGE_VERSION}" > "${PUBLISH_DIR}/VERSION"
 
 # Antrea yamls for TKG
+# Complicated Yaml customization is done directly in Antrea topic/tkg branch
+# Here we only replace image version
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
 cp "${REPO_ROOT}/build/yamls/antrea-ipsec.yml" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
 for YAML in ${OUTPUT_DIR}/manifests/*.yml ; do
-  sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" \
-    -e "s/#tunnelType:.*\$/tunnelType: geneve/g"  "${YAML}"
+  sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${YAML}"
 done
 
 # Antrea yamls for TKG Service. antrea-ipsec is not supported yet
-git cherry-pick origin/topic/gc
+# Complicated Yaml customization is done directly in Antrea topic/tkgs branch
+# Here we only replace image version
+git reset --hard "${UPSTREAM_COMMIT}"
+git cherry-pick HEAD..origin/topic/tkgs
 for k8s_version in "1.16" "1.17" "1.18"; do
   mkdir -p "${PUBLISH_DIR}/add-on/${k8s_version}"
   cat "${REPO_ROOT}/build/yamls/antrea.yml" | \
