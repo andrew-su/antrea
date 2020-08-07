@@ -19,7 +19,7 @@ osstptool download "--root=${ANTREA_ROOTDIR}"
 # Need to install virtualenv first
 # https://osm.eng.vmware.com/doc/utilities/access.html
 echo Please do the following steps manually
-echo cd $(pwd) ; workon osstp
+echo "cd $(pwd) ; workon osstp"
 # Upload the source code and create master package on OSM site.
 # https://osm.eng.vmware.com/doc/utilities/loading.html
 echo ~/antrea-repos/osstpclients/bin/osstp-load.py -I 'Distributed - Static Link w/ VMW' -U zhengshengz osstp_golang.yml
