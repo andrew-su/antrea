@@ -38,6 +38,9 @@ PIP="${VENV}/bin/pip"
 
 docker version
 
+docker pull nsx-ujo-docker-local.artifactory.eng.vmware.com/golang:1.13
+docker tag nsx-ujo-docker-local.artifactory.eng.vmware.com/golang:1.13 golang:1.13
+
 if [ "${BRANCH_NAME}" = "vmware-master" ]; then
   IMAGE_VERSION=vmware-master
   BINARY_VERSION=vmware-master
