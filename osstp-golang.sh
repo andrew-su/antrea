@@ -22,6 +22,6 @@ echo Please do the following steps manually
 echo "cd $(pwd) ; workon osstp"
 # Upload the source code and create master package on OSM site.
 # https://osm.eng.vmware.com/doc/utilities/loading.html
-echo ~/antrea-repos/osstpclients/bin/osstp-load.py -I 'Distributed - Static Link w/ VMW' -U zhengshengz osstp_golang.yml
+echo ~/antrea-repos/osstpclients/bin/osstp-load.py -I 'Distributed - Static Link w/ VMW' -R Antrea/0.8.2 -U zhengshengz osstp_golang.yml
 echo deactivate
 popd
