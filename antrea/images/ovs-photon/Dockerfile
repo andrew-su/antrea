@@ -99,7 +99,7 @@ RUN tdnf install -y strongswan iptables rpm && \
       python3-libs \
       python3-six \
       python3-xml && \
-    rpm -ivh /tmp/ovs-rpms/openvswitch-2.13.0*.rpm /tmp/ovs-rpms/python*-openvswitch*.rpm && \
+    rpm -ivh /tmp/ovs-rpms/openvswitch-2.13.*.rpm /tmp/ovs-rpms/python*-openvswitch*.rpm && \
     sed -i "/^.*filelog.*{/r /tmp/charon-logging.conf" /etc/strongswan.d/charon-logging.conf && \
     rm -rf /tmp/* && \
     tdnf clean all && \

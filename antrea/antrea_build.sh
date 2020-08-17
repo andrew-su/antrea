@@ -55,7 +55,7 @@ UPSTREAM_COMMIT=$(git log -1 --pretty=format:%H)
 
 echo "====== Patching Antrea Repo ======"
 # Patching build scripts and Dockerfiles
-git cherry-pick HEAD..origin/topic/tkg
+git cherry-pick HEAD..origin/topic/0.9.0-tkg
 git status
 
 echo "====== Building Binaries ======"
@@ -92,8 +92,9 @@ sed -i -e "s|baseurl=.*\$|baseurl=${REPO_URL}|g" "${PROJECT_DIR}/images/antrea-p
 
 echo "====== Archiving OpenvSwitch Source Code ======"
 OPENVSWITCH_DIR="$(readlink -e ${PROJECT_DIR}/../ovs/src)"
+OPENVSWITCH_VERSION="2.13.1"
 pushd "${OPENVSWITCH_DIR}"
-git archive --format=tar.gz --prefix=openvswitch-2.13.0/ -o openvswitch-2.13.0.tar.gz HEAD
+git archive --format=tar.gz --prefix=openvswitch-${OPENVSWITCH_VERSION}/ -o openvswitch-${OPENVSWITCH_VERSION}.tar.gz HEAD
 popd
 
 echo "====== Buildling openvswitch-photon Image ======"
@@ -115,7 +116,7 @@ rm -f photon-rootfs.tar.gz
 echo "====== Building Debian Images ======"
 echo "====== Building openvswitch-debian Image ======"
 pushd build/images/ovs
-cp ${OPENVSWITCH_DIR}/openvswitch-2.13.0.tar.gz .
+cp ${OPENVSWITCH_DIR}/openvswitch-${OPENVSWITCH_VERSION}.tar.gz .
 docker build -t antrea/openvswitch-debian .
 popd
 
@@ -151,7 +152,7 @@ done
 # Complicated Yaml customization is done directly in Antrea topic/tkgs branch
 # Here we only replace image version
 git reset --hard "${UPSTREAM_COMMIT}"
-git cherry-pick HEAD..origin/topic/tkgs
+git cherry-pick HEAD..origin/topic/0.9.0-tkgs
 for k8s_version in "1.16" "1.17" "1.18"; do
   mkdir -p "${PUBLISH_DIR}/add-on/${k8s_version}"
   cat "${REPO_ROOT}/build/yamls/antrea.yml" | \

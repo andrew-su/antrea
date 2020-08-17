@@ -3,7 +3,7 @@
 %define _unpackaged_files_terminate_build 0
 Summary:        Open vSwitch daemon/database/utilities
 Name:           openvswitch
-Version:        2.13.0
+Version:        2.13.1
 Release:        1%{?dist}
 License:        ASL 2.0 and LGPLv2+
 URL:            http://www.openvswitch.org/

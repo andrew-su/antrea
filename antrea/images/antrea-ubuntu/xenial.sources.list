@@ -1,3 +1,0 @@
-deb http://ubtmirror.nicira.eng.vmware.com/ubuntu xenial main restricted multiverse universe
-deb http://ubtmirror.nicira.eng.vmware.com/ubuntu xenial-updates main restricted multiverse universe
-deb http://ubtmirror.nicira.eng.vmware.com/ubuntu xenial-security main restricted multiverse universe
