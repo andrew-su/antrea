@@ -13,6 +13,8 @@ source release.config
 
 REPO_ROOT="${PROJECT_DIR}/src"
 
+cp open_source_licenses.txt "${PUBLISH_DIR}/"
+
 # Update Docker to a version that supports multi-stage builds
 echo  "====== Updating Docker ======"
 chmod a+x install_docker.sh
