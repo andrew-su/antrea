@@ -57,7 +57,7 @@ UPSTREAM_COMMIT=$(git log -1 --pretty=format:%H)
 
 echo "====== Patching Antrea Repo ======"
 # Patching build scripts and Dockerfiles
-git cherry-pick HEAD..origin/topic/0.9.0-tkg
+git cherry-pick HEAD..origin/topic/${BRANCH_NAME#vmware-}-tkg
 git status
 
 echo "====== Building Binaries ======"
@@ -154,7 +154,7 @@ done
 # Complicated Yaml customization is done directly in Antrea topic/tkgs branch
 # Here we only replace image version
 git reset --hard "${UPSTREAM_COMMIT}"
-git cherry-pick HEAD..origin/topic/0.9.0-tkgs
+git cherry-pick HEAD..origin/topic/${BRANCH_NAME#vmware-}-tkgs
 for k8s_version in "1.16" "1.17" "1.18"; do
   mkdir -p "${PUBLISH_DIR}/add-on/${k8s_version}"
   cat "${REPO_ROOT}/build/yamls/antrea.yml" | \
