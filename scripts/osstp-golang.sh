@@ -33,6 +33,6 @@ source /usr/bin/virtualenvwrapper.sh
 set -x
 workon osstp
 #~/antrea-repos/osstpclients/bin/osstp-load.py --noinput -I 'Distributed - Static Link w/ VMW' -A /tmp/apikey -R Antrea/1.0.0-0.9.0 osstp_golang.yml
-~/antrea-repos/osstpclients/bin/osstp-load.py --noinput -I 'Distributed - No Linking' -A /tmp/apikey -R Antrea/1.0.0-0.9.0 osstp_golang.yml
+~/antrea-repos/osstpclients/bin/osstp-load.py --noinput -I 'Distributed - Dynamic Link w/ OSS' -A /tmp/apikey -R Antrea/1.0.0-0.9.0 osstp_golang.yml
 deactivate
 popd
