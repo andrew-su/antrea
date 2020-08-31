@@ -18,9 +18,12 @@ mkdir osstpclients
 cd osstpclients/bin
 
 
+# Need to install virtualenv first
+# https://osm.eng.vmware.com/doc/utilities/access.html
 cat > /tmp/apikey <<EOF
 zhengshengz@vmware.com 3d8a2d9af7542d4bf4901fd5c7b72d47ee218872
 EOF
+source /usr/bin/virtualenvwrapper.sh
 workon osstp
 ./odp-template.py -A /tmp/apikey -R Antrea/1.0.0-0.9.0 -T "$1"
 deactivate

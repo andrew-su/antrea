@@ -20,7 +20,6 @@ osstptool download "--root=${ANTREA_ROOTDIR}"
 
 # Need to install virtualenv first
 # https://osm.eng.vmware.com/doc/utilities/access.html
-echo Please do the following steps manually
 # Upload the source code and create master package on OSM site.
 # https://osm.eng.vmware.com/doc/utilities/loading.html
 # In case neeed to setup Python venv for osstpclients:
@@ -29,7 +28,11 @@ echo Please do the following steps manually
 cat > /tmp/apikey <<EOF
 zhengshengz@vmware.com 3d8a2d9af7542d4bf4901fd5c7b72d47ee218872
 EOF
+set +x
+source /usr/bin/virtualenvwrapper.sh
+set -x
 workon osstp
-~/antrea-repos/osstpclients/bin/osstp-load.py -I 'Distributed - Static Link w/ VMW' -A /tmp/apikey -R Antrea/1.0.0-0.9.0 osstp_golang.yml
+#~/antrea-repos/osstpclients/bin/osstp-load.py --noinput -I 'Distributed - Static Link w/ VMW' -A /tmp/apikey -R Antrea/1.0.0-0.9.0 osstp_golang.yml
+~/antrea-repos/osstpclients/bin/osstp-load.py --noinput -I 'Distributed - No Linking' -A /tmp/apikey -R Antrea/1.0.0-0.9.0 osstp_golang.yml
 deactivate
 popd
