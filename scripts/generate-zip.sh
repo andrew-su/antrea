@@ -18,12 +18,15 @@ fi
 
 echo "Creating tmp dir"
 mkdir tmp-zip/
+echo Reading Antrea version
+source /build/ob/release/bora-${1#ob-}/publish/lin64/antrea/manifests/version
+produce_version="${ANTREA_BRANCH#vmware-}.${1#ob-}"
 echo "Copying Antrea publish dir to tmp dir"
-cp -rv /build/ob/release/bora-${1#ob-}/publish tmp-zip/antrea
+cp -rv /build/ob/release/bora-${1#ob-}/publish/lin64/antrea "tmp-zip/antrea-${produce_version}"
 echo "Generating zip"
 pushd tmp-zip
-zip -r antrea.zip antrea
+zip -r "antrea-${produce_version}.zip" "antrea-${produce_version}"
 popd
-mv tmp-zip/antrea.zip .
+mv "tmp-zip/antrea-${produce_version}.zip" .
 rm -rf tmp-zip
-echo "Generated antrea.zip"
+echo "Generated antrea-${produce_version}.zip"
