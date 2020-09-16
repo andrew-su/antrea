@@ -14,6 +14,9 @@ source release.config
 REPO_ROOT="${PROJECT_DIR}/src"
 
 cp open_source_licenses.txt "${PUBLISH_DIR}/"
+pushd "${PUBLISH_DIR}/"
+curl -O https://build-artifactory.eng.vmware.com/nsx-ujo-local/antrea/VMware-Antrea-1.0.0-0.9.0-ODP.tar.gz
+popd
 
 # Update Docker to a version that supports multi-stage builds
 echo  "====== Updating Docker ======"
@@ -54,6 +57,17 @@ fi
 cd "${REPO_ROOT}"
 git status
 UPSTREAM_COMMIT=$(git log -1 --pretty=format:%H)
+
+echo "====== Preparing VMware Product Deliverables: Manifests ======"
+antrea_vmware_deliverable="antrea-${BRANCH_NAME#vmware-}.${BUILD_NUMBER}"
+mkdir -p "${PUBLISH_DIR}/${antrea_vmware_deliverable}"
+mkdir -p "${PUBLISH_DIR}/${antrea_vmware_deliverable}/manifests"
+cp "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_vmware_deliverable}/manifests/antrea-${BINARY_VERSION}.yml"
+cp "${REPO_ROOT}/build/yamls/antrea-ipsec.yml" "${PUBLISH_DIR}/${antrea_vmware_deliverable}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
+for YAML in ${PUBLISH_DIR}/${antrea_vmware_deliverable}/manifests/*.yml ; do
+  sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${YAML}"
+done
+
 
 echo "====== Patching Antrea Repo ======"
 # Patching build scripts and Dockerfiles
@@ -209,5 +223,13 @@ cd "${OUTPUT_DIR}/executables"
 BINARY_CHECKSUM_FILENAME="antctl-${BINARY_VERSION}-checksums.txt"
 sha256sum -- "antctl-${BINARY_VERSION}.gz" > ${BINARY_CHECKSUM_FILENAME}
 gpgsignc textsign -i ${BINARY_CHECKSUM_FILENAME} -o "${BINARY_CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=001E5CC9
+
+echo "====== Preparing VMware Product Deliverables: Images, executables ======"
+cp -r "${OUTPUT_DIR}/images" "${PUBLISH_DIR}/${antrea_vmware_deliverable}"
+cp -r "${OUTPUT_DIR}/executables" "${PUBLISH_DIR}/${antrea_vmware_deliverable}"
+pushd "${PUBLISH_DIR}"
+zip --verbose -r "${antrea_vmware_deliverable}.zip" "${antrea_vmware_deliverable}"
+rm -rf "${PUBLISH_DIR}/${antrea_vmware_deliverable}"
+popd
 
 echo "****** antrea_build.sh end ******"
