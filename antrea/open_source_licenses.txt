@@ -1,6 +1,6 @@
 open_source_licenses.txt
 
-VMware Container Networking with Antrea 1.0.0-0.9.0 GA
+VMware Container Networking with Antrea 1.0.0-0.9.3 GA
 
 ======================================================================
 
@@ -133805,4 +133805,4 @@ Source Files is valid for three years from the date you acquired this
 Software product. Alternatively, the Source Files may accompany the
 VMware product.
 
-[ANTREA100090GAAK082020]
+[ANTREA100093GAAB091620]
