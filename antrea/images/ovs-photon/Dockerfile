@@ -82,10 +82,9 @@ ADD photon-rootfs.tar.gz /
 RUN /usr/bin/sed -i -e 's/^enabled=.*/enabled=0/g' /etc/yum.repos.d/*.repo
 COPY photon-iso.repo /etc/yum.repos.d/
 COPY --from=ovs-rpms /tmp/ovs-rpms/* /tmp/ovs-rpms/
-COPY charon-logging.conf /tmp
 
 
-RUN tdnf install -y strongswan iptables rpm && \
+RUN tdnf install -y iptables rpm && \
     tdnf install -y \
       bash \
       gawk \
@@ -100,7 +99,6 @@ RUN tdnf install -y strongswan iptables rpm && \
       python3-six \
       python3-xml && \
     rpm -ivh /tmp/ovs-rpms/openvswitch-2.13.*.rpm /tmp/ovs-rpms/python*-openvswitch*.rpm && \
-    sed -i "/^.*filelog.*{/r /tmp/charon-logging.conf" /etc/strongswan.d/charon-logging.conf && \
     rm -rf /tmp/* && \
     tdnf clean all && \
     rm -rf /var/cache/tdnf/* /usr/share/doc/*  /usr/share/man/*
