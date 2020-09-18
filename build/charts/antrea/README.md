@@ -97,6 +97,7 @@ Kubernetes: `>= 1.19.0-0`
 | egress.maxEgressIPsPerNode | int | `255` | The maximum number of Egress IPs that can be assigned to a Node. It is useful when the Node network restricts the number of secondary IPs a Node can have, e.g. EKS. It must not be greater than 255. |
 | egress.snatFullyRandomPorts | bool | `nil` | Fully randomize source port mapping in Egress SNAT rules. This has no impact on the default SNAT rules enforced by each Node for local Pod traffic. By default, we use the same value as for the top-level snatFullyRandomPorts configuration, but this field can be used as an override. |
 | enableBridgingMode | bool | `false` | Enable bridging mode of Pod network on Nodes, in which the Node's transport interface is connected to the OVS bridge. |
+| enableResourceInit | bool | `false` | Move all mutable resources in antrea.yml to antrea-resource-init-config ConfigMap. |
 | featureGates | object | `{}` | To explicitly enable or disable a FeatureGate and bypass the Antrea defaults, add an entry to the dictionary with the FeatureGate's name as the key and a boolean as the value. |
 | flowExporter.activeFlowExportTimeout | string | `"5s"` | timeout after which a flow record is sent to the collector for active flows. |
 | flowExporter.enable | bool | `false` | Enable the flow exporter feature. |
