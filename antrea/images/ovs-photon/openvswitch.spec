@@ -89,8 +89,8 @@ make DESTDIR=%{buildroot} install
 find %{buildroot}/%{_libdir} -name '*.la' -delete
 mkdir -p %{buildroot}/%{python2_sitelib}
 mkdir -p %{buildroot}/%{python3_sitelib}
-cp -a %{buildroot}/%{_datadir}/openvswitch/python/ovs/* %{buildroot}/%{python2_sitelib}
-cp -a %{buildroot}/%{_datadir}/openvswitch/python/ovs/* %{buildroot}/%{python3_sitelib}
+cp -ra %{buildroot}/%{_datadir}/openvswitch/python/ovs %{buildroot}/%{python2_sitelib}
+cp -ra %{buildroot}/%{_datadir}/openvswitch/python/ovs %{buildroot}/%{python3_sitelib}
 
 mkdir -p %{buildroot}/%{_libdir}/systemd/system
 install -p -D -m 0644 rhel/usr_share_openvswitch_scripts_systemd_sysconfig.template %{buildroot}/%{_sysconfdir}/sysconfig/openvswitch
