@@ -25,10 +25,10 @@ zhengshengz@vmware.com 3d8a2d9af7542d4bf4901fd5c7b72d47ee218872
 EOF
 source /usr/bin/virtualenvwrapper.sh
 workon osstp
-./odp-template.py -A /tmp/osm-apykey -R Antrea/1.0.0-0.9.0 -T "$1"
+./odp-template.py -A /tmp/osm-apykey -R Antrea/1.0.0-0.9.3 -T "$1"
 rm -f /tmp/osm-apykey
 deactivate
 
-echo Generated ODP template in $(pwd)/VMware-Antrea-1.0.0-0.9.0-ODP.
+echo Generated ODP template in $(pwd)/VMware-Antrea-1.0.0-0.9.3-ODP.
 echo Please check if any package needs SBR, then provide BUILD.txt and INSTALL.txt in each package directory.
 echo After finish checking all the packages, create a tar.gz file from this directoy and upload for review.

@@ -15,7 +15,7 @@ REPO_ROOT="${PROJECT_DIR}/src"
 
 cp open_source_licenses.txt "${PUBLISH_DIR}/"
 pushd "${PUBLISH_DIR}/"
-curl -O https://build-artifactory.eng.vmware.com/nsx-ujo-local/antrea/VMware-Antrea-1.0.0-0.9.0-ODP.tar.gz
+curl -O https://build-artifactory.eng.vmware.com/nsx-ujo-local/antrea/VMware-Antrea-1.0.0-0.9.3-ODP.tar.gz
 popd
 
 # Update Docker to a version that supports multi-stage builds
