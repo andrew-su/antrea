@@ -98,7 +98,7 @@ RUN tdnf install -y iptables rpm && \
       python3-libs \
       python3-six \
       python3-xml && \
-    rpm -ivh /tmp/ovs-rpms/openvswitch-2.13.*.rpm /tmp/ovs-rpms/python*-openvswitch*.rpm && \
+    rpm -ivh /tmp/ovs-rpms/openvswitch-*.rpm /tmp/ovs-rpms/python*-openvswitch*.rpm && \
     rm -rf /tmp/* && \
     tdnf clean all && \
     rm -rf /var/cache/tdnf/* /usr/share/doc/*  /usr/share/man/*
