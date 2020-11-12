@@ -104,10 +104,13 @@ mkdir -p %{buildroot}/%{_sysconfdir}/openvswitch
 install -p -D -m 0644 rhel/etc_openvswitch_default.conf %{buildroot}/%{_sysconfdir}/openvswitch/default.conf
 sed -i '/OVS_USER_ID=.*/c\OVS_USER_ID=' %{buildroot}/%{_sysconfdir}/openvswitch/default.conf
 
+install -p -D -m 0644 rhel/etc_logrotate.d_openvswitch %{buildroot}/%{_sysconfdir}/logrotate.d/openvswitch-switch
+
 %preun
 %systemd_preun %{name}.service
 
 %post
+sed -i 's:\(.*su\).*:\1 openvswitch openvswitch:' %{_sysconfdir}/logrotate.d/openvswitch-switch
 %systemd_post %{name}.service
 
 %postun
@@ -126,6 +129,7 @@ sed -i '/OVS_USER_ID=.*/c\OVS_USER_ID=' %{buildroot}/%{_sysconfdir}/openvswitch/
 %{_libdir}/lib*
 %{_sysconfdir}/openvswitch/default.conf
 %{_sysconfdir}/bash_completion.d/ovs-*-bashcomp.bash
+%config(noreplace) %{_sysconfdir}/logrotate.d/openvswitch-switch
 %{_datadir}/openvswitch/*.ovsschema
 %{_datadir}/openvswitch/python/*
 %{_datadir}/openvswitch/scripts/ovs-*

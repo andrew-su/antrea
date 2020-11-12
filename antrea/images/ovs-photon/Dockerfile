@@ -91,6 +91,7 @@ RUN tdnf install -y iptables rpm && \
       jq \
       libcap-ng \
       libgcc-atomic \
+      logrotate \
       openssl \
       python2 \
       python2-libs \
@@ -99,6 +100,8 @@ RUN tdnf install -y iptables rpm && \
       python3-six \
       python3-xml && \
     rpm -ivh /tmp/ovs-rpms/openvswitch-*.rpm /tmp/ovs-rpms/python*-openvswitch*.rpm && \
+    chmod 0644 /etc/logrotate.d/openvswitch-switch && \
+    sed -i "/rotate /a\    #size 100M" /etc/logrotate.d/openvswitch-switch && \
     rm -rf /tmp/* && \
     tdnf clean all && \
     rm -rf /var/cache/tdnf/* /usr/share/doc/*  /usr/share/man/*

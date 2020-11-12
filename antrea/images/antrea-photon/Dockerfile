@@ -9,7 +9,7 @@ COPY photon-iso.repo /etc/yum.repos.d/
 RUN tdnf install -y ca-certificates tar gzip
 
 # Leading dot is required for the tar command below
-ENV CNI_PLUGINS="./host-local ./loopback ./portmap"
+ENV CNI_PLUGINS="./host-local ./loopback ./portmap ./bandwidth"
 COPY cni-plugins-*.tgz /tmp
 
 RUN mkdir -p /opt/cni/bin && \
