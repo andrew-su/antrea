@@ -123,7 +123,7 @@ echo "====== Buildling antrea-photon Image ======"
 cp -vf ${PROJECT_DIR}/images/antrea-photon/* .
 cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
-docker build -t vmware.io/antrea/antrea-photon:${IMAGE_VERSION} .
+docker build -t localhost:5000/vmware.io/antrea/antrea-photon:${IMAGE_VERSION} .
 rm -f photon-rootfs.tar.gz
 
 echo "====== Saving TKGS Deliverables ======"
@@ -135,7 +135,7 @@ echo "====== Saving TKGS Manifests ======"
 for k8s_version in "1.17" "1.18" "1.19"; do
   mkdir -p "${PUBLISH_DIR}/add-on/${k8s_version}"
   cat "${REPO_ROOT}/build/yamls/antrea.yml" | \
-    sed "s/image: antrea\/antrea-.*\$/image: vmware.io\/antrea\/antrea-photon:${IMAGE_VERSION}/g" > "${PUBLISH_DIR}/add-on/${k8s_version}/antrea.yaml"
+    sed "s/image: antrea\/antrea-.*\$/image: localhost:5000\/vmware.io\/antrea\/antrea-photon:${IMAGE_VERSION}/g" > "${PUBLISH_DIR}/add-on/${k8s_version}/antrea.yaml"
 done
 
 echo "====== Saving TKGS Binaries ======"
@@ -158,12 +158,12 @@ docker stop ovs-rpms
 echo "====== Saving and Signing TKGs Images ======"
 
 # A test photon image
-image_id="$(docker inspect -f '{{.ID}}' "vmware.io/antrea/antrea-photon:${IMAGE_VERSION}")"
+image_id="$(docker inspect -f '{{.ID}}' "localhost:5000/vmware.io/antrea/antrea-photon:${IMAGE_VERSION}")"
 digest_filename="antrea-photon-${IMAGE_VERSION}-image-digests.txt"
 checksum_filename="antrea-photon-${IMAGE_VERSION}-image-checksums.txt"
 mkdir -p "${PUBLISH_DIR}/photon/images"
-docker save vmware.io/antrea/antrea-photon:${IMAGE_VERSION} | gzip -9 > "${PUBLISH_DIR}/photon/images/antrea-photon-${IMAGE_VERSION}.tar.gz"
-echo "vmware.io/antrea/antrea-photon@${image_id}" > "${PUBLISH_DIR}/photon/images/${digest_filename}"
+docker save localhost:5000/vmware.io/antrea/antrea-photon:${IMAGE_VERSION} | gzip -9 > "${PUBLISH_DIR}/photon/images/antrea-photon-${IMAGE_VERSION}.tar.gz"
+echo "localhost:5000/vmware.io/antrea/antrea-photon@${image_id}" > "${PUBLISH_DIR}/photon/images/${digest_filename}"
 pushd "${PUBLISH_DIR}/photon/images"
 sha256sum -- * > ${checksum_filename}
 gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
