@@ -26,6 +26,7 @@ RUN tdnf remove -y toybox && \
       coreutils \
       iproute2 \
       ipset \
+      procps-ng \
       sed \
       tar \
       util-linux && \
