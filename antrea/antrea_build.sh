@@ -59,11 +59,11 @@ git status
 UPSTREAM_COMMIT=$(git log -1 --pretty=format:%H)
 
 echo "====== Preparing VMware Product Deliverables: Debian Manifests ======"
+# antrea-ipsec is not used in commecial release
 antrea_vmware_deliverable="antrea-${BRANCH_NAME#vmware-}.${BUILD_NUMBER}"
 mkdir -p "${PUBLISH_DIR}/${antrea_vmware_deliverable}"
 mkdir -p "${PUBLISH_DIR}/${antrea_vmware_deliverable}/manifests"
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_vmware_deliverable}/manifests/antrea-${BINARY_VERSION}.yml"
-cp "${REPO_ROOT}/build/yamls/antrea-ipsec.yml" "${PUBLISH_DIR}/${antrea_vmware_deliverable}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
 for YAML in ${PUBLISH_DIR}/${antrea_vmware_deliverable}/manifests/*.yml ; do
   sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${YAML}"
 done
@@ -209,9 +209,9 @@ echo "${IMAGE_VERSION}" > "${PUBLISH_DIR}/VERSION"
 
 # Antrea yamls for TKG
 # Complicated Yaml customization is done directly in Antrea topic/tkg branch
-# Here we only replace image version
+# Here we only replace image version.
+# antrea-ipsec is not used in TKGm.
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
-cp "${REPO_ROOT}/build/yamls/antrea-ipsec.yml" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
 for YAML in ${OUTPUT_DIR}/manifests/*.yml ; do
   sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${YAML}"
 done
