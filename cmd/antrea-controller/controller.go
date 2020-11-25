@@ -205,7 +205,7 @@ func run(o *Options) error {
 		networkPolicyStore,
 		groupStore,
 		enableMulticlusterNP,
-		o.config.EnterpriseAntrea)
+		*o.config.EnterpriseAntrea)
 
 	var externalNodeController *externalnode.ExternalNodeController
 	if features.DefaultFeatureGate.Enabled(features.ExternalNode) {

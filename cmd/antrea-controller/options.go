@@ -203,6 +203,9 @@ func (o *Options) setDefaults() {
 	if o.config.ClientConnection.Burst == 0 {
 		o.config.ClientConnection.Burst = defaultClientBurst
 	}
+	if o.config.EnterpriseAntrea == nil {
+		o.config.EnterpriseAntrea = ptrBool(true)
+	}
 }
 
 func ptrBool(value bool) *bool {

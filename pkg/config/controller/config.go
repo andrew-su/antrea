@@ -79,8 +79,8 @@ type ControllerConfig struct {
 	// Defaults to false.
 	EnableUsageReporting bool `yaml:"enableUsageReporting,omitempty"`
 	// EnterpriseAntrea enables advanced features in Antrea.
-	// Defaults to false.
-	EnterpriseAntrea bool `yaml:"enterpriseAntrea,omitempty"`
+	// Defaults to true.
+	EnterpriseAntrea *bool `yaml:"enterpriseAntrea,omitempty"`
 }
 
 type MulticlusterConfig struct {
