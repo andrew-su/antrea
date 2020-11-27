@@ -29,7 +29,7 @@ cd bin
 cat > /tmp/osm-apykey <<EOF
 zhengshengz@vmware.com 3d8a2d9af7542d4bf4901fd5c7b72d47ee218872
 EOF
-./osstp-load.py --noinput -A /tmp/osm-apykey -R Antrea/1.1.0-0.11.0 --baseos-srcdir ~/source osstpmgt.yaml | tee oss.log
+./osstp-load.py --noinput -A /tmp/osm-apykey -R Antrea/1.1.0-0.11.1 --baseos-srcdir ~/source osstpmgt.yaml | tee oss.log
 
 source_packages="$(cat oss.log | awk 'BEGIN{baseos=0} /missing BaseOS tickets/{baseos=1} /source package/{if(baseos==1)print $NF}' | sort | uniq  | grep -Eo '[^"]+')"
 
@@ -52,7 +52,7 @@ for dsc in ~/source/*.dsc ; do
   fi
 done
 if [ -f osstpmgt.yaml ]; then
-  ./osstp-load.py --noinput --debug -A /tmp/osm-apykey -R Antrea/1.1.0-0.11.0 --baseos-srcdir ~/source osstpmgt.yaml
+  ./osstp-load.py --noinput --debug -A /tmp/osm-apykey -R Antrea/1.1.0-0.11.1 --baseos-srcdir ~/source osstpmgt.yaml
 fi
 
 rm -f /tmp/osm-apykey

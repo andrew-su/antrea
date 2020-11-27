@@ -1,6 +1,6 @@
-open_source_licenses.txt
+﻿open_source_licenses.txt
 
-VMware Container Networking with Antrea 1.1.0-0.11.0 GA
+VMware Container Networking with Antrea 1.1.0-0.11.1 GA
 
 ======================================================================
 

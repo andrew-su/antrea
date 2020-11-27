@@ -8,7 +8,7 @@ if [ -z "$1" ]; then
   exit 1
 fi
 
-mkdir osstpclients
+mkdir -p osstpclients
 # In case neeed to setup Python venv for osstpclients:
 # mkvirtualenv osstp
 # pip install -r "$(dirname $0)/osstp-requirements.txt"
@@ -23,12 +23,12 @@ cd osstpclients/bin
 cat > /tmp/osm-apykey <<EOF
 zhengshengz@vmware.com 3d8a2d9af7542d4bf4901fd5c7b72d47ee218872
 EOF
-source /usr/bin/virtualenvwrapper.sh
-workon osstp
-./odp-template.py -A /tmp/osm-apykey -R Antrea/1.1.0-0.11.0 -T "$1"
+#source /usr/bin/virtualenvwrapper.sh
+#workon osstp
+./odp-template.py -A /tmp/osm-apykey -R Antrea/1.1.0-0.11.1 -T "$1"
 rm -f /tmp/osm-apykey
-deactivate
+#deactivate
 
-echo Generated ODP template in $(pwd)/VMware-Antrea-1.1.0-0.11.0-ODP.
+echo Generated ODP template in $(pwd)/VMware-Antrea-1.1.0-0.11.1-ODP.
 echo Please check if any package needs SBR, then provide BUILD.txt and INSTALL.txt in each package directory.
 echo After finish checking all the packages, create a tar.gz file from this directoy and upload for review.
