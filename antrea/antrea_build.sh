@@ -58,17 +58,48 @@ cd "${REPO_ROOT}"
 git status
 UPSTREAM_COMMIT=$(git log -1 --pretty=format:%H)
 
-echo "====== Preparing VMware Product Deliverables: Debian Manifests ======"
+# NOTE:
+# Antrea standard deiverables
+# image and executable: upstream + cherry-pick(tkg) (tkg is for Debian build patches)
+# manifest: upstream + sed(image_name)
+
+# Antrea advanced deiverables
+# image and executable: upstream + cherry-pick(enterprise-features + tkg)
+# manifest: upstream + cherry-pick(enterprise-features) + sed(image_name)
+
+# TKG deiverables
+# image and executable: upstream + cherry-pick(enterprise-features + tkg)
+# manifest: upstream + cherry-pick(enterprise-features + tkg) + sed(image_name)
+
+# TKGS deiverables
+# image and executable: upstream + cherry-pick(enterprise-features + tkgs)
+# manifest: upstream + cherry-pick(tkgs) + sed(image_name)
+
+echo "====== Preparing Antrea Standard Product Deliverables: Debian Manifests ======"
+git reset --hard "${UPSTREAM_COMMIT}"
+antrea_std_deliverables="antrea-standard-${BRANCH_NAME#vmware-}.${BUILD_NUMBER}"
+mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}"
+mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests"
 # antrea-ipsec is not used in commecial release
-antrea_vmware_deliverable="antrea-${BRANCH_NAME#vmware-}.${BUILD_NUMBER}"
-mkdir -p "${PUBLISH_DIR}/${antrea_vmware_deliverable}"
-mkdir -p "${PUBLISH_DIR}/${antrea_vmware_deliverable}/manifests"
-cp "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_vmware_deliverable}/manifests/antrea-${BINARY_VERSION}.yml"
-for YAML in ${PUBLISH_DIR}/${antrea_vmware_deliverable}/manifests/*.yml ; do
-  sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${YAML}"
+cp "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-${BINARY_VERSION}.yml"
+for YAML in ${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/*.yml ; do
+  sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-standard-debian:${IMAGE_VERSION}/g" "${YAML}"
+done
+
+echo "====== Preparing Antrea Advanced Product Deliverables: Debian Manifests ======"
+git reset --hard "${UPSTREAM_COMMIT}"
+git cherry-pick HEAD..origin/topic/${BRANCH_NAME#vmware-}-features
+antrea_adv_deliverables="antrea-advanced-${BRANCH_NAME#vmware-}.${BUILD_NUMBER}"
+mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}"
+mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests"
+# antrea-ipsec is not used in commecial release
+cp "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-${BINARY_VERSION}.yml"
+for YAML in ${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/*.yml ; do
+  sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian:${IMAGE_VERSION}/g" "${YAML}"
 done
 
 echo "====== Archiving OpenvSwitch Source Code ======"
+git reset --hard "${UPSTREAM_COMMIT}"
 OPENVSWITCH_DIR="$(readlink -e ${PROJECT_DIR}/../ovs/src)"
 OPENVSWITCH_VERSION="2.14.0"
 pushd "${OPENVSWITCH_DIR}"
@@ -172,12 +203,12 @@ popd
 echo "====== Cleanup TKGS Build Result ======"
 make clean
 
-echo "====== Patching Antrea Repo for VMware Product ======"
+echo "====== Patching Antrea Repo for Antrea Standard Product ======"
 git reset --hard "${UPSTREAM_COMMIT}"
 git cherry-pick HEAD..origin/topic/${BRANCH_NAME#vmware-}-tkg
 git status
 
-echo "====== Building Binaries for VMware Product ======"
+echo "====== Building Binaries for Antrea Standard Product ======"
 make docker-bin
 
 echo "====== Building Debian Images ======"
@@ -192,26 +223,26 @@ cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-
 make debian VERSION=${IMAGE_VERSION}
 
 # Create archives for scripts and binaries
-echo "====== Saving VMware Product Deliverables ======"
-OUTPUT_DIR="${BUILDROOT}/output"
+echo "====== Saving Antrea Standard Product Deliverables ======"
+OUTPUT_DIR="${BUILDROOT}/standard-output"
 
-echo "====== Saving and Signing VMware Product Images ======"
+echo "====== Saving and Signing Antrea Standard Product Images ======"
 
-# Image for TKG
 image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-debian:${IMAGE_VERSION}")"
-digest_filename="antrea-debian-${IMAGE_VERSION}-image-digests.txt"
-checksum_filename="antrea-debian-${IMAGE_VERSION}-image-checksums.txt"
+digest_filename="antrea-standard-debian-${IMAGE_VERSION}-image-digests.txt"
+checksum_filename="antrea-standard-debian-${IMAGE_VERSION}-image-checksums.txt"
 mkdir -p "${OUTPUT_DIR}/images"
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
 # Just publish Antrea images.
-docker save antrea/antrea-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-debian-${IMAGE_VERSION}.tar.gz"
-echo "antrea/antrea-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
+docker tag antrea/antrea-debian:${IMAGE_VERSION} antrea/antrea-standard-debian:${IMAGE_VERSION}
+docker save antrea/antrea-standard-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-standard-debian-${IMAGE_VERSION}.tar.gz"
+echo "antrea/antrea-standard-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${checksum_filename}
 gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
 popd
 
-echo "====== Saving and Signing VMware Product Executables ======"
+echo "====== Saving and Signing Antrea Standard Product Executables ======"
 
 mkdir -p "${OUTPUT_DIR}/executables"
 cat "${REPO_ROOT}/bin/antctl" | gzip -9 > "${OUTPUT_DIR}/executables/antctl-${BINARY_VERSION}.gz"
@@ -221,43 +252,44 @@ sha256sum -- "antctl-${BINARY_VERSION}.gz" > ${BINARY_CHECKSUM_FILENAME}
 gpgsignc textsign -i ${BINARY_CHECKSUM_FILENAME} -o "${BINARY_CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=001E5CC9
 popd
 
-echo "====== Cleanup VMware Product Build Result ======"
+echo "====== Cleanup Antrea Standard Product Build Result ======"
 make clean
 
-echo "====== Preparing VMware Product Deliverables: Images, executables ======"
-cp -r "${OUTPUT_DIR}/images" "${PUBLISH_DIR}/${antrea_vmware_deliverable}"
-cp -r "${OUTPUT_DIR}/executables" "${PUBLISH_DIR}/${antrea_vmware_deliverable}"
+echo "====== Preparing Antrea Standard Product Deliverables: Images, executables ======"
+cp -r "${OUTPUT_DIR}/images" "${PUBLISH_DIR}/${antrea_std_deliverables}"
+cp -r "${OUTPUT_DIR}/executables" "${PUBLISH_DIR}/${antrea_std_deliverables}"
 pushd "${PUBLISH_DIR}"
-zip --verbose -r "${antrea_vmware_deliverable}.zip" "${antrea_vmware_deliverable}"
-rm -rf "${PUBLISH_DIR}/${antrea_vmware_deliverable}"
+zip --verbose -r "${antrea_std_deliverables}.zip" "${antrea_std_deliverables}"
+rm -rf "${PUBLISH_DIR}/${antrea_std_deliverables}"
 popd
 
 
-echo "====== Patching Antrea Repo for TKGm Enterprise ======"
+echo "====== Patching Antrea Repo for TKGm ======"
 git reset --hard "${UPSTREAM_COMMIT}"
 git cherry-pick HEAD..origin/topic/${BRANCH_NAME#vmware-}-features
 git cherry-pick HEAD..origin/topic/${BRANCH_NAME#vmware-}-tkg
 git status
 
-echo "====== Building Binaries for TKGm Enterprise ======"
+echo "====== Building Binaries for TKGm ======"
 make docker-bin
 
-echo "====== Building Debian Images Enterprise ======"
-echo "====== Building openvswitch-debian Image Enterprise ======"
+echo "====== Building Debian Images ======"
+echo "====== Building openvswitch-debian Image ======"
 pushd build/images/ovs
 cp ${OPENVSWITCH_DIR}/openvswitch-${OPENVSWITCH_VERSION}.tar.gz .
 docker build -t antrea/openvswitch-debian .
 popd
 
-echo "====== Building antrea-debian Image Enterprise ======"
+echo "====== Building antrea-debian Image ======"
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 make debian VERSION=${IMAGE_VERSION}
 
 
 # Create archives for scripts and binaries
-echo "====== Saving TKGm Enterprise Deliverables ======"
-echo "====== Saving TKGm Enterprise Manifests ======"
-rm -rf "${OUTPUT_DIR}/manifests"
+echo "====== Saving TKGm Deliverables ======"
+OUTPUT_DIR="${BUILDROOT}/output"
+
+echo "====== Saving TKGm Manifests ======"
 mkdir -p "${OUTPUT_DIR}/manifests"
 # Define some variables in manifests/version
 # Used in cayman_photon when builing antrea image
@@ -278,13 +310,12 @@ for YAML in ${OUTPUT_DIR}/manifests/*.yml ; do
   sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${YAML}"
 done
 
-echo "====== Saving and Signing TKGm Enterprise Images ======"
+echo "====== Saving and Signing TKGm Images ======"
 
 # Image for TKG
 image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-debian:${IMAGE_VERSION}")"
 digest_filename="antrea-debian-${IMAGE_VERSION}-image-digests.txt"
 checksum_filename="antrea-debian-${IMAGE_VERSION}-image-checksums.txt"
-rm -rf "${OUTPUT_DIR}/images"
 mkdir -p "${OUTPUT_DIR}/images"
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
 # Just publish Antrea images.
@@ -295,7 +326,7 @@ sha256sum -- * > ${checksum_filename}
 gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
 popd
 
-echo "====== Saving and Signing TKGm Enterprise Executables ======"
+echo "====== Saving and Signing TKGm Executables ======"
 rm -rf "${OUTPUT_DIR}/executables"
 mkdir -p "${OUTPUT_DIR}/executables"
 cat "${REPO_ROOT}/bin/antctl" | gzip -9 > "${OUTPUT_DIR}/executables/antctl-${BINARY_VERSION}.gz"
@@ -305,7 +336,44 @@ sha256sum -- "antctl-${BINARY_VERSION}.gz" > ${BINARY_CHECKSUM_FILENAME}
 gpgsignc textsign -i ${BINARY_CHECKSUM_FILENAME} -o "${BINARY_CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=001E5CC9
 popd
 
-echo "====== Cleanup TKGm Enterprise Build Result ======"
+echo "====== Saving Antrea Advanced Product Deliverables ======"
+OUTPUT_DIR="${BUILDROOT}/advanced-output"
+
+echo "====== Saving and Signing Antrea Advanced Product Images ======"
+
+image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-debian:${IMAGE_VERSION}")"
+digest_filename="antrea-advanced-debian-${IMAGE_VERSION}-image-digests.txt"
+checksum_filename="antrea-advanced-debian-${IMAGE_VERSION}-image-checksums.txt"
+mkdir -p "${OUTPUT_DIR}/images"
+# We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
+# Just publish Antrea images.
+docker tag antrea/antrea-debian:${IMAGE_VERSION} antrea/antrea-advanced-debian:${IMAGE_VERSION}
+docker save antrea/antrea-advanced-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-advanced-debian-${IMAGE_VERSION}.tar.gz"
+echo "antrea/antrea-advanced-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
+pushd "${OUTPUT_DIR}/images/"
+sha256sum -- * > ${checksum_filename}
+gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
+popd
+
+echo "====== Saving and Signing Antrea Advanced Product Executables ======"
+
+mkdir -p "${OUTPUT_DIR}/executables"
+cat "${REPO_ROOT}/bin/antctl" | gzip -9 > "${OUTPUT_DIR}/executables/antctl-${BINARY_VERSION}.gz"
+pushd "${OUTPUT_DIR}/executables"
+BINARY_CHECKSUM_FILENAME="antctl-${BINARY_VERSION}-checksums.txt"
+sha256sum -- "antctl-${BINARY_VERSION}.gz" > ${BINARY_CHECKSUM_FILENAME}
+gpgsignc textsign -i ${BINARY_CHECKSUM_FILENAME} -o "${BINARY_CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=001E5CC9
+popd
+
+echo "====== Preparing Antrea Advanced Product Deliverables: Images, executables ======"
+cp -r "${OUTPUT_DIR}/images" "${PUBLISH_DIR}/${antrea_adv_deliverables}"
+cp -r "${OUTPUT_DIR}/executables" "${PUBLISH_DIR}/${antrea_adv_deliverables}"
+pushd "${PUBLISH_DIR}"
+zip --verbose -r "${antrea_adv_deliverables}.zip" "${antrea_adv_deliverables}"
+rm -rf "${PUBLISH_DIR}/${antrea_adv_deliverables}"
+popd
+
+echo "====== Cleanup TKGm Build Result ======"
 make clean
 
 echo "****** antrea_build.sh end ******"
