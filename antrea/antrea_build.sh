@@ -13,6 +13,28 @@ source release.config
 
 REPO_ROOT="${PROJECT_DIR}/src"
 
+function fips_make {
+  chmod +x ${GOBUILD_CAYMAN_GO_ROOT}/lin64/bin/go
+  chmod +x -R ${GOBUILD_CAYMAN_GO_ROOT}/lin64/pkg/tool/linux_amd64
+  mkdir -p "${REPO_ROOT}/gopath"
+  mkdir -p "${REPO_ROOT}/gocache"
+  mkdir -p "${REPO_ROOT}/goenv"
+  ANTREA_VER=$(head -n 1 VERSION)
+	docker run --rm -u $(id -u):$(id -g) \
+		-e "GOCACHE=/tmp/gocache" \
+		-e "GOPATH=/tmp/gopath" \
+		-w /usr/src/github.com/vmware-tanzu/antrea \
+		-v "${REPO_ROOT}/gopath":/tmp/gopath \
+		-v "${REPO_ROOT}/gocache":/tmp/gocache \
+		-v "${REPO_ROOT}/goenv":/.config/go \
+		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/src:/usr/local/go/src \
+		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/pkg:/usr/local/go/pkg \
+		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/bin:/usr/local/go/bin \
+		-v ${REPO_ROOT}:/usr/src/github.com/vmware-tanzu/antrea \
+		golang:1.15 /bin/bash -c "mkdir -p bin; go env -w CC='x86_64-linux-gnu-gcc'; GOOS=linux go build -o bin -ldflags ' -X github.com/vmware-tanzu/antrea/pkg/version.Version=${ANTREA_VER} -X github.com/vmware-tanzu/antrea/pkg/version.GitSHA= -X github.com/vmware-tanzu/antrea/pkg/version.GitTreeState=clean -X github.com/vmware-tanzu/antrea/pkg/version.ReleaseStatus=unreleased' github.com/vmware-tanzu/antrea/cmd/..."
+  chmod -R 0755 bin
+}
+
 cp open_source_licenses.txt "${PUBLISH_DIR}/"
 pushd "${PUBLISH_DIR}/"
 curl -O https://build-artifactory.eng.vmware.com/nsx-ujo-local/antrea/VMware-Antrea-1.1.0-0.11.1-ODP.tar.gz
@@ -102,7 +124,7 @@ git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware
 git status
 
 echo "====== Building Binaries for TKGS ======"
-make docker-bin
+fips_make
 
 echo "====== Building Photon Images ======"
 echo Photon images are for local testing, they are not consumed by cayman_photon.
@@ -139,7 +161,7 @@ docker build --cache-from antrea/openvswitch-rpms-photon -t antrea/openvswitch-p
 rm -f photon-rootfs.tar.gz
 popd
 
-echo "====== Buildling antrea-photon Image ======"
+echo "====== Building antrea-photon Image ======"
 cp -vf ${PROJECT_DIR}/images/antrea-photon/* .
 cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
@@ -199,7 +221,7 @@ git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware
 git status
 
 echo "====== Building Binaries for Antrea Standard Product ======"
-make docker-bin
+fips_make
 
 echo "====== Building Debian Images ======"
 echo "====== Building openvswitch-debian Image ======"
@@ -261,7 +283,7 @@ git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware
 git status
 
 echo "====== Building Binaries for TKGm ======"
-make docker-bin
+fips_make
 
 echo "====== Building Debian Images ======"
 echo "====== Building openvswitch-debian Image ======"

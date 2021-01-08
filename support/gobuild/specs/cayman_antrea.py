@@ -36,3 +36,13 @@ CAYMAN_CNI_PLUGINS_FILES = {
     LINUX_HOSTTYPE: [
         "publish/lin64/cni_plugins/executables/.*"]
 }
+
+CAYMAN_GO_BRANCH = "vmware-go1.15.2-boringcrypto"
+CAYMAN_GO_CLN = "d143bfcd23db291bf68213b61ad768591c5cd3d4"
+CAYMAN_GO_BUILDTYPE = "release"
+CAYMAN_GO_FILES = {
+    LINUX_HOSTTYPE: [
+        "publish/lin64/bin/.*",
+        "publish/lin64/src/.*",
+        "publish/lin64/pkg/.*"]
+}

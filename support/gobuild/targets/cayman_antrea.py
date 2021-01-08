@@ -105,6 +105,11 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
                 "change": specs.cayman_antrea.CAYMAN_CNI_PLUGINS_CLN,
                 "buildtype": specs.cayman_antrea.CAYMAN_CNI_PLUGINS_BUILDTYPE,
                 "files": specs.cayman_antrea.CAYMAN_CNI_PLUGINS_FILES},
+            "cayman_go": {
+                "branch": specs.cayman_antrea.CAYMAN_GO_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_GO_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_GO_BUILDTYPE,
+                "files": specs.cayman_antrea.CAYMAN_GO_FILES},
         }
 
         return comps

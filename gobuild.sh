@@ -32,7 +32,7 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "" ]; then
     exit 0
 fi
 
-## Check if  target is in target list
+## Check if target is in target list
 if [[ $TARGETS =~ (^| )$1($| ) ]]; then
     TARGET=$1
     shift
