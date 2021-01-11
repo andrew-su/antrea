@@ -84,11 +84,12 @@ mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests"
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-${BINARY_VERSION}.yml"
 for YAML in ${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/*.yml ; do
   sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-standard-debian:${IMAGE_VERSION}/g" "${YAML}"
+  sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-standard-debian:${IMAGE_VERSION}/g" "${YAML}"
 done
 
 echo "====== Preparing Antrea Advanced Product Deliverables: Debian Manifests ======"
 git reset --hard "${UPSTREAM_COMMIT}"
-git cherry-pick HEAD..origin/topic/${BRANCH_NAME#vmware-}-features
+git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware-}-features
 antrea_adv_deliverables="antrea-advanced-${BRANCH_NAME#vmware-}.${BUILD_NUMBER}"
 mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}"
 mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests"
@@ -96,6 +97,7 @@ mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests"
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-${BINARY_VERSION}.yml"
 for YAML in ${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/*.yml ; do
   sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian:${IMAGE_VERSION}/g" "${YAML}"
+  sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian:${IMAGE_VERSION}/g" "${YAML}"
 done
 
 echo "====== Archiving OpenvSwitch Source Code ======"
@@ -109,7 +111,7 @@ popd
 
 echo "====== Patching Antrea Repo for TKGS ======"
 # Patching build scripts and Dockerfiles
-git cherry-pick HEAD..origin/topic/${BRANCH_NAME#vmware-}-tkgs
+git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware-}-tkgs
 git status
 
 echo "====== Building Binaries for TKGS ======"
@@ -167,6 +169,8 @@ for k8s_version in "1.17" "1.18" "1.19"; do
   mkdir -p "${PUBLISH_DIR}/add-on/${k8s_version}"
   cat "${REPO_ROOT}/build/yamls/antrea.yml" | \
     sed "s/image: antrea\/antrea-.*\$/image: localhost:5000\/vmware.io\/antrea\/antrea-photon:${IMAGE_VERSION}/g" > "${PUBLISH_DIR}/add-on/${k8s_version}/antrea.yaml"
+  cat "${REPO_ROOT}/build/yamls/antrea.yml" | \
+    sed "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: localhost:5000\/vmware.io\/antrea\/antrea-photon:${IMAGE_VERSION}/g" > "${PUBLISH_DIR}/add-on/${k8s_version}/antrea.yaml"
 done
 
 echo "====== Saving TKGS Binaries ======"
@@ -205,7 +209,7 @@ make clean
 
 echo "====== Patching Antrea Repo for Antrea Standard Product ======"
 git reset --hard "${UPSTREAM_COMMIT}"
-git cherry-pick HEAD..origin/topic/${BRANCH_NAME#vmware-}-tkg
+git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware-}-tkg
 git status
 
 echo "====== Building Binaries for Antrea Standard Product ======"
@@ -266,8 +270,8 @@ popd
 
 echo "====== Patching Antrea Repo for TKGm ======"
 git reset --hard "${UPSTREAM_COMMIT}"
-git cherry-pick HEAD..origin/topic/${BRANCH_NAME#vmware-}-features
-git cherry-pick HEAD..origin/topic/${BRANCH_NAME#vmware-}-tkg
+git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware-}-features
+git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware-}-tkg
 git status
 
 echo "====== Building Binaries for TKGm ======"
@@ -308,6 +312,7 @@ echo "${IMAGE_VERSION}" > "${PUBLISH_DIR}/VERSION"
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
 for YAML in ${OUTPUT_DIR}/manifests/*.yml ; do
   sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${YAML}"
+  sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${YAML}"
 done
 
 echo "====== Saving and Signing TKGm Images ======"
