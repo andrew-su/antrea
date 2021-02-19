@@ -28,19 +28,6 @@ function run_python {
   "${PYTHON}" "$@"
 }
 
-mkdir venv
-VENV="$(readlink -f venv)"
-VIRTUAL_ENV="${GOBUILD_CAYMAN_PYTHON_ROOT}/virtualenv/virtualenv.py"
-run_python -c 'import sys; print(sys.path)'
-run_python "${VIRTUAL_ENV}" "${VENV}"
-
-PIP_TRUSTED_HOST="--trusted-host=devpi.nicira.eng.vmware.com"
-PIP_INDEX_URL="--index-url=http://devpi.nicira.eng.vmware.com/root/pypi-extended/+simple/"
-PIP="${VENV}/bin/pip"
-
-# old pip doesn't support --trusted-host
-"${PIP}" install "${PIP_INDEX_URL}" -U pip setuptools==44.0
-
 docker version
 
 docker pull nsx-ujo-docker-local.artifactory.eng.vmware.com/golang:1.15
