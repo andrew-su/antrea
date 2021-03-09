@@ -46,3 +46,11 @@ CAYMAN_GO_FILES = {
         "publish/lin64/src/.*",
         "publish/lin64/pkg/.*"]
 }
+
+NSX_OVS_BUILD_BRANCH = "nsx-highline"
+NSX_OVS_BUILD_CLN = "2980a9d725c62bb657eac6dffeee892ae4eb1a50"
+NSX_OVS_BUILD_BUILDTYPE = "release"
+NSX_OVS_BUILD_FILES = {
+    LINUX_HOSTTYPE: [
+        "publish/windows_x64/.*"]
+}

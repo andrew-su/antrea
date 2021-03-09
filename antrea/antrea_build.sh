@@ -84,6 +84,8 @@ UPSTREAM_COMMIT=$(git log -1 --pretty=format:%H)
 # image and executable: upstream + cherry-pick(enterprise-features + tkgs)
 # manifest: upstream + cherry-pick(tkgs) + sed(image_name)
 
+# Antrea Windows deliverables
+
 echo "====== Preparing Antrea Standard Product Deliverables: Debian Manifests ======"
 git reset --hard "${UPSTREAM_COMMIT}"
 antrea_std_deliverables="antrea-standard-${BRANCH_NAME#vmware-}.${BUILD_NUMBER}"
@@ -388,5 +390,57 @@ popd
 
 echo "====== Cleanup TKGm Build Result ======"
 make clean
+
+echo "====== Windows build ======"
+git reset --hard "${UPSTREAM_COMMIT}"
+git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware-}-common
+mkdir -p "${PUBLISH_DIR}/windows"
+
+mkdir -p "${PUBLISH_DIR}/windows/etc"
+cp build/yamls/windows/base/conf/antrea-agent.conf "${PUBLISH_DIR}/windows/etc/antrea-agent.conf"
+
+mkdir -p "${PUBLISH_DIR}/windows/bin"
+make docker-windows-bin
+cp bin/antrea-agent.exe "${PUBLISH_DIR}/windows/bin/antrea-agent.exe"
+cp bin/antrea-cni.exe "${PUBLISH_DIR}/windows/bin/antrea-cni.exe"
+
+cp hack/windows/Helper.psm1 "${PUBLISH_DIR}/windows/Helper.psm1"
+cp hack/windows/Start.ps1 "${PUBLISH_DIR}/windows/Start.ps1"
+cp hack/windows/Stop.ps1 "${PUBLISH_DIR}/windows/Stop.ps1"
+cp hack/windows/Install-OVS.ps1 "${PUBLISH_DIR}/windows/Install-OVS.ps1"
+
+# If the NSX OVS is unsigned, set false here.
+if true; then
+  sed -i 's|$ImportCertificate = $true|$ImportCertificate = $false|g' "${PUBLISH_DIR}/windows/Install-OVS.ps1"
+fi
+
+echo "==== NSX OVS build ===="
+NSXOVS_PATH=$(find "${GOBUILD_NSX_OVS_BUILD_ROOT}/windows_x64" -name "openvswitch*-win64.zip")
+VCRedistUrl="http://build-artifactory.eng.vmware.com/artifactory/nsbu-windows-local/vcredists.zip"
+DownloadDir="${REPO_ROOT}/download"
+TempDir="${REPO_ROOT}/nsx-ovs-temp"
+mkdir -p "${DownloadDir}"
+mkdir -p "${TempDir}"
+
+cp "${NSXOVS_PATH}" "${DownloadDir}/nsx-ovs.zip"
+wget -q "${VCRedistUrl}" -O "${DownloadDir}/vcredists.zip"
+docker run --rm --user $(id -u):$(id -g) -v "${REPO_ROOT}":/tmp/windows -w /tmp/windows projects.registry.vmware.com/library/busybox /bin/sh -c "unzip -q download/nsx-ovs.zip -d nsx-ovs-temp ; unzip -q download/vcredists.zip -d nsx-ovs-temp"
+OVSDir="${TempDir}/openvswitch"
+OVSDriverDir="${OVSDir}/driver"
+VCRedistDir="${OVSDir}/redist"
+cp -r "${TempDir}/include" "${OVSDir}"
+cp -r "${TempDir}/lib" "${OVSDir}"
+cp -r "${TempDir}/scripts" "${OVSDir}"
+cp -r "${TempDir}/vcredist2017" "${VCRedistDir}"
+cp -r "${TempDir}/ovsext/win10_x64" "${OVSDriverDir}"
+pushd "${TempDir}"
+zip --verbose -r "${PUBLISH_DIR}/windows/ovs-win64.zip" openvswitch
+popd
+
+antrea_windows_deliverables="antrea-windows-${BRANCH_NAME#vmware-}.${BUILD_NUMBER}"
+pushd "${PUBLISH_DIR}/windows"
+zip --verbose -r "${PUBLISH_DIR}/${antrea_windows_deliverables}.zip" *
+popd
+rm -rf bin
 
 echo "****** antrea_build.sh end ******"
