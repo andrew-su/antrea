@@ -152,12 +152,11 @@ echo "====== Saving TKGS Manifests ======"
 # Antrea yamls for TKG Service. antrea-ipsec is not supported yet
 # Complicated Yaml customization is done directly in Antrea topic/tkgs branch
 # Here we only replace image version
-for k8s_version in "1.17" "1.18" "1.19" "1.20" "1.21"; do
+for k8s_version in "1.18" "1.19" "1.20" "1.21"; do
   mkdir -p "${PUBLISH_DIR}/add-on/${k8s_version}"
-  cat "${REPO_ROOT}/build/yamls/antrea.yml" | \
-    sed "s/image: antrea\/antrea-.*\$/image: localhost:5000\/vmware.io\/antrea\/antrea-photon:${IMAGE_VERSION}/g" > "${PUBLISH_DIR}/add-on/${k8s_version}/antrea.yaml"
-  cat "${REPO_ROOT}/build/yamls/antrea.yml" | \
-    sed "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: localhost:5000\/vmware.io\/antrea\/antrea-photon:${IMAGE_VERSION}/g" > "${PUBLISH_DIR}/add-on/${k8s_version}/antrea.yaml"
+  cp "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/add-on/${k8s_version}/antrea.yaml"
+  sed -i -e "s/image: antrea\/antrea-.*\$/image: localhost:5000\/vmware.io\/antrea\/antrea-photon:${IMAGE_VERSION}/g" "${PUBLISH_DIR}/add-on/${k8s_version}/antrea.yaml"
+  sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: localhost:5000\/vmware.io\/antrea\/antrea-photon:${IMAGE_VERSION}/g" "${PUBLISH_DIR}/add-on/${k8s_version}/antrea.yaml"
 done
 
 echo "====== Saving TKGS Binaries ======"
