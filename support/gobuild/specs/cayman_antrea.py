@@ -47,8 +47,8 @@ CAYMAN_GO_FILES = {
         "publish/lin64/pkg/.*"]
 }
 
-NSX_OVS_BUILD_BRANCH = "nsx-highline"
-NSX_OVS_BUILD_CLN = "2980a9d725c62bb657eac6dffeee892ae4eb1a50"
+NSX_OVS_BUILD_BRANCH = "nsx-highline-311-rel"
+NSX_OVS_BUILD_CLN = "5c1f4481a5d41f7d5ea24ef846365957b1fe0cf7"
 NSX_OVS_BUILD_BUILDTYPE = "release"
 NSX_OVS_BUILD_FILES = {
     LINUX_HOSTTYPE: [
