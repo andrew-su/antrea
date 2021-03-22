@@ -65,7 +65,7 @@ fi
 
 cd "${REPO_ROOT}"
 git status
-UPSTREAM_COMMIT=$(git log -1 --pretty=format:%H)
+COMMON_COMMIT=$(git log -1 --pretty=format:%H)
 
 # NOTE:
 # Antrea standard deiverables
@@ -87,7 +87,7 @@ UPSTREAM_COMMIT=$(git log -1 --pretty=format:%H)
 # Antrea Windows deliverables
 
 echo "====== Preparing Antrea Standard Product Deliverables: Debian Manifests ======"
-git reset --hard "${UPSTREAM_COMMIT}"
+git reset --hard "${COMMON_COMMIT}"
 antrea_std_deliverables="antrea-standard-${BRANCH_NAME#vmware-}.${BUILD_NUMBER}"
 mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}"
 mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests"
@@ -99,7 +99,7 @@ for YAML in ${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/*.yml ; do
 done
 
 echo "====== Preparing Antrea Advanced Product Deliverables: Debian Manifests ======"
-git reset --hard "${UPSTREAM_COMMIT}"
+git reset --hard "${COMMON_COMMIT}"
 git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware-}-features
 antrea_adv_deliverables="antrea-advanced-${BRANCH_NAME#vmware-}.${BUILD_NUMBER}"
 mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}"
@@ -112,7 +112,7 @@ for YAML in ${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/*.yml ; do
 done
 
 echo "====== Archiving OpenvSwitch Source Code ======"
-git reset --hard "${UPSTREAM_COMMIT}"
+git reset --hard "${COMMON_COMMIT}"
 OPENVSWITCH_DIR="$(readlink -e ${PROJECT_DIR}/../ovs/src)"
 OPENVSWITCH_VERSION="2.14.0"
 pushd "${OPENVSWITCH_DIR}"
@@ -218,7 +218,7 @@ echo "====== Cleanup TKGS Build Result ======"
 make clean
 
 echo "====== Patching Antrea Repo for Antrea Standard Product ======"
-git reset --hard "${UPSTREAM_COMMIT}"
+git reset --hard "${COMMON_COMMIT}"
 git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware-}-tkg
 git status
 
@@ -279,7 +279,7 @@ popd
 
 
 echo "====== Patching Antrea Repo for TKGm ======"
-git reset --hard "${UPSTREAM_COMMIT}"
+git reset --hard "${COMMON_COMMIT}"
 git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware-}-features
 git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware-}-tkg
 git status
@@ -392,8 +392,7 @@ echo "====== Cleanup TKGm Build Result ======"
 make clean
 
 echo "====== Windows build ======"
-git reset --hard "${UPSTREAM_COMMIT}"
-git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware-}-common
+git reset --hard "${COMMON_COMMIT}"
 mkdir -p "${PUBLISH_DIR}/windows"
 
 mkdir -p "${PUBLISH_DIR}/windows/etc"
