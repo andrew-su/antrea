@@ -29,6 +29,7 @@ RUN tdnf remove -y toybox && \
       procps-ng \
       sed \
       tar \
+      ca-certificates \
       util-linux && \
     tdnf clean all && \
     rm -rf /var/cache/tdnf/* /usr/share/doc/*  /usr/share/man/* /etc/yum.repos.d/photon-iso.repo
