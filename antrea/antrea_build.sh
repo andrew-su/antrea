@@ -11,7 +11,10 @@ env
 cat /proc/cpuinfo
 source release.config
 
+git log
+git branch
 REPO_ROOT="${PROJECT_DIR}/src"
+OVS_VERSION=$(cat build/images/deps/ovs-version)
 
 function fips_make {
   chmod +x ${GOBUILD_CAYMAN_GO_ROOT}/lin64/bin/go
@@ -158,8 +161,8 @@ echo "====== Buildling openvswitch-photon Image ======"
 pushd "${PROJECT_DIR}/images/ovs-photon/"
 cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
 cp ${OPENVSWITCH_DIR}/openvswitch-*.tar.gz .
-docker build --target ovs-rpms -t antrea/openvswitch-rpms-photon .
-docker build --cache-from antrea/openvswitch-rpms-photon -t antrea/openvswitch-photon .
+docker build OVS_VERSION=$(OVS_VERSION) --target ovs-rpms -t antrea/openvswitch-rpms-photon .
+docker build OVS_VERSION=$(OVS_VERSION) --cache-from antrea/openvswitch-rpms-photon -t antrea/openvswitch-photon .
 rm -f photon-rootfs.tar.gz
 popd
 
@@ -229,7 +232,7 @@ echo "====== Building Debian Images ======"
 echo "====== Building openvswitch-debian Image ======"
 pushd build/images/ovs
 cp ${OPENVSWITCH_DIR}/openvswitch-${OPENVSWITCH_VERSION}.tar.gz .
-docker build -t antrea/openvswitch-debian .
+docker build OVS_VERSION=$(OVS_VERSION) -t antrea/openvswitch-debian .
 popd
 
 echo "====== Building antrea-debian Image ======"
@@ -291,7 +294,7 @@ echo "====== Building Debian Images ======"
 echo "====== Building openvswitch-debian Image ======"
 pushd build/images/ovs
 cp ${OPENVSWITCH_DIR}/openvswitch-${OPENVSWITCH_VERSION}.tar.gz .
-docker build -t antrea/openvswitch-debian .
+docker build OVS_VERSION=$(OVS_VERSION) -t antrea/openvswitch-debian .
 popd
 
 echo "====== Building antrea-debian Image ======"
