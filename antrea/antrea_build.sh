@@ -445,9 +445,11 @@ function build_windows {
   popd
 
   antrea_windows_deliverables="antrea-windows-${antrea_deliverable_kind}-${BRANCH_NAME#vmware-}.${BUILD_NUMBER}"
+  antrea_windows_deliverables_tkg="antrea-windows-${antrea_deliverable_kind}-${IMAGE_VERSION}.${BUILD_NUMBER}"
   pushd "${PUBLISH_DIR}/windows"
   zip --verbose -r "${PUBLISH_DIR}/${antrea_windows_deliverables}.zip" *
   popd
+  cp "${PUBLISH_DIR}/${antrea_windows_deliverables}.zip" "${PUBLISH_DIR}/windows/${antrea_windows_deliverables_tkg}.zip"
   mv "${PUBLISH_DIR}/windows" "${PUBLISH_DIR}/windows-${antrea_deliverable_kind}"
   rm -rf bin
 }
