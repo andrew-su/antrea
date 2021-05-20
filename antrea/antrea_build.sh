@@ -403,11 +403,21 @@ function build_windows {
   mkdir -p "${PUBLISH_DIR}/windows"
   mkdir -p "${PUBLISH_DIR}/windows/etc"
   cp build/yamls/windows/base/conf/antrea-agent.conf "${PUBLISH_DIR}/windows/etc/antrea-agent.conf"
+  cp build/yamls/windows/base/conf/antrea-cni.conflist "${PUBLISH_DIR}/windows/etc/antrea-cni.conflist"
 
   mkdir -p "${PUBLISH_DIR}/windows/bin"
   make docker-windows-bin
   cp bin/antrea-agent.exe "${PUBLISH_DIR}/windows/bin/antrea-agent.exe"
   cp bin/antrea-cni.exe "${PUBLISH_DIR}/windows/bin/antrea-cni.exe"
+
+  DownloadDir="${REPO_ROOT}/download"
+  rm -rf "${DownloadDir}"
+  mkdir -p "${DownloadDir}"
+  CNI_WINDOWS_URL="https://github.com/containernetworking/plugins/releases/download/v0.8.1/cni-plugins-windows-amd64-v0.8.1.tgz"
+  wget -q "${CNI_WINDOWS_URL}" -O "${DownloadDir}/cni-plugins-windows.tgz"
+  mkdir -p "${DownloadDir}/cni-plugins-windows"
+  tar zxf "${DownloadDir}/cni-plugins-windows.tgz" -C "${DownloadDir}/cni-plugins-windows"
+  cp "${DownloadDir}/cni-plugins-windows/host-local.exe" "${PUBLISH_DIR}/windows/bin/host-local.exe"
 
   cp hack/windows/Helper.psm1 "${PUBLISH_DIR}/windows/Helper.psm1"
   cp hack/windows/Start.ps1 "${PUBLISH_DIR}/windows/Start.ps1"
@@ -422,11 +432,8 @@ function build_windows {
   echo "==== NSX OVS build ===="
   NSXOVS_PATH=$(find "${GOBUILD_NSX_OVS_BUILD_ROOT}/windows_x64" -name "openvswitch*-win64.zip")
   VCRedistUrl="http://build-artifactory.eng.vmware.com/artifactory/nsbu-windows-local/vcredists.zip"
-  DownloadDir="${REPO_ROOT}/download"
   TempDir="${REPO_ROOT}/nsx-ovs-temp"
-  rm -rf "${DownloadDir}"
   rm -rf "${TempDir}"
-  mkdir -p "${DownloadDir}"
   mkdir -p "${TempDir}"
 
   cp "${NSXOVS_PATH}" "${DownloadDir}/nsx-ovs.zip"
