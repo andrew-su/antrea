@@ -73,20 +73,20 @@ COMMON_COMMIT=$(git log -1 --pretty=format:%H)
 
 # NOTE:
 # Antrea standard deiverables
-# image and executable: upstream + cherry-pick(tkg) (tkg is for Debian build patches)
-# manifest: upstream + sed(image_name)
+# image and executable: common + cherry-pick(tkg) (tkg is for Debian build patches)
+# manifest: common + sed(image_name)
 
 # Antrea advanced deiverables
-# image and executable: upstream + cherry-pick(enterprise-features + tkg)
-# manifest: upstream + cherry-pick(enterprise-features) + sed(image_name)
+# image and executable: common + cherry-pick(enterprise-features + tkg)
+# manifest: common + cherry-pick(enterprise-features) + sed(image_name)
 
 # TKG deiverables
-# image and executable: upstream + cherry-pick(enterprise-features + tkg)
-# manifest: upstream + cherry-pick(enterprise-features + tkg) + sed(image_name)
+# image and executable: common + cherry-pick(enterprise-features + tkg)
+# manifest: common + cherry-pick(enterprise-features + tkg) + sed(image_name)
 
 # TKGS deiverables
-# image and executable: upstream + cherry-pick(enterprise-features + tkgs)
-# manifest: upstream + cherry-pick(tkgs) + sed(image_name)
+# image and executable: common + cherry-pick(enterprise-features + tkgs)
+# manifest: common + cherry-pick(enterprise-features + tkgs) + sed(image_name)
 
 # Antrea Windows deliverables
 
@@ -126,6 +126,7 @@ popd
 
 echo "====== Patching Antrea Repo for TKGS ======"
 # Patching build scripts and Dockerfiles
+git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware-}-features
 git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware-}-tkgs
 git status
 
