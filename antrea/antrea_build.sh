@@ -23,6 +23,7 @@ function fips_make {
   mkdir -p "${REPO_ROOT}/gopath"
   mkdir -p "${REPO_ROOT}/gocache"
   mkdir -p "${REPO_ROOT}/goenv"
+  GIT_SHA="$(git rev-parse --short HEAD)"
   ANTREA_VER=$(head -n 1 VERSION)
 	docker run --rm -u $(id -u):$(id -g) \
 		-e "GOCACHE=/tmp/gocache" \
@@ -34,8 +35,8 @@ function fips_make {
 		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/src:/usr/local/go/src \
 		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/pkg:/usr/local/go/pkg \
 		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/bin:/usr/local/go/bin \
-		-v ${REPO_ROOT}:/usr/src/antrea.io/vmware-tanzu/antrea \
-		golang:1.15 /bin/bash -c "mkdir -p bin; go env -w CC='x86_64-linux-gnu-gcc'; GOOS=linux go build -o bin -ldflags ' -X antrea.io/antrea/pkg/version.Version=${ANTREA_VER} -X antrea.io/antrea/pkg/version.GitSHA= -X antrea.io/antrea/pkg/version.GitTreeState=clean -X antrea.io/antrea/pkg/version.ReleaseStatus=unreleased' antrea.io/antrea/cmd/..."
+		-v ${REPO_ROOT}:/usr/src/antrea.io/antrea \
+		golang:1.15 /bin/bash -c "mkdir -p bin; go env -w CC='x86_64-linux-gnu-gcc'; GOOS=linux go build -o bin -ldflags ' -X antrea.io/antrea/pkg/version.Version=${ANTREA_VER} -X antrea.io/antrea/pkg/version.GitSHA=${GIT_SHA} -X antrea.io/antrea/pkg/version.GitTreeState=clean -X antrea.io/antrea/pkg/version.ReleaseStatus=unreleased' antrea.io/antrea/cmd/..."
   chmod -R 0755 bin
 }
 
