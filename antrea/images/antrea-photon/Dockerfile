@@ -10,10 +10,14 @@ RUN tdnf install -y ca-certificates tar gzip
 
 # Leading dot is required for the tar command below
 ENV CNI_PLUGINS="./host-local ./loopback ./portmap ./bandwidth"
+ENV pluginsArch="amd64"
 COPY cni-plugins-*.tgz /tmp
 
 RUN mkdir -p /opt/cni/bin && \
-    tar -zxvf /tmp/cni-plugins-*.tgz -C /opt/cni/bin $CNI_PLUGINS
+    tar -zxvf /tmp/cni-plugins-*.tgz -C /opt/cni/bin $CNI_PLUGINS && \
+    curl -k -sLO https://build-artifactory.eng.vmware.com/artifactory/nsx-ujo-local/antrea/0.4/whereabouts-linux-${pluginsArch}.tgz && \
+    tar xvf whereabouts-linux-${pluginsArch}.tgz --strip-components=1 && \
+    mv whereabouts /opt/cni/bin
 
 
 FROM antrea/openvswitch-photon
