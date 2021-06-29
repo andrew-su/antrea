@@ -127,13 +127,11 @@ popd
 
 echo "====== Patching Antrea Repo for TKGS ======"
 # Patching build scripts and Dockerfiles
-git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware-}-features
-git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware-}-tkgs
+git checkout origin/topic/${BRANCH_NAME#vmware-}-tkgs-release
 git status
 
 echo "====== Building Binaries for TKGS ======"
 fips_make
-
 echo "====== Building Photon Images ======"
 echo Photon images are for local testing, they are not consumed by cayman_photon.
 echo We maintain a dedicated Antrea Dockerfile in cayman_photon. Antrea photon
@@ -225,12 +223,11 @@ make clean
 
 echo "====== Patching Antrea Repo for Antrea Standard Product ======"
 git reset --hard "${COMMON_COMMIT}"
-git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware-}-tkg
+git checkout origin/topic/${BRANCH_NAME#vmware-}-standard-release
 git status
 
 echo "====== Building Binaries for Antrea Standard Product ======"
 fips_make
-
 echo "====== Building Debian Images ======"
 echo "====== Building openvswitch-debian Image ======"
 pushd build/images/ovs
@@ -239,6 +236,7 @@ docker build --build-arg OVS_VERSION=${OVS_VER} -t antrea/openvswitch-debian .
 popd
 
 echo "====== Building antrea-debian Image ======"
+git checkout origin/topic/${BRANCH_NAME#vmware-}-advanced-release
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 make debian VERSION=${IMAGE_VERSION}
 
@@ -268,7 +266,7 @@ mkdir -p "${OUTPUT_DIR}/executables"
 cat "${REPO_ROOT}/bin/antctl" | gzip -9 > "${OUTPUT_DIR}/executables/antctl-${BINARY_VERSION}.gz"
 pushd "${OUTPUT_DIR}/executables"
 BINARY_CHECKSUM_FILENAME="antctl-${BINARY_VERSION}-checksums.txt"
-sha256sum -- "antctl-${BINARY_VERSION}.gz" > ${BINARY_CHECKSUM_FILENAME}
+sha256sum -- * > ${BINARY_CHECKSUM_FILENAME}
 gpgsignc textsign -i ${BINARY_CHECKSUM_FILENAME} -o "${BINARY_CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=001E5CC9
 popd
 
@@ -286,8 +284,7 @@ popd
 
 echo "====== Patching Antrea Repo for TKGm ======"
 git reset --hard "${COMMON_COMMIT}"
-git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware-}-features
-git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware-}-tkg
+git checkout origin/topic/${BRANCH_NAME#vmware-}-tkg-release
 git status
 
 echo "====== Building Binaries for TKGm ======"
@@ -303,7 +300,6 @@ popd
 echo "====== Building antrea-debian Image ======"
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 make debian VERSION=${IMAGE_VERSION}
-
 
 # Create archives for scripts and binaries
 echo "====== Saving TKGm Deliverables ======"
@@ -353,7 +349,7 @@ mkdir -p "${OUTPUT_DIR}/executables"
 cat "${REPO_ROOT}/bin/antctl" | gzip -9 > "${OUTPUT_DIR}/executables/antctl-${BINARY_VERSION}.gz"
 pushd "${OUTPUT_DIR}/executables"
 BINARY_CHECKSUM_FILENAME="antctl-${BINARY_VERSION}-checksums.txt"
-sha256sum -- "antctl-${BINARY_VERSION}.gz" > ${BINARY_CHECKSUM_FILENAME}
+sha256sum -- * > ${BINARY_CHECKSUM_FILENAME}
 gpgsignc textsign -i ${BINARY_CHECKSUM_FILENAME} -o "${BINARY_CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=001E5CC9
 popd
 
