@@ -127,7 +127,7 @@ popd
 
 echo "====== Patching Antrea Repo for TKGS ======"
 # Patching build scripts and Dockerfiles
-git checkout origin/topic/${BRANCH_NAME#vmware-}-tkgs-release
+git reset --hard origin/topic/${BRANCH_NAME#vmware-}-tkgs-release
 git status
 
 echo "====== Building Binaries for TKGS ======"
@@ -222,8 +222,7 @@ echo "====== Cleanup TKGS Build Result ======"
 make clean
 
 echo "====== Patching Antrea Repo for Antrea Standard Product ======"
-git reset --hard "${COMMON_COMMIT}"
-git checkout origin/topic/${BRANCH_NAME#vmware-}-standard-release
+git reset --hard origin/topic/${BRANCH_NAME#vmware-}-standard-release
 git status
 
 echo "====== Building Binaries for Antrea Standard Product ======"
@@ -236,7 +235,7 @@ docker build --build-arg OVS_VERSION=${OVS_VER} -t antrea/openvswitch-debian .
 popd
 
 echo "====== Building antrea-debian Image ======"
-git checkout origin/topic/${BRANCH_NAME#vmware-}-advanced-release
+git reset --hard origin/topic/${BRANCH_NAME#vmware-}-advanced-release
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 make debian VERSION=${IMAGE_VERSION}
 
@@ -283,8 +282,7 @@ popd
 
 
 echo "====== Patching Antrea Repo for TKGm ======"
-git reset --hard "${COMMON_COMMIT}"
-git checkout origin/topic/${BRANCH_NAME#vmware-}-tkg-release
+git reset --hard origin/topic/${BRANCH_NAME#vmware-}-tkgm-release
 git status
 
 echo "====== Building Binaries for TKGm ======"
