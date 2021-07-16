@@ -111,9 +111,9 @@ mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests"
 # antrea-ipsec is not used in commecial release
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-${BINARY_VERSION}.yml"
 cp "${REPO_ROOT}/build/yamls/flow-aggregator.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
-sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian:${IMAGE_VERSION}/g" "${YAML}"
-sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian:${IMAGE_VERSION}/g" "${YAML}"
-sed -i -e "s/image: projects.registry.vmware.com\/antrea\/flow-aggregator:latest/image: projects.registry.vmware.com\/antrea\/flow-aggregator-debian:${IMAGE_VERSION}/g" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
+sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian:${IMAGE_VERSION}/g" "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-${BINARY_VERSION}.yml"
+sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian:${IMAGE_VERSION}/g" "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-${BINARY_VERSION}.yml"
+sed -i -e "s/image: projects.registry.vmware.com\/antrea\/flow-aggregator:latest/image: projects.registry.vmware.com\/antrea\/flow-aggregator-debian:${IMAGE_VERSION}/g" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
 echo "====== Archiving OpenvSwitch Source Code ======"
 git reset --hard "${COMMON_COMMIT}"
 OPENVSWITCH_DIR="$(readlink -e ${PROJECT_DIR}/../ovs/src)"
@@ -226,6 +226,7 @@ git status
 echo "====== Building Binaries for Antrea Standard Product ======"
 fips_make
 make flow-aggregator-image
+docker tag antrea/flow-aggregator-debian antrea/flow-aggregator-debian:${IMAGE_VERSION}
 echo "====== Building Debian Images ======"
 echo "====== Building openvswitch-debian Image ======"
 pushd build/images/ovs
@@ -252,7 +253,7 @@ mkdir -p "${OUTPUT_DIR}/images"
 # Just publish Antrea images.
 docker tag antrea/antrea-debian:${IMAGE_VERSION} antrea/antrea-standard-debian:${IMAGE_VERSION}
 docker save antrea/antrea-standard-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-standard-debian-${IMAGE_VERSION}.tar.gz"
-docker save antrea/flow-aggregator-debian:$(IMAGE_VERSION) | gzip -9 "${OUTPUT_DIR}/images/flow-aggregator-debian:$(IMAGE_VERSION)"
+docker save antrea/flow-aggregator-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/flow-aggregator-debian:${IMAGE_VERSION}.tar.gz"
 echo "antrea/antrea-standard-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${checksum_filename}
@@ -321,10 +322,9 @@ echo "${IMAGE_VERSION}" > "${PUBLISH_DIR}/VERSION"
 # antrea-ipsec is not used in TKGm.
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
 cp "${REPO_ROOT}/build/yamls/flow-aggregator.yml" "${OUTPUT_DIR}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
-sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${YAML}"
-sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${YAML}"
-sed -i -e "s/image: projects.registry.vmware.com\/antrea\/flow-aggregator:latest/image: projects.registry.vmware.com\/antrea\/flow-aggregator-debian:${IMAGE_VERSION}/g" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
-done
+sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
+sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
+sed -i -e "s/image: projects.registry.vmware.com\/antrea\/flow-aggregator:latest/image: projects.registry.vmware.com\/antrea\/flow-aggregator-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
 
 echo "====== Saving and Signing TKGm Images ======"
 
@@ -336,7 +336,7 @@ mkdir -p "${OUTPUT_DIR}/images"
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
 # Just publish Antrea images.
 docker save antrea/antrea-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-debian-${IMAGE_VERSION}.tar.gz"
-docker save antrea/flow-aggregator-debian:$(IMAGE_VERSION) | gzip -9 "${OUTPUT_DIR}/images/flow-aggregator-debian:$(IMAGE_VERSION)"
+docker save antrea/flow-aggregator-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/flow-aggregator-debian:${IMAGE_VERSION}.tar.gz"
 echo "antrea/antrea-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${checksum_filename}
@@ -366,7 +366,7 @@ mkdir -p "${OUTPUT_DIR}/images"
 # Just publish Antrea images.
 docker tag antrea/antrea-debian:${IMAGE_VERSION} antrea/antrea-advanced-debian:${IMAGE_VERSION}
 docker save antrea/antrea-advanced-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-advanced-debian-${IMAGE_VERSION}.tar.gz"
-docker save antrea/flow-aggregator-debian:$(IMAGE_VERSION) | gzip -9 "${OUTPUT_DIR}/images/flow-aggregator-debian:$(IMAGE_VERSION)"
+docker save antrea/flow-aggregator-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/flow-aggregator-debian:${IMAGE_VERSION}.tar.gz"
 echo "antrea/antrea-advanced-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${checksum_filename}
