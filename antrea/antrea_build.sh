@@ -182,6 +182,7 @@ popd
 echo "====== Building antrea-ubuntu Image ======"
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 make ubuntu VERSION=${IMAGE_VERSION}
+docker tag antrea/antrea-ubuntu:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-ubuntu:${IMAGE_VERSION}
 
 echo "====== Saving and Signing Ubuntu Images ======"
 OUTPUT_DIR="${BUILDROOT}/output"
@@ -190,8 +191,8 @@ digest_filename="antrea-ubuntu-${IMAGE_VERSION}-image-digests.txt"
 checksum_filename="antrea-ubuntu-${IMAGE_VERSION}-image-checksums.txt"
 mkdir -p "${OUTPUT_DIR}/images"
 #openvswitch-ubuntu only for antrea-ubuntu build reference, so no need to publish openvswitch
-docker save antrea/antrea-ubuntu:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-ubuntu-${IMAGE_VERSION}.tar.gz"
-echo "antrea/antrea-ubuntu@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
+docker save localhost:5000/vmware.io/antrea/antrea-ubuntu:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-ubuntu-${IMAGE_VERSION}.tar.gz"
+echo "localhost:5000/vmware.io/antrea/antrea-photon@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${checksum_filename}
 gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
