@@ -17,7 +17,7 @@ if [ -z $OVS_VER ]; then
   OVS_VER="2.14.2"
 fi
 
-function fips_make {
+function fips_make() {
   chmod +x ${GOBUILD_CAYMAN_GO_ROOT}/lin64/bin/go
   chmod +x -R ${GOBUILD_CAYMAN_GO_ROOT}/lin64/pkg/tool/linux_amd64
   mkdir -p "${REPO_ROOT}/gopath"
@@ -25,19 +25,26 @@ function fips_make {
   mkdir -p "${REPO_ROOT}/goenv"
   GIT_SHA="$(git rev-parse --short HEAD)"
   ANTREA_VER=$(head -n 1 VERSION)
+
+  if [ $# -eq 0 ]; then
+    cmd="mkdir -p bin; go env -w CC='x86_64-linux-gnu-gcc'; GOOS=linux go build -o bin -ldflags ' -X ${ANTREA_DOMAIN}/pkg/version.Version=${ANTREA_VER} -X ${ANTREA_DOMAIN}/pkg/version.GitSHA=${GIT_SHA} -X ${ANTREA_DOMAIN}/pkg/version.GitTreeState=clean -X ${ANTREA_DOMAIN}/pkg/version.ReleaseStatus=unreleased' ${ANTREA_DOMAIN}/cmd/..."
+  else
+    cmd="mkdir -p bin; go env -w CC='x86_64-linux-gnu-gcc'; GOOS=linux $1"
+  fi
+
 	docker run --rm -u $(id -u):$(id -g) \
 		-e "GOCACHE=/tmp/gocache" \
 		-e "GOPATH=/tmp/gopath" \
-		-w /usr/src/antrea.io/antrea \
+		-w /usr/src/${ANTREA_DOMAIN} \
 		-v "${REPO_ROOT}/gopath":/tmp/gopath \
 		-v "${REPO_ROOT}/gocache":/tmp/gocache \
 		-v "${REPO_ROOT}/goenv":/.config/go \
 		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/src:/usr/local/go/src \
 		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/pkg:/usr/local/go/pkg \
 		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/bin:/usr/local/go/bin \
-		-v ${REPO_ROOT}:/usr/src/antrea.io/antrea \
-		golang:1.15 /bin/bash -c "mkdir -p bin; go env -w CC='x86_64-linux-gnu-gcc'; GOOS=linux go build -o bin -ldflags ' -X antrea.io/antrea/pkg/version.Version=${ANTREA_VER} -X antrea.io/antrea/pkg/version.GitSHA=${GIT_SHA} -X antrea.io/antrea/pkg/version.GitTreeState=clean -X antrea.io/antrea/pkg/version.ReleaseStatus=unreleased' antrea.io/antrea/cmd/..."
-  chmod -R 0755 bin
+		-v ${REPO_ROOT}:/usr/src/${ANTREA_DOMAIN} \
+		golang:1.15 /bin/bash -c "${cmd}"
+  chmod -R 0755 bin || true
 }
 
 cp open_source_licenses.txt "${PUBLISH_DIR}/"
@@ -71,6 +78,102 @@ fi
 cd "${REPO_ROOT}"
 git status
 COMMON_COMMIT=$(git log -1 --pretty=format:%H)
+
+echo "===== Compile antrea e2e testcases  ====="
+git reset --hard "${COMMON_COMMIT}"
+
+ANTREA_BRANCH=${BRANCH_NAME}
+ANTREA_VERSION=${IMAGE_VERSION}
+
+if [[ "${ANTREA_BRANCH}" == vmware-*+vmware.* ]] ; then
+  BRANCH_NAME_TRIM="${ANTREA_BRANCH%+vmware.*}"
+else
+  BRANCH_NAME_TRIM="${ANTREA_BRANCH}"
+fi
+upstream_release="${BRANCH_NAME_TRIM#vmware-}"
+if [ "${upstream_release}" != "master" ]; then
+  upstream_release="v${upstream_release}"
+fi
+
+# remove vmware-* from beginning
+antreaVersion="${ANTREA_BRANCH#*-}"
+# remove *-rc from ending
+antreaVersionDigit="${antreaVersion%-*}"
+
+function version_ge()
+{
+    if [[ $1 == $2 ]]
+    then
+        return 0
+    fi
+    local IFS=.
+    local i ver1=($1) ver2=($2)
+    # fill empty fields in ver1 with zeros
+    for ((i=${#ver1[@]}; i<${#ver2[@]}; i++))
+    do
+        ver1[i]=0
+    done
+    for ((i=0; i<${#ver1[@]}; i++))
+    do
+        if [[ -z ${ver2[i]} ]]
+        then
+            # fill empty fields in ver2 with zeros
+            ver2[i]=0
+        fi
+        if ((10#${ver1[i]} > 10#${ver2[i]}))
+        then
+            return 0
+        fi
+        if ((10#${ver1[i]} < 10#${ver2[i]}))
+        then
+            return 1
+        fi
+    done
+    return 0
+}
+
+if version_ge "$antreaVersionDigit" "0.13.0"; then
+  git checkout "origin/topic/${ANTREA_BRANCH#vmware-}-common"
+else
+  git checkout "${upstream_release}"
+fi
+
+if version_ge "$antreaVersionDigit" "1.2.0"; then
+  ANTREA_DOMAIN="antrea.io/antrea"
+else
+  ANTREA_DOMAIN="github.com/vmware-tanzu/antrea"
+fi
+
+if version_ge "$antreaVersionDigit" "1.2.0"; then
+    for test_image in "standard" "advanced" "tkgs" "tkgm"
+    do
+      git reset --hard remotes/origin/topic/${antreaVersion}-${test_image}-release
+      rm -f test/e2e/ipsec_test.go
+      fips_make "go test -c -v -x -o bin/e2e-${test_image}-${ANTREA_VERSION} ${ANTREA_DOMAIN}/test/e2e"
+    done
+else
+    # Make standard package
+    rm -f test/e2e/ipsec_test.go
+    fips_make "go test -c -o bin/e2e-standard-${ANTREA_VERSION} ${ANTREA_DOMAIN}/test/e2e"
+    # Make TKGm package
+    git reset --hard "${COMMON_COMMIT}"
+    git cherry-pick --keep-redundant-commits "HEAD..origin/topic/${ANTREA_BRANCH#vmware-}-features"
+    git cherry-pick --keep-redundant-commits "HEAD..origin/topic/${ANTREA_BRANCH#vmware-}-tkg"
+    rm -f test/e2e/ipsec_test.go
+    fips_make "go test -c -o bin/e2e-tkgm-${ANTREA_VERSION} ${ANTREA_DOMAIN}/test/e2e"
+    # Make advanced or TKGs package
+    git reset --hard "${COMMON_COMMIT}"
+    git cherry-pick --keep-redundant-commits "HEAD..origin/topic/${ANTREA_BRANCH#vmware-}-features"
+    rm -f test/e2e/ipsec_test.go
+    fips_make "go test -c -o bin/e2e-advanced-${ANTREA_VERSION} ${ANTREA_DOMAIN}/test/e2e"
+    fips_make "go test -c -o bin/e2e-tkgs-${ANTREA_VERSION} ${ANTREA_DOMAIN}/test/e2e"
+fi
+
+mkdir -p "${PUBLISH_DIR}/lin64/antrea/executables/"
+for test_image in "standard" "advanced" "tkgs" "tkgm"
+do
+  gzip -c bin/e2e-${test_image}-${ANTREA_VERSION} > ${PUBLISH_DIR}/lin64/antrea/executables/e2e-${test_image}-${ANTREA_VERSION}.gz
+done
 
 # NOTE:
 # Antrea standard deiverables
@@ -422,7 +525,6 @@ make clean
 echo "====== Windows build ======"
 function build_windows {
   antrea_deliverable_kind=$1
-  
   rm -rf "${PUBLISH_DIR}/windows"
   mkdir -p "${PUBLISH_DIR}/windows"
   mkdir -p "${PUBLISH_DIR}/windows/etc"
