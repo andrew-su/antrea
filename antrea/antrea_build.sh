@@ -44,7 +44,7 @@ function fips_make() {
 		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/bin:/usr/local/go/bin \
 		-v ${REPO_ROOT}:/usr/src/${ANTREA_DOMAIN} \
 		golang:1.15 /bin/bash -c "${cmd}"
-  chmod -R 0755 bin || true
+  chmod -R 0755 bin
 }
 
 cp open_source_licenses.txt "${PUBLISH_DIR}/"
@@ -279,7 +279,7 @@ echo "====== Building Ubuntu Images ======"
 echo "====== Building openvswitch-ubuntu Image ======"
 pushd build/images/ovs
 cp ${OPENVSWITCH_DIR}/openvswitch-${OPENVSWITCH_VERSION}.tar.gz .
-docker build -t antrea/openvswitch-ubuntu .
+docker build --build-arg OVS_VERSION=${OVS_VER} -t antrea/openvswitch-ubuntu .
 popd
 
 echo "====== Building antrea-ubuntu Image ======"
@@ -294,9 +294,10 @@ digest_filename="antrea-ubuntu-${IMAGE_VERSION}-image-digests.txt"
 checksum_filename="antrea-ubuntu-${IMAGE_VERSION}-image-checksums.txt"
 mkdir -p "${OUTPUT_DIR}/images"
 #openvswitch-ubuntu only for antrea-ubuntu build reference, so no need to publish openvswitch
-docker save localhost:5000/vmware.io/antrea/antrea-ubuntu:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-ubuntu-${IMAGE_VERSION}.tar.gz"
-echo "localhost:5000/vmware.io/antrea/antrea-photon@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
-pushd "${OUTPUT_DIR}/images/"
+mkdir -p "${PUBLISH_DIR}/ubuntu/images/"
+docker save localhost:5000/vmware.io/antrea/antrea-ubuntu:${IMAGE_VERSION} | gzip -9 > "${PUBLISH_DIR}/ubuntu/images/antrea-ubuntu-${IMAGE_VERSION}.tar.gz"
+echo "localhost:5000/vmware.io/antrea/antrea-ubuntu@${image_id}" > "${PUBLISH_DIR}/ubuntu/images/${digest_filename}"
+pushd "${PUBLISH_DIR}/ubuntu/images"
 sha256sum -- * > ${checksum_filename}
 gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
 popd
