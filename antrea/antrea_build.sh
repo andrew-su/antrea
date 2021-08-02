@@ -14,7 +14,7 @@ source release.config
 REPO_ROOT="${PROJECT_DIR}/src"
 OVS_VER=$(cat src/build/images/deps/ovs-version)
 if [ -z $OVS_VER ]; then
-  OVS_VER="2.14.0"
+  OVS_VER="2.14.2"
 fi
 
 function fips_make {
@@ -117,7 +117,7 @@ sed -i -e "s/image: projects.registry.vmware.com\/antrea\/flow-aggregator:latest
 echo "====== Archiving OpenvSwitch Source Code ======"
 git reset --hard "${COMMON_COMMIT}"
 OPENVSWITCH_DIR="$(readlink -e ${PROJECT_DIR}/../ovs/src)"
-OPENVSWITCH_VERSION="2.14.0"
+OPENVSWITCH_VERSION="2.14.2"
 pushd "${OPENVSWITCH_DIR}"
 git archive --format=tar.gz --prefix=openvswitch-${OPENVSWITCH_VERSION}/ -o openvswitch-${OPENVSWITCH_VERSION}.tar.gz HEAD
 popd
