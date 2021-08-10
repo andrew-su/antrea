@@ -4470,6 +4470,53 @@ func testANPTierRefDeleteDeny(t *testing.T) {
 	failOnError(k8sUtils.CleanTEBs(), t)
 }
 
+func testACNPTierRefCreateAllowSubjectServiceAccount(t *testing.T, data *TestData) {
+	rbacErr := fmt.Errorf("authorized serviceaccount not allowed access to Tier reference")
+	// Create a TierEntitlement for Emergency Tier.
+	teBuilder := &TierEntitlementSpecBuilder{}
+	teBuilder = teBuilder.SetName("te-emer").
+		SetPriorityEdit().
+		AddTier("emergency")
+	te := teBuilder.Get()
+	_, err := k8sUtils.CreateOrUpdateTierEntitlement(te)
+	if err != nil {
+		failOnError(fmt.Errorf("create TierEntitlement failed for TE te-emer: %v", err), t)
+	}
+	// Non-admin serviceaccount is "default". Retrieve it as serviceaccount subject.
+	defaultSubject := getServiceAccountSubject(data.testNamespace, "default")
+	tebBuilder := &TierEntitlementBindingSpecBuilder{}
+	tebBuilder = tebBuilder.SetName("teb-emer").
+		SetTierEntitlement("te-emer").
+		AddSubject(defaultSubject)
+	teb := tebBuilder.Get()
+	_, err = k8sUtils.CreateOrUpdateTierEntitlementBinding(teb)
+	if err != nil {
+		failOnError(fmt.Errorf("create TierEntitlementBinding failed for TEB teb-emer: %v", err), t)
+	}
+	builder := &ClusterNetworkPolicySpecBuilder{}
+	builder = builder.SetName("acnp-emer-allowed").
+		SetTier("emergency").
+		SetPriority(10.0).
+		SetAppliedToGroup([]ACNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}})
+	acnp := builder.Get()
+	log.Debugf("creating ACNP %v", acnp.Name)
+	_, err = k8sUtils.CreateOrUpdateACNPAsNonAdmin(acnp)
+	// Above creation of ACNP must not fail as it is called by authorized user.
+	if err != nil {
+		failOnError(rbacErr, t)
+	}
+	// Clean ACNP for next use case.
+	failOnError(k8sUtils.CleanACNPs(), t)
+	_, err = k8sUtils.CreateOrUpdateACNP(acnp)
+	// Above creation of ACNP must not fail as it is called by admin.
+	if err != nil {
+		failOnError(rbacErr, t)
+	}
+	failOnError(k8sUtils.CleanACNPs(), t)
+	failOnError(k8sUtils.CleanTEs(), t)
+	failOnError(k8sUtils.CleanTEBs(), t)
+}
+
 // the matchers parameter is a list of regular expressions which will be matched against the
 // contents of the audit logs. The call will "succeed" if all matches are successful.
 func checkAuditLoggingResult(t *testing.T, data *TestData, nodeName, logLocator string, matchers []*regexp.Regexp) {
@@ -4841,6 +4888,7 @@ func TestAntreaPolicy(t *testing.T) {
 		t.Run("Case=ANPTierRefCreateDenied", func(t *testing.T) { testANPTierRefCreateDeny(t) })
 		t.Run("Case=ANPTierRefCreateAllowed", func(t *testing.T) { testANPTierRefCreateAllow(t, data) })
 		t.Run("Case=ANPTierRefDeleteDenied", func(t *testing.T) { testANPTierRefDeleteDeny(t) })
+		t.Run("Case=ACNPTierRefCreateAllowSubjectServiceAccount", func(t *testing.T) { testACNPTierRefCreateAllowSubjectServiceAccount(t, data) })
 	})
 	// This test group only provides one case for each CR, including ACNP and ANNP to
 	// make sure the corresponding mutation webhooks is called. And for all specific

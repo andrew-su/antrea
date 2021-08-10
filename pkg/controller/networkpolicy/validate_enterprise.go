@@ -19,6 +19,7 @@ import (
 
 	authenticationv1 "k8s.io/api/authentication/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/klog/v2"
 
 	crdv1b1 "antrea.io/antrea/pkg/apis/crd/v1beta1"
@@ -173,6 +174,11 @@ func userInSubjects(user authenticationv1.UserInfo, subjects []rbacv1.Subject) b
 						// Subject.
 						return true
 					}
+				}
+			case rbacv1.ServiceAccountKind:
+				if serviceaccount.MatchesUsername(s.Namespace, s.Name, user.Username) {
+					// Serviceaccount matches the Subject.
+					return true
 				}
 			}
 		}

@@ -1383,6 +1383,17 @@ func getServiceAccountAsUserSubject(ns, name string) rbacv1.Subject {
 	}
 }
 
+// getServiceAccountSubject constructs a ServiceAccount Subject for the serviceaccount
+// name and Namespace.
+func getServiceAccountSubject(ns, name string) rbacv1.Subject {
+	return rbacv1.Subject{
+		Kind:      rbacv1.ServiceAccountKind,
+		APIGroup:  "rbac.authorization.k8s.io",
+		Namespace: ns,
+		Name:      name,
+	}
+}
+
 // deleteAntrea deletes the Antrea DaemonSet; we use cascading deletion, which means all the Pods created
 // by Antrea will be deleted. After issuing the deletion request, we poll the K8s apiserver to ensure
 // that the DaemonSet does not exist any more. This function is a no-op if the Antrea DaemonSet does
