@@ -70,6 +70,10 @@ docker tag nsx-ujo-docker-local.artifactory.eng.vmware.com/golang:1.15 golang:1.
 if [ "${BRANCH_NAME}" = "vmware-master" ]; then
   IMAGE_VERSION=vmware-master
   BINARY_VERSION=vmware-master
+elif [[ "${BRANCH_NAME}" == vmware-*+vmware.* ]]; then
+  BRANCH_NAME_TRIM="${BRANCH_NAME%+vmware.*}"
+  IMAGE_VERSION="v${BRANCH_NAME_TRIM#vmware-}_vmware.${VMWARE_RELEASE_VERSION}"
+  BINARY_VERSION="v${BRANCH_NAME_TRIM#vmware-}+vmware.${VMWARE_RELEASE_VERSION}"
 else
   IMAGE_VERSION="v${BRANCH_NAME#vmware-}_vmware.${VMWARE_RELEASE_VERSION}"
   BINARY_VERSION="v${BRANCH_NAME#vmware-}+vmware.${VMWARE_RELEASE_VERSION}"
