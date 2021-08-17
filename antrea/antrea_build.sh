@@ -570,15 +570,21 @@ function build_windows {
 
   cp "${NSXOVS_PATH}" "${DownloadDir}/nsx-ovs.zip"
   wget -q "${VCRedistUrl}" -O "${DownloadDir}/vcredists.zip"
-  docker run --rm --user $(id -u):$(id -g) -v "${REPO_ROOT}":/tmp/windows -w /tmp/windows projects.registry.vmware.com/library/busybox /bin/sh -c "unzip -q download/nsx-ovs.zip -d nsx-ovs-temp ; unzip -q download/vcredists.zip -d nsx-ovs-temp"
+  signedOVSExtUrl="ftp://10.134.25.18/msft_certs/_Drivers/000-201709-After/ovs-20210816/Signed_ovsext.zip"
+  wget -q ${signedOVSExtUrl} -O "${DownloadDir}/ovsext.zip"
+  docker run --rm --user $(id -u):$(id -g) -v "${REPO_ROOT}":/tmp/windows -w /tmp/windows projects.registry.vmware.com/library/busybox /bin/sh -c "unzip -q download/nsx-ovs.zip -d nsx-ovs-temp ; unzip -q download/vcredists.zip -d nsx-ovs-temp ; unzip -q download/ovsext.zip -d nsx-ovs-temp"
   OVSDir="${TempDir}/openvswitch"
   OVSDriverDir="${OVSDir}/driver"
   VCRedistDir="${OVSDir}/redist"
+  ls "${TempDir}/drivers"
   cp -r "${TempDir}/include" "${OVSDir}"
   cp -r "${TempDir}/lib" "${OVSDir}"
   cp -r "${TempDir}/scripts" "${OVSDir}"
   cp -r "${TempDir}/vcredist2017" "${VCRedistDir}"
-  cp -r "${TempDir}/ovsext/win10_x64" "${OVSDriverDir}"
+  #cp -r "${TempDir}/ovsext/win10_x64" "${OVSDriverDir}"
+  cp -r "${TempDir}/drivers/4e6ed81b-741f-49ad-a9fd-d113fbcb63d4" "${OVSDir}"
+  mv "${OVSDir}/4e6ed81b-741f-49ad-a9fd-d113fbcb63d4" "${OVSDriverDir}"
+
   pushd "${TempDir}"
   zip --verbose -r "${PUBLISH_DIR}/windows/ovs-win64.zip" openvswitch
   popd
