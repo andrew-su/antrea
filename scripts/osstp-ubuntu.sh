@@ -7,17 +7,15 @@ echo ============================================================
 echo Make sure run inside container created from the docker image
 echo ============================================================
 cat > /etc/apt/sources.list.d/source.list <<EOF
-deb-src http://build-artifactory.eng.vmware.com/debian-remote stable main
-deb-src http://build-artifactory.eng.vmware.com/debian-remote stable-updates main
-deb-src http://build-artifactory.eng.vmware.com/debian-security-remote buster/updates main
+deb-src http://build-artifactory.eng.vmware.com/ubuntu-remote focal main restricted universe
+deb-src http://build-artifactory.eng.vmware.com/ubuntu-remote focal-security main restricted
+deb-src http://build-artifactory.eng.vmware.com/ubuntu-remote focal-updates main restricted
 EOF
 apt update
 # Mannually install if failed
 apt install -y vim unzip rpm gawk python3 python3-pip curl golang wget git || true #python-deb822
 ln -s /usr/bin/python3 /usr/bin/python || true
-pip install pyaml requests retrying
-echo "deb-src http://deb.debian.org/debian testing main" >> /etc/apt/sources.list.d/source.list
-apt update
+pip3 install pyaml requests retrying
 
 mkdir -p osstpclients
 cd osstpclients
@@ -25,8 +23,8 @@ curl -LO https://osm.eng.vmware.com/utilities/osstpclients3.zip
 unzip osstpclients3.zip
 cd bin
 # Mannually modify lib/python/osstpinventory.py return 0
-pip install -r ../etc/requirements.txt
-./vm-inventory.sh -s deb debian
+pip3 install -r ../etc/requirements.txt
+./vm-inventory.sh -s deb ubuntu
 
 cat > /tmp/osm-apykey <<EOF
 zhengshengz@vmware.com 3d8a2d9af7542d4bf4901fd5c7b72d47ee218872
@@ -48,7 +46,7 @@ export PYTHONPATH=../osstpclients
 rm -f bin/osstpmgt.yaml
 for dsc in ../source/*.dsc ; do
   dsc="$(readlink -f "${dsc}")"
-  ./bin/dsc-inventory.py -n debian -d ../source "${dsc}"
+  ./bin/dsc-inventory.py -n ubuntu -d ../source "${dsc}"
   if ! grep -q "Homepage:" "${dsc}" ; then
     url="$(cat "${dsc}" | awk '/Vcs-Browser:/{print $2}')"
     sed -i -e "s|${dsc}|${url}|g" osstpmgt.yaml
