@@ -99,6 +99,7 @@ fi
 antreaVersion="${ANTREA_BRANCH#*-}"
 # remove *-rc from ending
 antreaVersionDigit="${antreaVersion%-*}"
+antreaVersionDigit="${antreaVersionDigit%+vmware.*}"
 
 function version_ge()
 {
