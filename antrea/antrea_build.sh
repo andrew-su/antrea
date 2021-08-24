@@ -200,7 +200,7 @@ done
 # Antrea Windows deliverables
 
 echo "====== Preparing Antrea Standard Product Deliverables: Debian Manifests ======"
-git reset --hard "${COMMON_COMMIT}"
+git reset --hard "topic/${BRANCH_NAME#vmware-}-standard-release"
 antrea_std_deliverables="antrea-standard-${BRANCH_NAME#vmware-}.${BUILD_NUMBER}"
 mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}"
 mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests"
@@ -211,8 +211,7 @@ sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-standard-debian:${
 sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-standard-debian:${IMAGE_VERSION}/g" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-${BINARY_VERSION}.yml"
 sed -i -e "s/image: projects.registry.vmware.com\/antrea\/flow-aggregator:latest/image: antrea\/flow-aggregator-debian:${IMAGE_VERSION}/g" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
 echo "====== Preparing Antrea Advanced Product Deliverables: Debian Manifests ======"
-git reset --hard "${COMMON_COMMIT}"
-git cherry-pick --keep-redundant-commits HEAD..origin/topic/${BRANCH_NAME#vmware-}-features
+git reset --hard "topic/${BRANCH_NAME#vmware-}-advanced-release"
 antrea_adv_deliverables="antrea-advanced-${BRANCH_NAME#vmware-}.${BUILD_NUMBER}"
 mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}"
 mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests"
