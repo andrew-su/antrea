@@ -435,6 +435,12 @@ echo "====== Building antrea-debian Image ======"
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 make debian VERSION=${IMAGE_VERSION}
 
+echo "====== Building openvswitch-debian Image ======"
+pushd build/images/ovs
+docker build --cache-from ovs-debs -f Dockerfile-ipsec -t antrea/openvswitch-debian-ipsec .
+popd
+echo "====== Building antrea-debian Image with ipsec ======"
+make debian-ipsec VERSION=${IMAGE_VERSION}
 # Create archives for scripts and binaries
 echo "====== Saving TKGm Deliverables ======"
 OUTPUT_DIR="${BUILDROOT}/output"
