@@ -200,7 +200,7 @@ done
 # Antrea Windows deliverables
 
 echo "====== Preparing Antrea Standard Product Deliverables: Debian Manifests ======"
-git reset --hard "topic/${BRANCH_NAME#vmware-}-standard-release"
+git reset --hard "origin/topic/${BRANCH_NAME#vmware-}-standard-release"
 antrea_std_deliverables="antrea-standard-${BRANCH_NAME#vmware-}.${BUILD_NUMBER}"
 mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}"
 mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests"
@@ -211,7 +211,7 @@ sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-standard-debian:${
 sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-standard-debian:${IMAGE_VERSION}/g" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-${BINARY_VERSION}.yml"
 sed -i -e "s/image: projects.registry.vmware.com\/antrea\/flow-aggregator:latest/image: antrea\/flow-aggregator-debian:${IMAGE_VERSION}/g" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
 echo "====== Preparing Antrea Advanced Product Deliverables: Debian Manifests ======"
-git reset --hard "topic/${BRANCH_NAME#vmware-}-advanced-release"
+git reset --hard "origin/topic/${BRANCH_NAME#vmware-}-advanced-release"
 antrea_adv_deliverables="antrea-advanced-${BRANCH_NAME#vmware-}.${BUILD_NUMBER}"
 mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}"
 mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests"
@@ -290,6 +290,7 @@ echo "====== Building antrea-ubuntu Image ======"
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 make ubuntu VERSION=${IMAGE_VERSION}
 docker tag antrea/antrea-ubuntu:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-ubuntu:${IMAGE_VERSION}
+docker tag antrea/antrea-ubuntu:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea:${IMAGE_VERSION}
 
 echo "====== Saving and Signing Ubuntu Images ======"
 OUTPUT_DIR="${BUILDROOT}/output"
@@ -299,7 +300,7 @@ checksum_filename="antrea-ubuntu-${IMAGE_VERSION}-image-checksums.txt"
 mkdir -p "${OUTPUT_DIR}/images"
 #openvswitch-ubuntu only for antrea-ubuntu build reference, so no need to publish openvswitch
 mkdir -p "${PUBLISH_DIR}/ubuntu/images/"
-docker save localhost:5000/vmware.io/antrea/antrea-ubuntu:${IMAGE_VERSION} | gzip -9 > "${PUBLISH_DIR}/ubuntu/images/antrea-ubuntu-${IMAGE_VERSION}.tar.gz"
+docker save localhost:5000/vmware.io/antrea/antrea-ubuntu:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea:${IMAGE_VERSION}| gzip -9 > "${PUBLISH_DIR}/ubuntu/images/antrea-ubuntu-${IMAGE_VERSION}.tar.gz"
 echo "localhost:5000/vmware.io/antrea/antrea-ubuntu@${image_id}" > "${PUBLISH_DIR}/ubuntu/images/${digest_filename}"
 pushd "${PUBLISH_DIR}/ubuntu/images"
 sha256sum -- * > ${checksum_filename}
@@ -342,7 +343,8 @@ image_id="$(docker inspect -f '{{.ID}}' "localhost:5000/vmware.io/antrea/antrea-
 digest_filename="antrea-photon-${IMAGE_VERSION}-image-digests.txt"
 checksum_filename="antrea-photon-${IMAGE_VERSION}-image-checksums.txt"
 mkdir -p "${PUBLISH_DIR}/photon/images"
-docker save localhost:5000/vmware.io/antrea/antrea-photon:${IMAGE_VERSION} | gzip -9 > "${PUBLISH_DIR}/photon/images/antrea-photon-${IMAGE_VERSION}.tar.gz"
+docker tag localhost:5000/vmware.io/antrea/antrea-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea:${IMAGE_VERSION}
+docker save localhost:5000/vmware.io/antrea/antrea-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea:${IMAGE_VERSION} | gzip -9 > "${PUBLISH_DIR}/photon/images/antrea-photon-${IMAGE_VERSION}.tar.gz"
 echo "localhost:5000/vmware.io/antrea/antrea-photon@${image_id}" > "${PUBLISH_DIR}/photon/images/${digest_filename}"
 pushd "${PUBLISH_DIR}/photon/images"
 sha256sum -- * > ${checksum_filename}
