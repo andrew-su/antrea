@@ -150,6 +150,8 @@ else
 fi
 
 if version_ge "$antreaVersionDigit" "1.2.0"; then
+    git reset --hard remotes/origin/topic/${antreaVersion}-tkgm-release
+    fips_make "go test -c -v -x -o bin/e2e-tkgm-ipsec-${ANTREA_VERSION} ${ANTREA_DOMAIN}/test/e2e"
     for test_image in "standard" "advanced" "tkgs" "tkgm"
     do
       git reset --hard remotes/origin/topic/${antreaVersion}-${test_image}-release
@@ -164,6 +166,7 @@ else
     git reset --hard "${COMMON_COMMIT}"
     git cherry-pick --keep-redundant-commits "HEAD..origin/topic/${ANTREA_BRANCH#vmware-}-features"
     git cherry-pick --keep-redundant-commits "HEAD..origin/topic/${ANTREA_BRANCH#vmware-}-tkg"
+    fips_make "go test -c -o bin/e2e-tkgm-ipsec-${ANTREA_VERSION} ${ANTREA_DOMAIN}/test/e2e"
     rm -f test/e2e/ipsec_test.go
     fips_make "go test -c -o bin/e2e-tkgm-${ANTREA_VERSION} ${ANTREA_DOMAIN}/test/e2e"
     # Make advanced or TKGs package
@@ -175,7 +178,7 @@ else
 fi
 
 mkdir -p "${PUBLISH_DIR}/lin64/antrea/executables/"
-for test_image in "standard" "advanced" "tkgs" "tkgm"
+for test_image in "standard" "advanced" "tkgs" "tkgm" "tkgm-ipsec"
 do
   gzip -c bin/e2e-${test_image}-${ANTREA_VERSION} > ${PUBLISH_DIR}/lin64/antrea/executables/e2e-${test_image}-${ANTREA_VERSION}.gz
 done
@@ -462,9 +465,12 @@ echo "${IMAGE_VERSION}" > "${PUBLISH_DIR}/VERSION"
 # Here we only replace image version.
 # antrea-ipsec is not used in TKGm.
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
+cp "${REPO_ROOT}/build/yamls/antrea-ipsec.yml" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
 cp "${REPO_ROOT}/build/yamls/flow-aggregator.yml" "${OUTPUT_DIR}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
 sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
 sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
+sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian-ipsec:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
+sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-debian-ipsec:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
 sed -i -e "s/image: projects.registry.vmware.com\/antrea\/flow-aggregator:latest/image: antrea\/flow-aggregator-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
 
 echo "====== Saving and Signing TKGm Images ======"
@@ -477,6 +483,7 @@ mkdir -p "${OUTPUT_DIR}/images"
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
 # Just publish Antrea images.
 docker save antrea/antrea-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-debian-${IMAGE_VERSION}.tar.gz"
+docker save antrea/antrea-debian-ipsec:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-debian-ipsec-${IMAGE_VERSION}.tar.gz"
 docker save antrea/flow-aggregator-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/flow-aggregator-debian-${IMAGE_VERSION}.tar.gz"
 echo "antrea/antrea-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
 pushd "${OUTPUT_DIR}/images/"
