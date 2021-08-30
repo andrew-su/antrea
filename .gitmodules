@@ -6,3 +6,6 @@
 	path = ovs/src
 	url = git@gitlab.eng.vmware.com:core-build/mirrors_github_openvswitch_ovs.git
 	branch = vmware-2.14.2
+[submodule "antrea-operator"]
+	path = antrea-operator
+	url = git@gitlab.eng.vmware.com:core-build/mirrors_github_antrea-operator-for-kubernetes.git

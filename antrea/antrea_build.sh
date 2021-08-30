@@ -310,6 +310,32 @@ sha256sum -- * > ${checksum_filename}
 gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
 popd
 
+echo "====== Building antrea-ubi Images ======"
+pushd ${PROJECT_DIR}/../antrea-operator/build/antrea
+cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz ./base
+cp ${OPENVSWITCH_DIR}/openvswitch-${OPENVSWITCH_VERSION}.tar.gz ./ovs
+mkdir -p bin
+mkdir -p scripts
+cp ${REPO_ROOT}/bin/* bin/
+cp ${REPO_ROOT}/build/images/scripts/* scripts/
+./build_ubi.sh --tag ${IMAGE_VERSION} --ovs-version ${OPENVSWITCH_VERSION}
+docker tag antrea/antrea-ubi:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-ubi:${IMAGE_VERSION}
+popd
+
+echo "====== Saving and Signing UBI Images ======"
+OUTPUT_DIR="${BUILDROOT}/output"
+image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-ubi:${IMAGE_VERSION}")"
+digest_filename="antrea-ubi-${IMAGE_VERSION}-image-digests.txt"
+checksum_filename="antrea-ubi-${IMAGE_VERSION}-image-checksums.txt"
+mkdir -p "${OUTPUT_DIR}/images"
+mkdir -p "${PUBLISH_DIR}/ubi/images/"
+docker save localhost:5000/vmware.io/antrea/antrea-ubi:${IMAGE_VERSION} | gzip -9 > "${PUBLISH_DIR}/ubi/images/antrea-ubi-${IMAGE_VERSION}.tar.gz"
+echo "localhost:5000/vmware.io/antrea/antrea-ubi@${image_id}" > "${PUBLISH_DIR}/ubi/images/${digest_filename}"
+pushd "${PUBLISH_DIR}/ubi/images"
+sha256sum -- * > ${checksum_filename}
+gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
+popd
+
 echo "====== Saving TKGS Deliverables ======"
 echo "====== Saving TKGS Manifests ======"
 # Antrea yamls for TKG Service. antrea-ipsec is not supported yet
