@@ -595,6 +595,7 @@ function build_windows {
   cp hack/windows/Start.ps1 "${PUBLISH_DIR}/windows/Start.ps1"
   cp hack/windows/Stop.ps1 "${PUBLISH_DIR}/windows/Stop.ps1"
   cp hack/windows/Install-OVS.ps1 "${PUBLISH_DIR}/windows/Install-OVS.ps1"
+  cp hack/windows/Clean-AntreaNetwork.ps1 "${PUBLISH_DIR}/windows/Clean-AntreaNetwork.ps1"
 
   # If the NSX OVS is unsigned, set false here.
   if true; then
