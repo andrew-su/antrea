@@ -20,7 +20,7 @@ $(echo $TARGETS | tr ' ' '\n' | sort)
 Options
     --localcommits        Apply local changeset to sandbox build
     --private             Use private git repo on git-eng:
-                          git-eng:private/$USER/$REPO
+                          git-eng:$USER/$REPO
     --                    Pass all remaining params to gobuild-sandbox-queue.
                           Get detailed help by $0 <target> -- --help
 EOF
@@ -32,7 +32,7 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "" ]; then
     exit 0
 fi
 
-## Check if target is in target list
+## Check if  target is in target list
 if [[ $TARGETS =~ (^| )$1($| ) ]]; then
     TARGET=$1
     shift
@@ -42,6 +42,8 @@ else
     echo $TARGETS | tr ' ' '\n'
     exit 1
 fi
+
+REPO_URL=core-build/$REPO
 
 while test $# != 0;
 do
@@ -54,7 +56,7 @@ do
             LOCALCOMMITS="--changeset=HEAD"
             ;;
         --private)
-            REPO="private/$USER/$REPO"
+            REPO_URL="$USER/$REPO"
             ;;
         --)
             shift
@@ -70,7 +72,7 @@ do
 done
 
 cmd="$GOBUILDCMD $TARGET \
---bootstrap=\"$TARGET=git-eng:core-build/$REPO;%(branch);\" \
+--bootstrap=\"$TARGET=git-eng:$REPO_URL;%(branch);\" \
 --branch $BRANCH \
 --accept-defaults \
 --no-send-email \

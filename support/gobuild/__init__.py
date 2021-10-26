@@ -7,6 +7,7 @@ Support code for building products with gobuild.
 import helpers
 import helpers.access
 import targets.cayman_antrea
+import targets.antrea_release
 
 # The targets dictionary maps target names to classes which
 # implement the gobuild Target interface.  The dictionary is not
@@ -17,6 +18,7 @@ import targets.cayman_antrea
 
 TARGETS = {
     'cayman_antrea': targets.cayman_antrea.CaymanAntrea,
+    'antrea-release': targets.antrea_release.AntreaRelease,
 }
 
 # Add an access target for each already-defined target.
