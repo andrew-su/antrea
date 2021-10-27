@@ -51,6 +51,8 @@ echo "====== Copying cayman_antrea-operator-for-kubernetes Product Deliverables 
 operator_publish="${PUBLISH_DIR}/openshift"
 mkdir -p "${operator_publish}"
 cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/ubi/images  "${operator_publish}/antrea"
+cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/VERSION  "${operator_publish}/antrea"
 cp -rv ${GOBUILD_CAYMAN_ANTREA_OPERATOR_FOR_KUBERNETES_ROOT}/lin64 "${operator_publish}/operator"
+cp -rv ${GOBUILD_CAYMAN_ANTREA_OPERATOR_FOR_KUBERNETES_ROOT}/VERSION "${operator_publish}/operator"
 
 echo "****** antrea_release_build.sh finished ******"
