@@ -47,7 +47,8 @@ done
 wget "http://build-squid.eng.vmware.com/build/mts/release/bora-${build_number}/publish/cayman_antrea/VERSION" -O antrea_version_file
 antrea_version="$(cat antrea_version_file)"
 echo ====== Publishing Antrea "${antrea_version}" Images ======
-for img in antrea-debian-ipsec antrea-debian flow-aggregator-debian ; do
+# NOTE: antrea-debian-ipsec should not be published
+for img in antrea-debian flow-aggregator-debian ; do
   echo === Downloading Antrea $img Image ===
   wget "http://build-squid.eng.vmware.com/build/mts/release/bora-${build_number}/publish/cayman_antrea/TKGM/lin64/antrea/images/${img}-${antrea_version}.tar.gz" -O "${img}.tar.gz"
   docker load -i "${img}.tar.gz" && rm -f "${img}.tar.gz"
