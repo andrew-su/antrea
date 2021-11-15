@@ -1,7 +1,8 @@
 #!/bin/bash
 set -xe
 # refer to
-# https://osm.eng.vmware.com/doc/utilities/vm.html
+# https://confluence.eng.vmware.com/display/OSMUserGuide/VM+%28vApp+Virtual+Machines%29+or+Containers?src=contextnavpagetreemode
+# https://confluence.eng.vmware.com/display/CNA/Cascade+OSSTP
 
 echo ============================================================
 echo Make sure run inside container created from the docker image
@@ -57,7 +58,7 @@ pip3 install -r ../etc/requirements.txt
 cat > /tmp/osm-apykey <<EOF
 zhengshengz@vmware.com 3d8a2d9af7542d4bf4901fd5c7b72d47ee218872
 EOF
-python3 ./osstp-load.py --noinput -A /tmp/osm-apykey -R Antrea/1.3.0-1.2.2 --baseos-srcdir ~/source osstpmgt.yaml | tee oss.log
+python3 ./osstp-load.py --noinput -A /tmp/osm-apykey -R Antrea/1.3.1-1.2.3 --baseos-srcdir ~/source osstpmgt.yaml | tee oss.log
 
 source_packages="$(cat oss.log| sed -e '1,/missing BaseOS tickets/d'|awk -F"source package" '{print $2}'|grep -v None|sed 's/ (.*)//'|sed 's/"//g')"
 
@@ -81,7 +82,7 @@ for dsc in ../source/*.dsc ; do
 done
 mv osstpmgt.yaml bin/
 if [ -f bin/osstpmgt.yaml ]; then
-  python3 ./bin/osstp-load.py --noinput --debug -A /tmp/osm-apykey -R Antrea/1.3.0-1.2.2 --baseos-srcdir ../source bin/osstpmgt.yaml || true
+  python3 ./bin/osstp-load.py --noinput --debug -A /tmp/osm-apykey -R Antrea/1.3.1-1.2.3 --baseos-srcdir ../source bin/osstpmgt.yaml || true
 fi
 
 rm -f /tmp/osm-apykey

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 # refer to
-# https://osm.eng.vmware.com/doc/utilities/odp-template.html
+# https://confluence.eng.vmware.com/display/public/OSMUserGuide/OSL+File+Generation
 
 if [ -z "$1" ]; then
   echo Usage: $0 ticket1,ticket2,ticket3,... >&2
@@ -25,10 +25,10 @@ zhengshengz@vmware.com 3d8a2d9af7542d4bf4901fd5c7b72d47ee218872
 EOF
 #source /usr/bin/virtualenvwrapper.sh
 #workon osstp
-python2 ./odp-template.py -A /tmp/osm-apykey -R Antrea/1.3.0-1.2.2 -T "$1"
+python2 ./odp-template.py -A /tmp/osm-apykey -R Antrea/1.3.1-1.2.3 -T "$1"
 rm -f /tmp/osm-apykey
 #deactivate
 
-echo Generated ODP template in $(pwd)/VMware-Antrea-1.3.0-1.2.2-ODP.
+echo Generated ODP template in $(pwd)/VMware-Antrea-1.3.1-1.2.3-ODP.
 echo Please check if any package needs SBR, then provide BUILD.txt and INSTALL.txt in each package directory.
 echo After finish checking all the packages, create a tar.gz file from this directoy and upload for review.
