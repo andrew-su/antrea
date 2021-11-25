@@ -34,9 +34,11 @@ RUN tdnf remove -y toybox && \
       sed \
       tar \
       ca-certificates \
-      util-linux && \
+      util-linux \
+      ethtool && \
     tdnf clean all && \
-    rm -rf /var/cache/tdnf/* /usr/share/doc/*  /usr/share/man/* /etc/yum.repos.d/photon-iso.repo
+    rm -rf /var/cache/tdnf/* /usr/share/doc/*  /usr/share/man/* /etc/yum.repos.d/photon-iso.repo && \
+    /usr/bin/sed -i -e 's/^enabled=.*/enabled=1/g' /etc/yum.repos.d/*.repo
 
 COPY --from=cni-binaries /opt/cni/bin /opt/cni/bin
 
