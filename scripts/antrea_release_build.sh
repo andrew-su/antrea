@@ -23,7 +23,7 @@ echo "====== Copying OSL and ODP ======"
 mkdir -p "${PUBLISH_DIR}/"
 cp open_source_licenses.txt "${PUBLISH_DIR}/"
 pushd "${PUBLISH_DIR}/"
-curl https://build-artifactory.eng.vmware.com/artifactory/nsx-ujo-local/VMware-Antrea-1.3.0-1.2.2-1-ODP.tar.gz > VMware-Antrea-1.3.0-1.2.2-ODP.tar.gz
+curl https://build-artifactory.eng.vmware.com/artifactory/nsx-ujo-local/VMware-Antrea-1.3.1-1.2.3-ODP.tar.gz > VMware-Antrea-1.3.1-1.2.3-ODP.tar.gz
 popd
 
 echo "====== Copying antrea-interworking Product Deliverables ======"
