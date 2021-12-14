@@ -33,7 +33,7 @@ cp -rv ${GOBUILD_ANTREA_INTERWORKING_ROOT}/antrea-interworking/images/interworki
 mkdir -p "${antrea_interworking_publish}/manifests"
 cp -rv ${GOBUILD_ANTREA_INTERWORKING_ROOT}/antrea-interworking/manifests/{interworking,deregisterjob,bootstrap-config,ns-label-webhook,inventorycleanup}.yaml \
   "${antrea_interworking_publish}/manifests"
-cp -rv ${GOBUILD_ANTREA_INTERWORKING_ROOT}/VERSION "${antrea_interworking_publish}/"
+cp -rv ${GOBUILD_ANTREA_INTERWORKING_ROOT}/VERSION ${GOBUILD_ANTREA_INTERWORKING_ROOT}/antrea-interworking-*.zip "${antrea_interworking_publish}/"
 
 echo "====== Copying cayman_antrea Product Deliverables ======"
 cayman_antrea_publish="${PUBLISH_DIR}/cayman_antrea"
@@ -48,9 +48,6 @@ cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/antrea-standard-*.zip  "${cayman_antrea_pub
 mkdir -p "${cayman_antrea_publish}/advanced-release"
 cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/antrea-windows-advanced-*.zip  "${cayman_antrea_publish}/advanced-release"
 cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/antrea-advanced-*.zip  "${cayman_antrea_publish}/advanced-release"
-
-cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/*-ODP.tar.gz  "${cayman_antrea_publish}/"
-cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/open_source_licenses.txt  "${cayman_antrea_publish}/"
 
 cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/VERSION "${cayman_antrea_publish}/"
 
