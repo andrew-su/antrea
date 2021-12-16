@@ -46,19 +46,8 @@ done
 
 wget "http://build-squid.eng.vmware.com/build/mts/release/bora-${build_number}/publish/cayman_antrea/VERSION" -O antrea_version_file
 antrea_version="$(cat antrea_version_file)"
-echo ====== Publishing Antrea "${antrea_version}" Images ======
-# NOTE: antrea-debian-ipsec should not be published
-for img in antrea-debian flow-aggregator-debian ; do
-  echo === Downloading Antrea $img Image ===
-  wget "http://build-squid.eng.vmware.com/build/mts/release/bora-${build_number}/publish/cayman_antrea/TKGM/lin64/antrea/images/${img}-${antrea_version}.tar.gz" -O "${img}.tar.gz"
-  docker load -i "${img}.tar.gz" && rm -f "${img}.tar.gz"
-  docker tag "antrea/${img}:${antrea_version}" "${HARBOR_REPO}/${img}:${antrea_version}"
-  echo === Pushing "${HARBOR_REPO}/${img}:${antrea_version}" ===
-  docker push "${HARBOR_REPO}/${img}:${antrea_version}"
-  echo "${HARBOR_REPO}/${img}:${antrea_version}" >> publish_images.txt
-done
 
-for base_os in ubuntu photon ubi ; do
+for base_os in ubi ; do
   echo === Downloading Antrea $base_os Image ===
   if [ "${base_os}" = "ubi" ]; then
     wget "http://build-squid.eng.vmware.com/build/mts/release/bora-${build_number}/publish/openshift/antrea/antrea-${base_os}-${antrea_version}.tar.gz" -O "antrea-${base_os}.tar.gz"
