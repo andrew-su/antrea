@@ -78,11 +78,18 @@ function version_ge()
 }
 
 function compile_e2e() {
+  ipsec=$1
+  shift 1
   for test_image in "$@"
   do
+    image_name=${test_image}
     git reset --hard remotes/origin/topic/${ANTREA_VERSION_DIGIT}-${test_image}-release
-    rm -f test/e2e/ipsec_test.go
-    fips_make "go test -c -v -x -o bin/e2e-${test_image}-${ANTREA_VERSION} ${ANTREA_DOMAIN}/test/e2e"
+    if [ ${ipsec} = 'ipsec' ]; then
+      image_name="${test_image}-ipsec"
+    else
+      rm -f test/e2e/ipsec_test.go
+    fi
+    fips_make "go test -c -v -x -o bin/e2e-${image_name}-${ANTREA_VERSION} ${ANTREA_DOMAIN}/test/e2e"
   done
 
   # "${BUILDROOT}/output" will be published to lin64/antrea by antrea_defs.py:CaymanAntreaBuilderLin.install
@@ -90,7 +97,7 @@ function compile_e2e() {
   mkdir -p "${OUTPUT_DIR}/executables/"
   for test_image in "$@"
   do
-    gzip -c bin/e2e-${test_image}-${ANTREA_VERSION} > ${OUTPUT_DIR}/executables/e2e-${test_image}-${ANTREA_VERSION}.gz
+    gzip -c bin/e2e-${image_name}-${ANTREA_VERSION} > ${OUTPUT_DIR}/executables/e2e-${test_image}-${ANTREA_VERSION}.gz
   done
 }
 
@@ -148,7 +155,12 @@ function build_windows() {
   fi
 
   echo "==== NSX OVS build ===="
-  NSXOVS_PATH=$(find "${GOBUILD_NSX_OVS_BUILD_ROOT}/windows_x64" -name "openvswitch*-win64.zip")
+  if [ "$2" = "signed" ]; then
+    find_pattern="openvswitch*-win64.zip"
+  else
+    find_pattern="openvswitch*-win64-unsigned.zip "
+  fi
+  NSXOVS_PATH=$(find "${GOBUILD_NSX_OVS_BUILD_ROOT}/windows_x64" -name ${find_pattern})
   VCRedistUrl="http://build-artifactory.eng.vmware.com/artifactory/nsbu-windows-local/vcredists.zip"
   TempDir="${REPO_ROOT}/nsx-ovs-temp"
   rm -rf "${TempDir}"

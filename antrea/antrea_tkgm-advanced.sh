@@ -2,17 +2,16 @@
 echo "====== Archiving OpenvSwitch Source Code ======"
 archive_ovs_source
 
-echo "====== Compile antrea e2e testcases ======"
-compile_e2e "tkgm"
-
 echo "====== Generating version Files for CI and Consumers ======"
 publish_version_files
 
 echo "====== Checkout TKGm Release Branch ======"
-git reset --hard origin/topic/${ANTREA_VERSION_DIGIT}-tkgm-release
+compile_e2e "noipsec" "tkgm"
+compile_e2e "ipsec" "tkgm"
 git status
 
 echo "====== Building Binaries for TKGm ======"
+git reset --hard origin/topic/${ANTREA_VERSION_DIGIT}-tkgm-release
 fips_make
 
 echo "====== Building Debian Images ======"
@@ -45,13 +44,14 @@ mkdir -p "${OUTPUT_DIR}/manifests"
 # Complicated Yaml customization is done directly in Antrea topic/tkg branch
 # Here we only replace image version.
 # antrea-ipsec is not used in TKGm.
-cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
+cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml"
 cp "${REPO_ROOT}/build/yamls/antrea-ipsec.yml" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
-sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
-sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
+sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml"
+sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml"
 sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian-ipsec:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
 sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-debian-ipsec:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
-
+cp "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml" "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
+sed -i -e 's/tlsCipherSuites:.\+/#tlsCipherSuites:/g' "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
 echo "====== Saving and Signing TKGm Images ======"
 
 # Image for TKG
@@ -74,6 +74,8 @@ echo "====== Saving and Signing TKGm Executables ======"
 rm -rf "${OUTPUT_DIR}/executables"
 mkdir -p "${OUTPUT_DIR}/executables"
 cat "${REPO_ROOT}/bin/antctl" | gzip -9 > "${OUTPUT_DIR}/executables/antctl-${BINARY_VERSION}.gz"
+gzip -c "bin/e2e-tkgm-${ANTREA_VERSION}" > "${OUTPUT_DIR}/executables/e2e-tkgm-${ANTREA_VERSION}.gz"
+gzip -c "bin/e2e-tkgm-ipsec-${ANTREA_VERSION}" > "${OUTPUT_DIR}/executables/e2e-tkgm-ipsec-${ANTREA_VERSION}.gz"
 pushd "${OUTPUT_DIR}/executables"
 BINARY_CHECKSUM_FILENAME="antctl-${BINARY_VERSION}-checksums.txt"
 sha256sum -- * > ${BINARY_CHECKSUM_FILENAME}
@@ -82,4 +84,4 @@ gpgsignc textsign -i ${BINARY_CHECKSUM_FILENAME} -o "${BINARY_CHECKSUM_FILENAME}
 popd
 
 echo "====== Building Antrea Advanced Windows Deliverables ======"
-build_windows "advanced"
+build_windows "advanced" "signed"

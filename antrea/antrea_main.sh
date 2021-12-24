@@ -3,7 +3,7 @@ echo "====== Archiving OpenvSwitch Source Code ======"
 archive_ovs_source
 
 echo "====== Compiling antrea e2e testcases ======"
-compile_e2e "standard" "advanced"
+compile_e2e "noipsec" "standard" "advanced"
 
 echo "====== Generating version Files for CI and Consumers ======"
 publish_version_files
@@ -200,8 +200,8 @@ echo "====== Windows build ======"
 
 echo "====== Building Antrea Standard Windows Deliverables ======"
 git reset --hard origin/topic/${ANTREA_VERSION_DIGIT}-standard-release
-build_windows "standard"
+build_windows "standard" "signed"
 
 echo "====== Building Antrea Advanced Windows Deliverables ======"
 git reset --hard origin/topic/${ANTREA_VERSION_DIGIT}-advanced-release
-build_windows "advanced"
+build_windows "advanced" "signed"

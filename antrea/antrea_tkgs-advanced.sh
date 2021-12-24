@@ -3,7 +3,7 @@ echo "====== Archiving OpenvSwitch Source Code ======"
 archive_ovs_source
 
 echo "===== Compile antrea e2e testcases ======"
-compile_e2e "tkgs"
+compile_e2e "noipsec" "tkgs"
 
 echo "====== Generating version Files for CI and Consumers ======"
 publish_version_files
