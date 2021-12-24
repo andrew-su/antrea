@@ -14,10 +14,13 @@ antrea_std_deliverables="antrea-standard-${ANTREA_VERSION_DIGIT}.${BUILD_NUMBER}
 mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}"
 mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests"
 # antrea-ipsec is not used in commecial release
-cp "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-${BINARY_VERSION}.yml"
+cp "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-fips-${BINARY_VERSION}.yml"
+sed -e 's/tlsCipherSuites:.\+/#tlsCipherSuites:/g' < "${REPO_ROOT}/build/yamls/antrea.yml" > "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-${BINARY_VERSION}.yml"
 cp "${REPO_ROOT}/build/yamls/flow-aggregator.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
-sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-standard-debian:${IMAGE_VERSION}/g" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-${BINARY_VERSION}.yml"
-sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-standard-debian:${IMAGE_VERSION}/g" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-${BINARY_VERSION}.yml"
+sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-standard-debian:${IMAGE_VERSION}/g" \
+  -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-standard-debian:${IMAGE_VERSION}/g" \
+  "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-${BINARY_VERSION}.yml" \
+  "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-fips-${BINARY_VERSION}.yml"
 sed -i -e "s/image: projects.registry.vmware.com\/antrea\/flow-aggregator:latest/image: antrea\/flow-aggregator-debian:${IMAGE_VERSION}/g" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
 
 echo "====== Preparing Antrea Advanced Product Deliverables: Advanced Manifests ======"
@@ -26,11 +29,14 @@ antrea_adv_deliverables="antrea-advanced-${ANTREA_VERSION_DIGIT}.${BUILD_NUMBER}
 mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}"
 mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests"
 # antrea-ipsec is not used in commecial release
-cp "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-${BINARY_VERSION}.yml"
+cp "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-fips-${BINARY_VERSION}.yml"
+sed -e 's/tlsCipherSuites:.\+/#tlsCipherSuites:/g' < "${REPO_ROOT}/build/yamls/antrea.yml" > "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-${BINARY_VERSION}.yml"
 cp "${REPO_ROOT}/build/yamls/flow-aggregator.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
-sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian:${IMAGE_VERSION}/g" "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-${BINARY_VERSION}.yml"
-sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian:${IMAGE_VERSION}/g" "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-${BINARY_VERSION}.yml"
-sed -i -e "s/image: projects.registry.vmware.com\/antrea\/flow-aggregator:latest/image: antrea\/flow-aggregator-debian:${IMAGE_VERSION}/g" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
+sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian:${IMAGE_VERSION}/g" \
+  -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian:${IMAGE_VERSION}/g" \
+  "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-${BINARY_VERSION}.yml" \
+  "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-fips-${BINARY_VERSION}.yml"
+sed -i -e "s/image: projects.registry.vmware.com\/antrea\/flow-aggregator:latest/image: antrea\/flow-aggregator-debian:${IMAGE_VERSION}/g" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
 
 echo "====== Building antrea-ubi Images ======"
 git reset --hard "origin/topic/${ANTREA_VERSION_DIGIT}-advanced-release"
