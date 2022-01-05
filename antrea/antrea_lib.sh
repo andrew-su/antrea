@@ -182,8 +182,9 @@ function build_windows() {
   zip --verbose -r "${PUBLISH_DIR}/windows/ovs-win64.zip" openvswitch
   popd
 
-  antrea_windows_deliverables="antrea-windows-${antrea_deliverable_kind}-${ANTREA_VERSION_DIGIT}.${BUILD_NUMBER}"
+  antrea_windows_deliverables="antrea-windows-${antrea_deliverable_kind}-${ANTREA_VERSION_DIGIT}"
   antrea_windows_deliverables_tkg="antrea-windows-${antrea_deliverable_kind}"
+  echo "{BUILD_NUMBER}" > "${PUBLISH_DIR}/windows/build_number.txt"
   pushd "${PUBLISH_DIR}/windows"
   zip --verbose -r "${PUBLISH_DIR}/${antrea_windows_deliverables}.zip" *
   popd

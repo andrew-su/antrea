@@ -10,9 +10,10 @@ publish_version_files
 
 echo "====== Preparing Antrea Standard Product Deliverables: Standard Manifests ======"
 git reset --hard "origin/topic/${ANTREA_VERSION_DIGIT}-standard-release"
-antrea_std_deliverables="antrea-standard-${ANTREA_VERSION_DIGIT}.${BUILD_NUMBER}"
+antrea_std_deliverables="antrea-standard-${ANTREA_VERSION_DIGIT}"
 mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}"
 mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests"
+echo "${BUILD_NUMBER}" > "${PUBLISH_DIR}/${antrea_std_deliverables}/build_number.txt"
 # antrea-ipsec is not used in commecial release
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-fips-${BINARY_VERSION}.yml"
 sed -e 's/tlsCipherSuites:.\+/#tlsCipherSuites:/g' < "${REPO_ROOT}/build/yamls/antrea.yml" > "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-${BINARY_VERSION}.yml"
@@ -25,9 +26,10 @@ sed -i -e "s/image: projects.registry.vmware.com\/antrea\/flow-aggregator:latest
 
 echo "====== Preparing Antrea Advanced Product Deliverables: Advanced Manifests ======"
 git reset --hard "origin/topic/${ANTREA_VERSION_DIGIT}-advanced-release"
-antrea_adv_deliverables="antrea-advanced-${ANTREA_VERSION_DIGIT}.${BUILD_NUMBER}"
+antrea_adv_deliverables="antrea-advanced-${ANTREA_VERSION_DIGIT}"
 mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}"
 mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests"
+echo "${BUILD_NUMBER}" > "${PUBLISH_DIR}/${antrea_adv_deliverables}/build_number.txt"
 # antrea-ipsec is not used in commecial release
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-fips-${BINARY_VERSION}.yml"
 sed -e 's/tlsCipherSuites:.\+/#tlsCipherSuites:/g' < "${REPO_ROOT}/build/yamls/antrea.yml" > "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-${BINARY_VERSION}.yml"
