@@ -46,24 +46,26 @@ mkdir -p "${OUTPUT_DIR}/manifests"
 # antrea-ipsec is not used in TKGm.
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml"
 cp "${REPO_ROOT}/build/yamls/antrea-ipsec.yml" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
-sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml"
-sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml"
-sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-debian-ipsec:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
-sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-debian-ipsec:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
+sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml"
+sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml"
+sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian-ipsec:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
+sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian-ipsec:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
 cp "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml" "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
 sed -i -e 's/tlsCipherSuites:.\+/#tlsCipherSuites:/g' "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
-echo "====== Saving and Signing TKGm Images ======"
 
+echo "====== Saving and Signing TKGm Images ======"
 # Image for TKG
-image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-debian:${IMAGE_VERSION}")"
-digest_filename="antrea-debian-${IMAGE_VERSION}-image-digests.txt"
-checksum_filename="antrea-debian-${IMAGE_VERSION}-image-checksums.txt"
 mkdir -p "${OUTPUT_DIR}/images"
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
 # Just publish Antrea images.
-docker save antrea/antrea-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-debian-${IMAGE_VERSION}.tar.gz"
-docker save antrea/antrea-debian-ipsec:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-debian-ipsec-${IMAGE_VERSION}.tar.gz"
-echo "antrea/antrea-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
+docker tag antrea/antrea-debian:${IMAGE_VERSION} antrea/antrea-advanced-debian:${IMAGE_VERSION}
+docker save antrea/antrea-advanced-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-debian-${IMAGE_VERSION}-advanced.tar.gz"
+docker tag antrea/antrea-debian-ipsec:${IMAGE_VERSION} antrea/antrea-advanced-debian-ipsec:${IMAGE_VERSION}
+docker save antrea/antrea-advanced-debian-ipsec:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-debian-ipsec-${IMAGE_VERSION}-advanced.tar.gz"
+image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-advanced-debian:${IMAGE_VERSION}")"
+digest_filename="antrea-debian-${IMAGE_VERSION}-advanced-image-digests.txt"
+checksum_filename="antrea-debian-${IMAGE_VERSION}-advanced-image-checksums.txt"
+echo "antrea/antrea-advanced-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${checksum_filename}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/

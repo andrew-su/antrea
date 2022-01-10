@@ -31,40 +31,39 @@ echo "====== Building Debian Images ======"
 echo "====== Building openvswitch-debian Image ======"
 
 # Create archives for scripts and binaries
-echo "====== Saving Antrea Standard Product Deliverables ======"
+echo "====== Saving TKGm Deliverables ======"
 # "${BUILDROOT}/output" will be published to lin64/antrea by antrea_defs.py:CaymanAntreaBuilderLin.install
-
 OUTPUT_DIR="${BUILDROOT}/output"
-antrea_std_deliverables="antrea-standard-${BRANCH_NAME#vmware-}"
-mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}"
-mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests"
+
+echo "====== Saving TKGm Manifests ======"
+mkdir -p "${OUTPUT_DIR}/manifests"
 
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests/antrea-standard-${BINARY_VERSION}.yml"
 cp "${REPO_ROOT}/build/yamls/flow-aggregator.yml" "${OUTPUT_DIR}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
 sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-standard-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-standard-${BINARY_VERSION}.yml"
 sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-standard-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-standard-${BINARY_VERSION}.yml"
 sed -i -e "s/image: projects.registry.vmware.com\/antrea\/flow-aggregator:latest/image: antrea\/flow-aggregator-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
-sed -i -e 's/enterpriseAntrea:.\+/#enterpriseAntrea:/g' "${OUTPUT_DIR}/manifests/antrea-standard-${BINARY_VERSION}.yml"
+# Antrea standard doesn't support enterpriseAntrea config, if present, Antrea controller will crash.
+sed -i -e 's/enterpriseAntrea:.\+//g' "${OUTPUT_DIR}/manifests/antrea-standard-${BINARY_VERSION}.yml"
 sed -i -e 's/tlsCipherSuites:.\+/#tlsCipherSuites:/g' "${OUTPUT_DIR}/manifests/antrea-standard-${BINARY_VERSION}.yml"
-echo "====== Preparing Antrea Advanced Product Deliverables: Debian Manifests ======"
 
-echo "====== Saving and Signing Antrea Standard Product Images ======"
-
-image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-debian:${IMAGE_VERSION}")"
-digest_filename="antrea-standard-debian-${IMAGE_VERSION}-image-digests.txt"
-checksum_filename="antrea-standard-debian-${IMAGE_VERSION}-image-checksums.txt"
+echo "====== Saving and Signing TKGm Images ======"
 mkdir -p "${OUTPUT_DIR}/images"
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
 # Just publish Antrea images.
 docker tag antrea/antrea-debian:${IMAGE_VERSION} antrea/antrea-standard-debian:${IMAGE_VERSION}
-docker save antrea/antrea-standard-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-standard-debian-${IMAGE_VERSION}.tar.gz"
+docker save antrea/antrea-standard-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-debian-${IMAGE_VERSION}-standard.tar.gz"
 docker save antrea/flow-aggregator-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/flow-aggregator-debian-${IMAGE_VERSION}.tar.gz"
+image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-standard-debian:${IMAGE_VERSION}")"
+digest_filename="antrea-debian-${IMAGE_VERSION}-standard-image-digests.txt"
+checksum_filename="antrea-debian-${IMAGE_VERSION}-standard-image-checksums.txt"
 echo "antrea/antrea-standard-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${checksum_filename}
 gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
 popd
 
+echo "====== Saving and Signing TKGm Executables ======"
 mkdir -p "${OUTPUT_DIR}/executables"
 cat "${REPO_ROOT}/bin/antctl" | gzip -9 > "${OUTPUT_DIR}/executables/antctl-${BINARY_VERSION}.gz"
 gzip -c "bin/e2e-tkgm-standard-${ANTREA_VERSION}" > "${OUTPUT_DIR}/executables/e2e-tkgm-standard-${ANTREA_VERSION}.gz"
