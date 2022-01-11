@@ -59,12 +59,12 @@ mkdir -p "${OUTPUT_DIR}/images"
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
 # Just publish Antrea images.
 docker tag antrea/antrea-debian:${IMAGE_VERSION} antrea/antrea-advanced-debian:${IMAGE_VERSION}
-docker save antrea/antrea-advanced-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-debian-${IMAGE_VERSION}-advanced.tar.gz"
+docker save antrea/antrea-advanced-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-advanced-debian-${IMAGE_VERSION}.tar.gz"
 docker tag antrea/antrea-debian-ipsec:${IMAGE_VERSION} antrea/antrea-advanced-debian-ipsec:${IMAGE_VERSION}
-docker save antrea/antrea-advanced-debian-ipsec:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-debian-ipsec-${IMAGE_VERSION}-advanced.tar.gz"
+docker save antrea/antrea-advanced-debian-ipsec:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-advanced-debian-ipsec-${IMAGE_VERSION}.tar.gz"
 image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-advanced-debian:${IMAGE_VERSION}")"
-digest_filename="antrea-debian-${IMAGE_VERSION}-advanced-image-digests.txt"
-checksum_filename="antrea-debian-${IMAGE_VERSION}-advanced-image-checksums.txt"
+digest_filename="antrea-advanced-debian-${IMAGE_VERSION}-image-digests.txt"
+checksum_filename="antrea-advanced-debian-${IMAGE_VERSION}-image-checksums.txt"
 echo "antrea/antrea-advanced-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${checksum_filename}
@@ -87,3 +87,4 @@ popd
 
 echo "====== Building Antrea Advanced Windows Deliverables ======"
 build_windows "advanced" "signed"
+rm ${PUBLISH_DIR}/antrea-windows-*.zip

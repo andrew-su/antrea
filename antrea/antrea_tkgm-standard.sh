@@ -52,11 +52,11 @@ mkdir -p "${OUTPUT_DIR}/images"
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
 # Just publish Antrea images.
 docker tag antrea/antrea-debian:${IMAGE_VERSION} antrea/antrea-standard-debian:${IMAGE_VERSION}
-docker save antrea/antrea-standard-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-debian-${IMAGE_VERSION}-standard.tar.gz"
+docker save antrea/antrea-standard-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-standard-debian-${IMAGE_VERSION}.tar.gz"
 docker save antrea/flow-aggregator-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/flow-aggregator-debian-${IMAGE_VERSION}.tar.gz"
 image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-standard-debian:${IMAGE_VERSION}")"
-digest_filename="antrea-debian-${IMAGE_VERSION}-standard-image-digests.txt"
-checksum_filename="antrea-debian-${IMAGE_VERSION}-standard-image-checksums.txt"
+digest_filename="antrea-standard-debian-${IMAGE_VERSION}-image-digests.txt"
+checksum_filename="antrea-standard-debian-${IMAGE_VERSION}-image-checksums.txt"
 echo "antrea/antrea-standard-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${checksum_filename}
@@ -78,3 +78,4 @@ cp -r ${OUTPUT_DIR}/executables/* ${PUBLISH_DIR}/lin64/antrea/executables/
 
 echo "====== Building Antrea Standard Windows Deliverables ======"
 build_windows "standard" "unsigned"
+rm ${PUBLISH_DIR}/antrea-windows-*.zip
