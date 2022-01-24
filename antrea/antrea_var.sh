@@ -4,7 +4,7 @@ REPO_ROOT="${PROJECT_DIR}/src"
 
 OVS_VER=$(cat src/build/images/deps/ovs-version)
 if [ -z $OVS_VER ]; then
-  OVS_VER="2.14.2"
+  OVS_VER="2.15.1"
 fi
 OVS_DIR="$(readlink -e ${PROJECT_DIR}/../ovs/src)"
 

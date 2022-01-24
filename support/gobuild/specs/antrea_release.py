@@ -6,7 +6,7 @@ ANTREA_INTERWORKING_FILES = {
     ]
 }
 
-CAYMAN_ANTREA_BRANCH = "vmware-1.2.3+vmware.3"
+CAYMAN_ANTREA_BRANCH = "vmware-1.5.0"
 CAYMAN_ANTREA_BUILDTYPE = "release"
 CAYMAN_ANTREA_FILES = {
     "linux-centos72-gc32": [
