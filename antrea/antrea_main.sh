@@ -1,4 +1,7 @@
 
+echo "====== Disabling --pull in All Makefile Docker Build Target ======"
+export NO_PULL=1
+
 echo "====== Archiving OpenvSwitch Source Code ======"
 archive_ovs_source
 
