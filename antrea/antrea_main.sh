@@ -181,6 +181,9 @@ popd
 
 echo "====== Saving and Signing Antrea Advanced Product Executables ======"
 
+# also publish a copy of antctl to lin64/antrea/executables
+ANTCTL_STANDALONE_DIR="${BUILDROOT}/output/executables/"
+mkdir -p "${ANTCTL_STANDALONE_DIR}"
 mkdir -p "${OUTPUT_DIR}/executables"
 cat "${REPO_ROOT}/bin/antctl" | gzip -9 > "${OUTPUT_DIR}/executables/antctl-${BINARY_VERSION}.gz"
 pushd "${OUTPUT_DIR}/executables"
@@ -189,6 +192,7 @@ sha256sum -- "antctl-${BINARY_VERSION}.gz" > ${BINARY_CHECKSUM_FILENAME}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
 gpgsignc textsign -i ${BINARY_CHECKSUM_FILENAME} -o "${BINARY_CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=001E5CC9
 popd
+cp ${OUTPUT_DIR}/executables/antctl* "${ANTCTL_STANDALONE_DIR}/"
 
 echo "====== Preparing Antrea Advanced Product Deliverables: Images, executables ======"
 cp -r "${OUTPUT_DIR}/images" "${PUBLISH_DIR}/${antrea_adv_deliverables}"
