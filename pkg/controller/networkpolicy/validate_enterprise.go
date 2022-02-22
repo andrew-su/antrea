@@ -160,29 +160,29 @@ func (a *enterpriseAntreaPolicyValidator) deleteValidate(oldObj interface{}, use
 // userInSubjects checks whether a given user belongs to the list of subjects.
 func userInSubjects(user authenticationv1.UserInfo, subjects []rbacv1.Subject) bool {
 	for _, s := range subjects {
-		if s.APIGroup == "rbac.authorization.k8s.io" {
-			switch s.Kind {
-			case rbacv1.UserKind:
-				if s.Name == user.Username {
-					// User name matches the Subject.
-					return true
-				}
-			case rbacv1.GroupKind:
+		switch s.Kind {
+		case rbacv1.UserKind:
+			if s.APIGroup == rbacv1.GroupName && s.Name == user.Username {
+				// Username matches the Subject.
+				return true
+			}
+		case rbacv1.GroupKind:
+			if s.APIGroup == rbacv1.GroupName {
 				for _, g := range user.Groups {
 					if s.Name == g {
-						// User Group matches the
-						// Subject.
+						// User Group matches the Subject.
 						return true
 					}
 				}
-			case rbacv1.ServiceAccountKind:
-				if serviceaccount.MatchesUsername(s.Namespace, s.Name, user.Username) {
-					// Serviceaccount matches the Subject.
-					return true
-				}
+			}
+		case rbacv1.ServiceAccountKind:
+			// APIGroup defaults to "" for ServiceAccount subjects.
+			if s.APIGroup == "" && serviceaccount.MatchesUsername(s.Namespace, s.Name, user.Username) {
+				// Serviceaccount matches the Subject.
+				return true
 			}
 		}
 	}
-	// No match for Group or User name.
+	// No match for Group or Username.
 	return false
 }

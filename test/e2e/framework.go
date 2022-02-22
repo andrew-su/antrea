@@ -1388,7 +1388,6 @@ func getServiceAccountAsUserSubject(ns, name string) rbacv1.Subject {
 func getServiceAccountSubject(ns, name string) rbacv1.Subject {
 	return rbacv1.Subject{
 		Kind:      rbacv1.ServiceAccountKind,
-		APIGroup:  "rbac.authorization.k8s.io",
 		Namespace: ns,
 		Name:      name,
 	}
