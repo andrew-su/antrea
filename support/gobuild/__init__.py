@@ -18,6 +18,9 @@ import targets.antrea_release
 
 TARGETS = {
     'cayman_antrea': targets.cayman_antrea.CaymanAntrea,
+    'cayman_antrea_tkgm-advanced': targets.cayman_antrea.CaymanAntreaTKGMAdv,
+    'cayman_antrea_tkgm-standard': targets.cayman_antrea.CaymanAntreaTKGMStd,
+    'cayman_antrea_tkgs-advanced': targets.cayman_antrea.CaymanAntreaTKGSAdv,
     'antrea-release': targets.antrea_release.AntreaRelease,
 }
 

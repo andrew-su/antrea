@@ -50,7 +50,11 @@ else
   return 1
 fi
 if [ "$ANTREA_TARGET" = "${BRANCH_NAME}" ]; then
-  ANTREA_TARGET="main"
+  if [ "${BUILD_PRODUCT}" = "cayman_antrea" ]; then
+    ANTREA_TARGET="main"
+  else
+    ANTREA_TARGET="${BUILD_PRODUCT#cayman_antrea_}"
+  fi
 fi
 echo "BRANCH_NAME=${BRANCH_NAME}" "IMAGE_VERSION=$IMAGE_VERSION" "BINARY_VERSION=$BINARY_VERSION" "ANTREA_TARGET=$ANTREA_TARGET"
 
