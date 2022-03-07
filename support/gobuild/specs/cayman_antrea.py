@@ -47,8 +47,8 @@ CAYMAN_GO_FILES = {
         "publish/lin64/pkg/.*"]
 }
 
-NSX_OVS_BUILD_BRANCH = "nsx-impactor"
-NSX_OVS_BUILD_CLN = "df2bd300535ff5a448f27af93375d2dd0ca4fb2c"
+NSX_OVS_BUILD_BRANCH = "nsx-impactor-ufo"
+NSX_OVS_BUILD_CLN = "c5ab2f6eb18c2ab9676aa0c4ebcf9350f7eb28a2"
 NSX_OVS_BUILD_BUILDTYPE = "release"
 NSX_OVS_BUILD_FILES = {
     LINUX_HOSTTYPE: [
