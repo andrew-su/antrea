@@ -30,9 +30,12 @@ echo "====== Copying antrea-interworking Product Deliverables ======"
 antrea_interworking_publish="${PUBLISH_DIR}/antrea-interworking"
 mkdir -p "${antrea_interworking_publish}/images"
 cp -rv ${GOBUILD_ANTREA_INTERWORKING_ROOT}/antrea-interworking/images/interworking-* "${antrea_interworking_publish}/images"
+# UBI image will be added to openshift dir, so remove it from ${antrea_interworking_publish}/images
+rm -rf ${antrea_interworking_publish}/images/interworking-ubi-*.tar
 mkdir -p "${antrea_interworking_publish}/manifests"
 cp -rv ${GOBUILD_ANTREA_INTERWORKING_ROOT}/antrea-interworking/manifests/{interworking,deregisterjob,bootstrap-config,ns-label-webhook,inventorycleanup}.yaml \
   "${antrea_interworking_publish}/manifests"
+cp -rv "${GOBUILD_ANTREA_INTERWORKING_ROOT}/antrea-interworking/bin" "${antrea_interworking_publish}"
 cp -rv ${GOBUILD_ANTREA_INTERWORKING_ROOT}/VERSION ${GOBUILD_ANTREA_INTERWORKING_ROOT}/antrea-interworking-*.zip "${antrea_interworking_publish}/"
 
 echo "====== Copying cayman_antrea Product Deliverables ======"
@@ -56,6 +59,8 @@ operator_publish="${PUBLISH_DIR}/openshift"
 mkdir -p "${operator_publish}"
 cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/ubi/images  "${operator_publish}/antrea"
 cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/VERSION  "${operator_publish}/antrea"
+mkdir -p "${operator_publish}/antrea-interworking"
+cp -rv ${GOBUILD_ANTREA_INTERWORKING_ROOT}/antrea-interworking/images/interworking-ubi-*.tar "${operator_publish}/antrea-interworking"
 cp -rv ${GOBUILD_CAYMAN_ANTREA_OPERATOR_FOR_KUBERNETES_ROOT}/lin64 "${operator_publish}/operator"
 cp -rv ${GOBUILD_CAYMAN_ANTREA_OPERATOR_FOR_KUBERNETES_ROOT}/VERSION "${operator_publish}/operator"
 
