@@ -5,6 +5,7 @@
 
 set -xe
 
+RELEASE_VERSION=1.4.0
 RESULTS=`pwd`/osstp_results
 ANTREA_ROOTDIR=`pwd`/antrea/src
 
@@ -12,7 +13,6 @@ mkdir -p "${RESULTS}"
 
 # https://gitlab.eng.vmware.com/core-build/mirrors_internal_osstptool
 # https://gitlab.eng.vmware.com/frapposelli/osstptool/-/releases
-# May download mannually
 pushd antrea/src
 go mod vendor
 popd
@@ -31,15 +31,12 @@ pushd "${RESULTS}"
 cat > /tmp/osm-apikey <<EOF
 zhengshengz@vmware.com 3d8a2d9af7542d4bf4901fd5c7b72d47ee218872
 EOF
-#source /usr/bin/virtualenvwrapper.sh
-#workon osstp
 echo ===================================================
 echo Uploading packages and creating tickets on OSM site
 echo ===================================================
-../osstpclients/bin/osstp-load.py --noinput -I 'Distributed - Static Link w/ VMW' -A /tmp/osm-apikey -R Antrea/1.3.1-1.2.3 osstp_golang.yml
+wget -O osstp-load https://osm.eng.vmware.com/utilities/osstp-load/
+chmod a+x osstp-load
+./osstp-load --noinput -I 'Distributed - Static Link w/ VMW' -A /tmp/osm-apikey -R "Antrea/${RELEASE_VERSION}" osstp_golang.yml
 # ~/antrea-repos/osstpclients/bin/osstp-load.py --noinput -I 'Distributed - Dynamic Link w/ OSS' -A /tmp/osm-apikey -R Antrea/1.2.0-0.13.0 osstp_golang.yml
 rm -f /tmp/osm-apikey
-set +x
-#deactivate
-set -x
 popd

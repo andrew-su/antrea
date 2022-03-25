@@ -3,8 +3,8 @@ set -e
 # refer to
 # https://confluence.eng.vmware.com/display/public/OSMUserGuide/OSL+File+Generation
 
-RELEASE_VERSION=1.3.1-1.2.3
-RELEASE_ODP=VMware-Antrea-${RELEASE_VERSION}-ODP
+RELEASE_VERSION=1.4.0
+RELEASE_ODP="VMware-Antrea-${RELEASE_VERSION}-ODP"
 
 if [ -z "$1" ]; then
   echo Usage: $0 ticket1,ticket2,ticket3,... >&2
@@ -32,7 +32,7 @@ zhengshengz@vmware.com 3d8a2d9af7542d4bf4901fd5c7b72d47ee218872
 EOF
 #source /usr/bin/virtualenvwrapper.sh
 #workon osstp
-python2 ./odp-template.py -A /tmp/osm-apykey -R Antrea/${RELEASE_VERSION} -T "$1"
+python2 ./odp-template.py -A /tmp/osm-apykey -R "Antrea/${RELEASE_VERSION}" -T "$1"
 rm -f /tmp/osm-apykey
 #deactivate
 

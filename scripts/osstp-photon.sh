@@ -4,6 +4,18 @@ set -xe
 # https://confluence.eng.vmware.com/display/OSMUserGuide/VM+%28vApp+Virtual+Machines%29+or+Containers?src=contextnavpagetreemode
 # https://confluence.eng.vmware.com/display/CNA/Cascade+OSSTP
 
+RELEASE_VERSION=1.4.0
+
+echo Scann OS packages for Antrea commercial release $RELEASE_VERSION
+
+if [ -z "$1" ]; then
+  # Need to manually create package ct-track-photon on https://osm.eng.vmware.com/ first
+  echo Usage: $0 BaseOSTicketNum
+  exit 1
+else
+  CT_TRACKER="$1"
+fi
+
 echo ============================================================
 echo Make sure run inside container created from the docker image
 echo ============================================================
@@ -38,12 +50,9 @@ enabled=1
 skip_if_unavailable=True
 EOF
 
-tdnf update
+tdnf makecache
 # Mannually install if failed
-tdnf install -y unzip python3 python3-pip curl || true #python-deb822
-
-ln -s /usr/bin/python3 /usr/bin/python || true
-pip3 install pyaml requests retrying
+tdnf install -y gawk unzip curl || true
 
 mkdir -p osstpclients
 cd osstpclients
@@ -51,17 +60,24 @@ curl -LO https://osm.eng.vmware.com/utilities/osstpclients3.zip
 unzip osstpclients3.zip
 cd bin
 
-# Mannually modify lib/python/osstpinventory.py return 0
-pip3 install -r ../etc/requirements.txt
 ./vm-inventory.sh -s rpm photon
 
 cat > /tmp/osm-apykey <<EOF
 zhengshengz@vmware.com 3d8a2d9af7542d4bf4901fd5c7b72d47ee218872
 EOF
-python3 ./osstp-load.py --noinput -A /tmp/osm-apykey -R Antrea/1.3.1-1.2.3 --baseos-srcdir ~/source osstpmgt.yaml | tee oss.log
+./client_executables/linux-amd64/osstp-load --baseos-append --baseos-ct-tracker "$CT_TRACKER" --noinput -A /tmp/osm-apykey -R "Antrea/${RELEASE_VERSION}" --baseos-srcdir ~/source osstpmgt.yaml | tee oss.log
 
-source_packages="$(cat oss.log| sed -e '1,/missing BaseOS tickets/d'|awk -F"source package" '{print $2}'|grep -v None|sed 's/ (.*)//'|sed 's/"//g')"
+source_packages="$(cat oss.log | grep 'No BaseOS package available for' | awk '{print $8}' | awk -F ':' '{print $3}')"
 
+if [ -n "${source_packages}" ]; then
+  echo Please manually handle the following source_packages:
+  echo "${source_packages}"
+  exit 1
+else
+  exit 0
+fi
+
+# The following code is from debian/ubuntu, need to write specific code to process photon package
 mkdir -p ../../source
 cd ../../source
 for pkg in ${source_packages} ; do
@@ -69,12 +85,11 @@ for pkg in ${source_packages} ; do
 done
 
 cd ../osstpclients
-export PYTHONPATH=../osstpclients
 
 rm -f bin/osstpmgt.yaml
 for dsc in ../source/*.dsc ; do
   dsc="$(readlink -f "${dsc}")"
-  python3 ./bin/dsc-inventory.py -n photon -d ../source "${dsc}"
+  ./bin/./client_executables/linux-amd64/dsc-inventory -n photon -d ../source "${dsc}"
   if ! grep -q "Homepage:" "${dsc}" ; then
     url="$(cat "${dsc}" | awk '/Vcs-Browser:/{print $2}')"
     sed -i -e "s|${dsc}|${url}|g" bin/osstpmgt.yaml
@@ -82,7 +97,7 @@ for dsc in ../source/*.dsc ; do
 done
 mv osstpmgt.yaml bin/
 if [ -f bin/osstpmgt.yaml ]; then
-  python3 ./bin/osstp-load.py --noinput --debug -A /tmp/osm-apykey -R Antrea/1.3.1-1.2.3 --baseos-srcdir ../source bin/osstpmgt.yaml || true
+  ./bin/client_executables/linux-amd64/osstp-load --baseos-append --noinput --baseos-ct-tracker "$CT_TRACKER" --debug -A /tmp/osm-apykey -R "Antrea/${RELEASE_VERSION}" --baseos-srcdir ../source bin/osstpmgt.yaml || true
 fi
 
 rm -f /tmp/osm-apykey
