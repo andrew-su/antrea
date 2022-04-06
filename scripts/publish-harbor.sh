@@ -3,14 +3,13 @@ set -e
 
 antrea_release_build="$1"
 harbor_user="$2"
-harbor_password="$3"
 
 HARBOR="projects.registry.vmware.com"
 HARBOR_REPO="${HARBOR}/antreainterworking"
 
-if [[ $# -ne 3 ]]; then
+if [[ $# -ne 2 ]]; then
     echo "Usage: $0 antrea-release-build 'harbor_user' 'harbor_password'"
-    echo "Example: $0 ob-xxxx 'dummyUser' 'dummyPassword'"
+    echo "Example: $0 ob-xxxx 'dummyUser'"
     echo "antrea-release-build can be found in https://buildweb.eng.vmware.com/ob/?product=antrea-release"
     exit 1
 fi
@@ -25,7 +24,7 @@ if [[ ${antrea_build_kind} == "sb" ]];then
 fi
 
 echo ====== Logging in to "${HARBOR}" ======
-docker login -u "${harbor_user}" -p "${harbor_password}" "${HARBOR}"
+docker login -u "${harbor_user}" "${HARBOR}"
 
 mkdir -p tmp-harbor-upload
 pushd tmp-harbor-upload
@@ -34,9 +33,13 @@ echo -n > publish_images.txt
 wget "http://build-squid.eng.vmware.com/build/mts/release/bora-${build_number}/publish/antrea-interworking/VERSION" -O interworking_version_file
 interworking_version="$(cat interworking_version_file)"
 echo ====== Publishing Interworking "${interworking_version}" Images ======
-for base_os in debian ubuntu photon ; do
+for base_os in debian ubuntu photon ubi ; do
   echo === Downloading Interworking $base_os Image ===
-  wget "http://build-squid.eng.vmware.com/build/mts/release/bora-${build_number}/publish/antrea-interworking/images/interworking-${base_os}-${interworking_version}.tar" -O "interworking-${base_os}.tar"
+  if [ "$base_os" = "ubi" ]; then
+    wget "http://build-squid.eng.vmware.com/build/mts/release/bora-${build_number}/publish/openshift/antrea-interworking/interworking-${base_os}-${interworking_version}.tar" -O "interworking-${base_os}.tar"
+  else
+    wget "http://build-squid.eng.vmware.com/build/mts/release/bora-${build_number}/publish/antrea-interworking/images/interworking-${base_os}-${interworking_version}.tar" -O "interworking-${base_os}.tar"
+  fi
   docker load -i "interworking-${base_os}.tar" && rm -f "interworking-${base_os}.tar"
   docker tag "vmware.io/antrea/interworking-${base_os}:${interworking_version}" "${HARBOR_REPO}/interworking-${base_os}:${interworking_version}"
   echo === Pushing "${HARBOR_REPO}/interworking-${base_os}:${interworking_version}" ===
@@ -47,25 +50,19 @@ done
 wget "http://build-squid.eng.vmware.com/build/mts/release/bora-${build_number}/publish/cayman_antrea/VERSION" -O antrea_version_file
 antrea_version="$(cat antrea_version_file)"
 
-for base_os in ubi ; do
-  echo === Downloading Antrea $base_os Image ===
-  if [ "${base_os}" = "ubi" ]; then
-    wget "http://build-squid.eng.vmware.com/build/mts/release/bora-${build_number}/publish/openshift/antrea/antrea-${base_os}-${antrea_version}.tar.gz" -O "antrea-${base_os}.tar.gz"
-  else
-    wget "http://build-squid.eng.vmware.com/build/mts/release/bora-${build_number}/publish/cayman_antrea/TKGS/${base_os}/images/antrea-${base_os}-${antrea_version}.tar.gz" -O "antrea-${base_os}.tar.gz"
-  fi
-  docker load -i "antrea-${base_os}.tar.gz" && rm -f "antrea-${base_os}.tar.gz"
-  docker tag "localhost:5000/vmware.io/antrea/antrea-${base_os}:${antrea_version}" "${HARBOR_REPO}/antrea-${base_os}:${antrea_version}"
-  echo === Pushing "${HARBOR_REPO}/antrea-${base_os}:${antrea_version}" ===
-  docker push "${HARBOR_REPO}/antrea-${base_os}:${antrea_version}"
-  echo "${HARBOR_REPO}/antrea-${base_os}:${antrea_version}" >> publish_images.txt
-done
+echo === Downloading Antrea $base_os Image ===
+wget "http://build-squid.eng.vmware.com/build/mts/release/bora-${build_number}/publish/openshift/antrea/antrea-${base_os}-${antrea_version}.tar.gz" -O "antrea-${base_os}.tar.gz"
+docker load -i "antrea-${base_os}.tar.gz" && rm -f "antrea-${base_os}.tar.gz"
+docker tag "localhost:5000/vmware.io/antrea/antrea-${base_os}:${antrea_version}" "${HARBOR_REPO}/antrea-${base_os}:${antrea_version}"
+echo === Pushing "${HARBOR_REPO}/antrea-${base_os}:${antrea_version}" ===
+docker push "${HARBOR_REPO}/antrea-${base_os}:${antrea_version}"
+echo "${HARBOR_REPO}/antrea-${base_os}:${antrea_version}" >> publish_images.txt
 
 for flavor in standard advanced ; do
   echo === Downloading Antrea $flavor Zip File ===
   antrea_bin_version="${antrea_version#v}"
   antrea_bin_version="${antrea_bin_version/_/+}"
-  zip_file="$(curl -s "http://build-squid.eng.vmware.com/build/mts/release/bora-${build_number}/publish/cayman_antrea/${flavor}-release/" | grep -o "antrea-${flavor}-${antrea_bin_version}\.[^.]*\.zip")"
+  zip_file="$(curl -s "http://build-squid.eng.vmware.com/build/mts/release/bora-${build_number}/publish/cayman_antrea/${flavor}-release/" | grep -o "antrea-${flavor}-${antrea_bin_version}\.zip")"
   wget "http://build-squid.eng.vmware.com/build/mts/release/bora-${build_number}/publish/cayman_antrea/${flavor}-release/${zip_file}" -O "${zip_file}"
   unzip "${zip_file}" && rm -f "${zip_file}"
   zip_dir="${zip_file%.zip}"
