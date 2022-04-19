@@ -16,7 +16,7 @@ mkdir -p "${PUBLISH_DIR}/${antrea_mc_deliverables}"
 mkdir -p "${PUBLISH_DIR}/${antrea_mc_deliverables}/manifests"
 echo "${BUILD_NUMBER}" > "${PUBLISH_DIR}/${antrea_mc_deliverables}/build_number.txt"
 for yml_file in ${REPO_ROOT}/multicluster/build/yamls/*.yml; do
-  base_name="$(basename $yml_file)"
+  base_name="$(basename $yml_file .yml)"
   sed \
     -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-mc-controller-debian:${IMAGE_VERSION}/g" \
     -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-mc-controller-debian:${IMAGE_VERSION}/g" \
