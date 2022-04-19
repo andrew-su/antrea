@@ -83,6 +83,11 @@ function compile_e2e() {
   for test_image in "$@"
   do
     image_name=${test_image}
+    if [ "$image_name" = "multi-cluster" ]; then
+        git reset --hard remotes/origin/topic/${ANTREA_VERSION_DIGIT}-common
+        fips_make "go test -c -v -x -o bin/e2e-${image_name}-${ANTREA_VERSION} ${ANTREA_DOMAIN}/multicluster/test/e2e"
+        continue
+    fi
     git reset --hard remotes/origin/topic/${ANTREA_VERSION_DIGIT}-${test_image}-release
     if [ ${ipsec} = 'ipsec' ]; then
       image_name="${test_image}-ipsec"

@@ -23,6 +23,9 @@ ANTREA_DOMAIN="antrea.io/antrea"
 #
 # vmware-x.y.z # In this case ANTREA_TARGET=main
 # vmware-x.y.z-$ANTREA_TARGET
+#
+# Note: Since Antrea >=1.5.2+vmware.2 the $ANTREA_TARGET is not encoded in branch name.
+# The $ANTREA_TARGET is determined in the next "if" block according to $BUILD_PRODUCT.
 if [[ "${BRANCH_NAME}" == vmware-master* ]]; then
   IMAGE_VERSION=vmware-master
   BINARY_VERSION=vmware-master

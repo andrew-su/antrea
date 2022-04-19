@@ -21,6 +21,7 @@ TARGETS = {
     'cayman_antrea_tkgm-advanced': targets.cayman_antrea.CaymanAntreaTKGMAdv,
     'cayman_antrea_tkgm-standard': targets.cayman_antrea.CaymanAntreaTKGMStd,
     'cayman_antrea_tkgs-advanced': targets.cayman_antrea.CaymanAntreaTKGSAdv,
+    'cayman_antrea_multi-cluster': targets.cayman_antrea.CaymanAntreaMultiCluster,
     'antrea-release': targets.antrea_release.AntreaRelease,
 }
 
