@@ -23,7 +23,7 @@ for yml_file in ${REPO_ROOT}/multicluster/build/yamls/*.yml; do
     "$yml_file" > "${PUBLISH_DIR}/${antrea_mc_deliverables}/manifests/${base_name}-${BINARY_VERSION}.yml"
 done
 
-echo "====== Building antrea-mc-controller--debian Image ======"
+echo "====== Building antrea-mc-controller-debian Image ======"
 make antrea-mc-controller
 docker tag antrea/antrea-mc-controller "antrea/antrea-mc-controller-debian:${IMAGE_VERSION}"
 
@@ -34,7 +34,7 @@ echo "====== Saving and Signing Antrea Multi-cluster Product Images ======"
 
 image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-mc-controller-debian:${IMAGE_VERSION}")"
 digest_filename="antrea-mc-controller-debian-${IMAGE_VERSION}-image-digests.txt"
-checksum_filename="antrea-mc-controller--debian-${IMAGE_VERSION}-image-checksums.txt"
+checksum_filename="antrea-mc-controller-debian-${IMAGE_VERSION}-image-checksums.txt"
 mkdir -p "${OUTPUT_DIR}/images"
 docker save antrea/antrea-mc-controller-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-mc-controller-debian-${IMAGE_VERSION}.tar.gz"
 echo "antrea/antrea-mc-controller-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
