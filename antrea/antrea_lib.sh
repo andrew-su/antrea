@@ -173,7 +173,7 @@ function build_windows() {
 
   cp "${NSXOVS_PATH}" "${DownloadDir}/nsx-ovs.zip"
   wget -q "${VCRedistUrl}" -O "${DownloadDir}/vcredists.zip"
-  docker run --rm --user $(id -u):$(id -g) -v "${REPO_ROOT}":/tmp/windows -w /tmp/windows projects.registry.vmware.com/library/busybox /bin/sh -c "unzip -q download/nsx-ovs.zip -d nsx-ovs-temp ; unzip -q download/vcredists.zip -d nsx-ovs-temp"
+  docker run --rm --user $(id -u):$(id -g) -v "${REPO_ROOT}":/tmp/windows -w /tmp/windows harbor-repo.vmware.com/dockerhub-proxy-cache/library/busybox /bin/sh -c "unzip -q download/nsx-ovs.zip -d nsx-ovs-temp ; unzip -q download/vcredists.zip -d nsx-ovs-temp"
   OVSDir="${TempDir}/openvswitch"
   OVSDriverDir="${OVSDir}/driver"
   VCRedistDir="${OVSDir}/redist"
