@@ -27,6 +27,8 @@ popd
 echo "====== Building antrea-debian Image ======"
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 make debian VERSION=${IMAGE_VERSION}
+make flow-aggregator-image
+docker tag antrea/flow-aggregator-debian antrea/flow-aggregator-debian:${IMAGE_VERSION}
 
 echo "====== Building openvswitch-debian-ipec Image ======"
 pushd build/images/ovs
@@ -49,12 +51,14 @@ mkdir -p "${OUTPUT_DIR}/manifests"
 # antrea-ipsec is not used in TKGm.
 cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml"
 cp "${REPO_ROOT}/build/yamls/antrea-ipsec.yml" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
+cp "${REPO_ROOT}/build/yamls/flow-aggregator.yml" "${OUTPUT_DIR}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
 sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml"
 sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml"
 sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian-ipsec:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
 sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian-ipsec:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
 cp "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml" "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
 sed -i -e 's/tlsCipherSuites:.\+/#tlsCipherSuites:/g' "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
+sed -i -e "s/image: projects.registry.vmware.com\/antrea\/flow-aggregator:latest/image: antrea\/flow-aggregator-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
 
 echo "====== Saving and Signing TKGm Images ======"
 # Image for TKG
@@ -65,6 +69,7 @@ docker tag antrea/antrea-debian:${IMAGE_VERSION} antrea/antrea-advanced-debian:$
 docker save antrea/antrea-advanced-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-advanced-debian-${IMAGE_VERSION}.tar.gz"
 docker tag antrea/antrea-debian-ipsec:${IMAGE_VERSION} antrea/antrea-advanced-debian-ipsec:${IMAGE_VERSION}
 docker save antrea/antrea-advanced-debian-ipsec:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-advanced-debian-ipsec-${IMAGE_VERSION}.tar.gz"
+docker save antrea/flow-aggregator-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/flow-aggregator-debian-${IMAGE_VERSION}.tar.gz"
 image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-advanced-debian:${IMAGE_VERSION}")"
 digest_filename="antrea-advanced-debian-${IMAGE_VERSION}-image-digests.txt"
 checksum_filename="antrea-advanced-debian-${IMAGE_VERSION}-image-checksums.txt"
