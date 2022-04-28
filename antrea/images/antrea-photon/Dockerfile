@@ -2,7 +2,7 @@ FROM scratch as cni-binaries
 # Photon images are for local testing, they are not consumed by cayman_photon.
 # We maintain a dedicated Antrea Dockerfile in cayman_photon. Antrea photon
 # image is actually built there.
-ARG WHEREABOUTS_VERSION=0.4.2
+ARG WHEREABOUTS_VERSION=v0.5.1
 ADD photon-rootfs.tar.gz /
 RUN /usr/bin/sed -i -e 's/^enabled=.*/enabled=0/g' /etc/yum.repos.d/*.repo
 COPY photon-iso.repo /etc/yum.repos.d/
@@ -15,9 +15,8 @@ COPY cni-plugins-*.tgz /tmp
 
 RUN mkdir -p /opt/cni/bin && \
     tar -zxvf /tmp/cni-plugins-*.tgz -C /opt/cni/bin $CNI_PLUGINS && \
-    curl -k -sLO https://build-artifactory.eng.vmware.com/artifactory/nsx-ujo-local/antrea/${WHEREABOUTS_VERSION}/whereabouts-linux-${pluginsArch}.tgz && \
-    tar xvf whereabouts-linux-${pluginsArch}.tgz --strip-components=1 && \
-    mv whereabouts /opt/cni/bin
+    curl -sLo /opt/cni/bin/whereabouts https://build-artifactory.eng.vmware.com/artifactory/nsx-ujo-local/antrea/whereabouts/whereabouts-${WHEREABOUTS_VERSION}-${pluginsArch} && \
+    chmod +x /opt/cni/bin/whereabouts
 
 
 FROM antrea/openvswitch-photon
