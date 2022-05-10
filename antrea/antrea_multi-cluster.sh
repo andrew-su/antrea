@@ -22,6 +22,7 @@ for yml_file in ${REPO_ROOT}/multicluster/build/yamls/*.yml; do
     -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-mc-controller-debian:${IMAGE_VERSION}/g" \
     "$yml_file" > "${PUBLISH_DIR}/${antrea_mc_deliverables}/manifests/${base_name}-${BINARY_VERSION}.yml"
 done
+cp -r "${REPO_ROOT}/multicluster/config/samples/clusterset_init" "${PUBLISH_DIR}/${antrea_mc_deliverables}/manifests"
 
 echo "====== Building antrea-mc-controller-debian Image ======"
 make antrea-mc-controller
