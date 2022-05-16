@@ -87,7 +87,7 @@ func (a *enterpriseAntreaPolicyValidator) authorizeTierUserForEdit(tier string, 
 			}
 		}
 	}
-	// None of the bindings refer to this user in it's Subjects. Deny request.
+	// None of the bindings refer to this user in its Subjects. Deny request.
 	klog.V(2).Infof("User %s is not authorized.", userInfo.Username)
 	return nil, fmt.Sprintf("user not authorized to access Tier %s", tier), false
 }

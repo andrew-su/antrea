@@ -44,7 +44,7 @@ func (t *TierEntitlementSpecBuilder) SetName(name string) *TierEntitlementSpecBu
 }
 
 func (t *TierEntitlementSpecBuilder) SetPriorityEdit() *TierEntitlementSpecBuilder {
-	t.Spec.Permission = "edit"
+	t.Spec.Permission = crdv1a1.PermissionEdit
 	return t
 }
 

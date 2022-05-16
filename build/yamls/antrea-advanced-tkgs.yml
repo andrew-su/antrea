@@ -4914,7 +4914,7 @@ spec:
               properties:
                 permission:
                   type: string
-                  enum: ['edit', 'read']
+                  enum: ['edit']
                 tiers:
                   type: array
                   items:

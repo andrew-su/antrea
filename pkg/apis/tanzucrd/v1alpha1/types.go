@@ -20,9 +20,7 @@ import (
 )
 
 const (
-	// PermissionRead allows only read permission for Tiers
-	PermissionRead = "read"
-	// Permissionedit allows create, update, delete and read permission for Tiers
+	// Permissionedit allows creating, updating and deleting permission for Tiers
 	PermissionEdit = "edit"
 )
 
@@ -46,10 +44,9 @@ type TierEntitlementSpec struct {
 	// TiersAll represents all Tiers.
 	Tiers []string `json:"tiers"`
 	// Permission defines the allowed actions to be performed on the Tiers
-	// specified in Tiers. Allowed permissions are "edit" and "read". "edit"
+	// specified in Tiers. The only allowed permission is "edit". The "edit"
 	// permission allows any authorized user to add/remove Tier references in
-	// an Antrea-native policy. "read" permission only allows authorized users
-	// to read Antrea-native policies referring the Tier names set in Tiers field.
+	// an Antrea-native policy.
 	Permission string `json:"permission"`
 }
 
