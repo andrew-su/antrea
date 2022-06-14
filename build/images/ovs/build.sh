@@ -30,7 +30,11 @@ Build the antrea openvswitch image.
         --platform <PLATFORM>   Target platform for the image if server is multi-platform capable
         --distro <distro>       Target distribution. If distro is 'windows', platform should be empty. The script uses 'windows/amd64' automatically
         --no-cache              Do not use the local build cache nor the cached image from the registry
-        --build-tag             Custom build tag for images."
+        --build-tag             Custom build tag for images.
+        --download-ovs          Download OVS source code tarball from internet. Default is false.
+        --ipsec                 Build with IPsec support. Default is false.
+        --use-public-photon     Use public Photon repository. Should only be used in CI and for local testing.
+        --rpm-repo-url <url>    URL of the RPM repository to use for Photon builds."
 
 function print_usage {
     echoerr "$_usage"
@@ -39,9 +43,15 @@ function print_usage {
 PULL=false
 PUSH=false
 NO_CACHE=false
+IPSEC=false
 PLATFORM=""
 DISTRO="ubuntu"
 BUILD_TAG=""
+DOWNLOAD_OVS=false
+SUPPORT_DISTROS=("ubuntu" "ubi" "debian" "photon" "windows")
+RPM_REPO_URL=""
+USE_PUBLIC_PHOTON=false
+PHOTON_BASE_DOCKER_IMG="nsx-ujo-docker-local.packages.vcfd.broadcom.net/antrea/photon:5.0-8f8225ff2"
 
 while [[ $# -gt 0 ]]
 do
@@ -72,6 +82,22 @@ case $key in
     BUILD_TAG="$2"
     shift 2
     ;;
+    --download-ovs)
+    DOWNLOAD_OVS=true
+    shift
+    ;;
+    --ipsec)
+    IPSEC=true
+    shift
+    ;;
+    --rpm-repo-url)
+    RPM_REPO_URL="$2"
+    shift 2
+    ;;
+    --use-public-photon)
+    USE_PUBLIC_PHOTON=true
+    shift
+    ;;
     -h|--help)
     print_usage
     exit 0
@@ -92,8 +118,9 @@ if $PUSH && [ "$DISTRO" != "windows" ] && ! check_docker_build_driver "docker-co
     exit 1
 fi
 
-if [ "$DISTRO" != "ubuntu" ] && [ "$DISTRO" != "ubi" ] && [ "$DISTRO" != "windows" ]; then
-    echoerr "Invalid distribution $DISTRO"
+
+if [ "$PLATFORM" != "" ] && $PUSH; then
+    echoerr "Cannot use --platform with --push"
     exit 1
 fi
 
@@ -110,6 +137,19 @@ if [ "$PLATFORM" != "" ]; then
     PLATFORM_ARG="--platform $PLATFORM"
 fi
 
+DISTRO_VALID=false
+for dist in "${SUPPORT_DISTROS[@]}"; do
+    if [ "$DISTRO" == "$dist" ]; then
+        DISTRO_VALID=true
+        break
+    fi
+done
+
+if ! $DISTRO_VALID; then
+    echoerr "Invalid distribution $DISTRO"
+    exit 1
+fi
+
 pushd $THIS_DIR > /dev/null
 
 OVS_VERSION=$(head -n 1 ${OVS_VERSION_FILE})
@@ -118,6 +158,30 @@ BUILD_CACHE_TAG=$(../build-tag.sh)
 
 if [[ $BUILD_TAG == "" ]]; then
     BUILD_TAG=$BUILD_CACHE_TAG
+fi
+
+if [ "$IPSEC" == "true" ]; then
+    BUILD_TAG="${BUILD_TAG}-ipsec"
+fi
+
+if [ ! -f openvswitch-$OVS_VERSION.tar.gz ]; then
+    if $DOWNLOAD_OVS; then
+        curl -LO https://www.openvswitch.org/releases/openvswitch-$OVS_VERSION.tar.gz
+    else
+        echoerr "openvswitch-$OVS_VERSION.tar.gz not found. Use --download-ovs to download it."
+        exit 1
+    fi
+fi
+
+if [ "$DISTRO" == "photon" ]; then
+    if [ "$RPM_REPO_URL" != "" ] && ${USE_PUBLIC_PHOTON}; then
+        echoerr "Cannot use --rpm-repo-url with --use-public-photon"
+        exit 1
+    fi
+    if ${USE_PUBLIC_PHOTON}; then
+        docker pull $PLATFORM_ARG $PHOTON_BASE_DOCKER_IMG
+        docker export "$(docker create $PHOTON_BASE_DOCKER_IMG)" | gzip > photon-rootfs.tar.gz
+    fi
 fi
 
 if $PULL; then
@@ -139,7 +203,7 @@ fi
 function docker_build_and_push() {
     local image="$1"
     local dockerfile="$2"
-    local build_args="--build-arg OVS_VERSION=$OVS_VERSION"
+    local build_args="--build-arg OVS_VERSION=$OVS_VERSION --build-arg IPSEC=$IPSEC"
     local cache_args=""
     if $PUSH; then
         cache_args="$cache_args --cache-to type=registry,ref=$image-cache:$BUILD_CACHE_TAG,mode=max"
@@ -160,10 +224,20 @@ if [ "$DISTRO" == "ubuntu" ]; then
     docker_build_and_push "antrea/openvswitch-$TARGETARCH" "Dockerfile"
 elif [ "$DISTRO" == "ubi" ]; then
     docker_build_and_push "antrea/openvswitch-ubi-$TARGETARCH" "Dockerfile.ubi"
+elif [ "$DISTRO" == "debian" ]; then
+    docker_build_and_push "antrea/openvswitch-debian-$TARGETARCH" "Dockerfile.debian"
 elif [ "$DISTRO" == "windows" ]; then
     image="antrea/windows-ovs"
     build_args="--build-arg OVS_VERSION=$OVS_VERSION"
     docker_build_and_push_windows "${image}" "Dockerfile.windows" "${build_args}" "${OVS_VERSION}" $PUSH ""
+elif [ "$DISTRO" == "photon" ]; then
+    if ! [ -f "photon-rootfs.tar.gz" ]; then
+        echoerr "photon-rootfs.tar.gz not found."
+        exit 1
+    fi
+    docker_build_and_push "antrea/openvswitch-photon-$TARGETARCH" "Dockerfile.photon"
+elif [ "$DISTRO" == "ubi" ]; then
+    docker_build_and_push "antrea/openvswitch-ubi-$TARGETARCH" "Dockerfile.ubi"
 fi
 
 popd > /dev/null

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 ARG GO_VERSION
+ARG BUILD_INFO
 FROM golang:${GO_VERSION} AS flow-aggregator-build
 
 WORKDIR /antrea
@@ -34,10 +35,11 @@ RUN --mount=type=cache,target=/go/pkg/mod/ \
     make flow-aggregator
 
 # Chose this base image so that a shell is available for users to exec into the container, run antctl and run tools like pprof easily
-FROM ubuntu:24.04
+FROM nsx-ujo-docker-local.packages.vcfd.broadcom.net/interworking/ubuntu:22.04-adbb9011
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
 LABEL description="The docker image for the flow aggregator"
+LABEL build-info="${BUILD_INFO}"
 
 # install ca-certificates
 RUN apt-get update \
@@ -47,4 +49,5 @@ RUN apt-get update \
 COPY --from=flow-aggregator-build /antrea/bin/flow-aggregator /
 COPY --from=flow-aggregator-build /antrea/bin/antctl /usr/local/bin/
 
+RUN echo "${BUILD_INFO}" > /build-info
 ENTRYPOINT ["/flow-aggregator"]

@@ -26,7 +26,7 @@ COPY . /antrea
 
 RUN make antctl-instr-binary
 
-RUN make antrea-cni antrea-agent-instr-binary
+RUN make antrea-cni antrea-agent-instr-binary antrea-agent-tweaker antrea-resource-init
 
 FROM antrea/base-ubuntu-${TARGETARCH}:${BUILD_TAG}
 
@@ -40,6 +40,8 @@ COPY --from=antrea-build /antrea/bin/antrea-agent-coverage /usr/local/bin/antrea
 COPY --from=antrea-build /antrea/bin/antrea-cni /usr/local/bin/
 COPY --from=antrea-build /antrea/bin/antctl-coverage /usr/local/bin/antctl
 COPY --from=antrea-build /antrea/test/e2e/utils/run_cov_binary.sh /
+COPY --from=antrea-build /antrea/bin/antrea-agent-tweaker /usr/local/bin/
+COPY --from=antrea-build /antrea/bin/antrea-resource-init /usr/local/bin/
 
 # This environment variable will persist when running the container, but can also be overwritten if needed
 ENV GOCOVERDIR=/tmp/coverage

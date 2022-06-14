@@ -1,4 +1,6 @@
 SHELL              := /bin/bash
+# The value is just a placeholder, it will be replaced by the real value in cayman_antrea to reflect the build number.
+BUILD_INFO         ?= dev-$(shell git log --pretty=format:'%h' -n 1 2>/dev/null)
 # go options
 GO                 ?= go
 # By default, disable debugging information (see https://pkg.go.dev/cmd/link) and trim embedded
@@ -11,6 +13,7 @@ GOFLAGS            := -trimpath
 # For binaries meant to be published as release assets or copied to a different host, cgo should
 # always be disabled.
 CGO_ENABLED        ?= 0
+IPSEC              ?= n
 BINDIR             ?= $(CURDIR)/bin
 GO_FILES           := $(shell find . -type d -name '.cache' -prune -o -type f -name '*.go' -print)
 GOPATH             ?= $$($(GO) env GOPATH)
@@ -37,6 +40,17 @@ TEST_ARGS ?=
 # If we have stdin we can run interactive so the tests running in docker can be interrupted.
 INTERACTIVE_ARGS := $(shell [ -t 0 ] && echo "-it")
 
+BUILD_TAG :=
+ifndef CUSTOM_BUILD_TAG
+	BUILD_TAG = $(shell build/images/build-tag.sh)
+	ifneq ($(IPSEC), n)
+		BUILD_TAG := $(BUILD_TAG)-ipsec
+	endif
+else
+	BUILD_TAG = $(CUSTOM_BUILD_TAG)
+	DOCKER_IMG_VERSION = $(CUSTOM_BUILD_TAG)
+endif
+
 DOCKER_BUILD_ARGS :=
 ifeq ($(NO_PULL),)
 	DOCKER_BUILD_ARGS += --pull
@@ -51,6 +65,8 @@ DOCKER_BUILD_ARGS += --build-arg OVS_VERSION=$(OVS_VERSION)
 DOCKER_BUILD_ARGS += --build-arg GO_VERSION=$(GO_VERSION)
 
 export CGO_ENABLED
+
+CAYMAN_DOCKER_BUILD_ARGS := --build-arg BUILD_INFO=$(BUILD_INFO)
 
 .PHONY: all
 all: build
@@ -201,6 +217,22 @@ endif
 .PHONY: build
 build: build-agent-ubuntu
 build: build-controller-ubuntu
+
+.PHONY: debian
+debian: agent-debian
+debian: controller-debian
+
+.PHONY: ubi
+ubi: agent-ubi
+ubi: controller-ubi
+
+.PHONY: photon
+photon: agent-photon
+photon: controller-photon
+
+.PHONY: ubuntu
+ubuntu: agent-ubuntu
+ubuntu: controller-ubuntu
 
 .PHONY: test
 test: golangci
@@ -367,17 +399,84 @@ mockgen:
 	$(CURDIR)/hack/update-codegen.sh mockgen
 
 ### Docker images ###
+.PHONY: agent-debian
+agent-debian:
+	@echo "===> Building antrea/antrea-agent-debian Docker image <==="
+ifneq ($(NO_PULL),)
+	docker build -t antrea/antrea-agent-debian:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.agent.debian $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+else
+	docker build --pull -t antrea/antrea-agent-debian:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.agent.debian $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+endif
+	docker tag antrea/antrea-agent-debian:$(DOCKER_IMG_VERSION) antrea/antrea-agent-debian
 
-# This target is for development only. It assumes that "make bin" has been run previously and will
-# copy the local binaries to the Docker image, instead of building the binaries inside the image as
-# part of the Docker build.
+.PHONY: controller-debian
+controller-debian:
+	@echo "===> Building antrea/antrea-controller-debian Docker image <==="
+ifneq ($(NO_PULL),)
+	docker build -t antrea/antrea-controller-debian:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.controller.debian $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+else
+	docker build --pull -t antrea/antrea-controller-debian:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.controller.debian $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+endif
+	docker tag antrea/antrea-controller-debian:$(DOCKER_IMG_VERSION) antrea/antrea-controller-debian
 
-.PHONY: ubuntu
-ubuntu:
-	@echo "===> Building antrea/antrea-agent-ubuntu and antrea/antrea-controller-ubuntu development Docker images <==="
-	docker build -t antrea/antrea-agent-ubuntu:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.agent.ubuntu $(DOCKER_BUILD_ARGS) .
+.PHONY: agent-ubi
+agent-ubi:
+	@echo "===> Building antrea/antrea-agent-ubi Docker image <==="
+ifneq ($(NO_PULL),)
+	docker build -t antrea/antrea-agent-ubi:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.agent.ubi $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+else
+	docker build --pull -t antrea/antrea-agent-ubi:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.agent.ubi $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+endif
+	docker tag antrea/antrea-agent-ubi:$(DOCKER_IMG_VERSION) antrea/antrea-agent-ubi
+
+.PHONY: controller-ubi
+controller-ubi:
+	@echo "===> Building antrea/antrea-controller-ubi Docker image <==="
+ifneq ($(NO_PULL),)
+	docker build -t antrea/antrea-controller-ubi:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.controller.ubi $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+else
+	docker build --pull -t antrea/antrea-controller-ubi:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.controller.ubi $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+endif
+	docker tag antrea/antrea-controller-ubi:$(DOCKER_IMG_VERSION) antrea/antrea-controller-ubi
+
+.PHONY: agent-photon
+agent-photon:
+	@echo "===> Building antrea/antrea-agent-photon Docker image <==="
+ifneq ($(NO_PULL),)
+	docker build -t antrea/antrea-agent-photon:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.agent.photon --build-arg RPM_REPO_URL=${RPM_REPO_URL} $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+else
+	docker build --pull -t antrea/antrea-agent.photon:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.agent.photon --build-arg RPM_REPO_URL=${RPM_REPO_URL} $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+endif
+	docker tag antrea/antrea-agent-photon:$(DOCKER_IMG_VERSION) antrea/antrea-agent-photon
+
+.PHONY: controller-photon
+controller-photon:
+	@echo "===> Building antrea/antrea-controller-photon Docker image <==="
+ifneq ($(NO_PULL),)
+	docker build -t antrea/antrea-controller-photon:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.controller.photon --build-arg RPM_REPO_URL=${RPM_REPO_URL} $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+else
+	docker build --pull -t antrea/antrea-controller-photon:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.controller.photon --build-arg RPM_REPO_URL=${RPM_REPO_URL} $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+endif
+	docker tag antrea/antrea-controller-photon:$(DOCKER_IMG_VERSION) antrea/antrea-controller-photon
+
+.PHONY: agent-ubuntu
+agent-ubuntu:
+	@echo "===> Building antrea/antrea-agent-ubuntu Docker image <==="
+ifneq ($(NO_PULL),)
+	docker build -t antrea/antrea-agent-ubuntu:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.agent.ubuntu $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+else
+	docker build --pull -t antrea/antrea-agent-ubuntu:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.agent.ubuntu $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+endif
 	docker tag antrea/antrea-agent-ubuntu:$(DOCKER_IMG_VERSION) antrea/antrea-agent-ubuntu
-	docker build -t antrea/antrea-controller-ubuntu:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.controller.ubuntu $(DOCKER_BUILD_ARGS) .
+
+.PHONY: controller-ubuntu
+controller-ubuntu:
+	@echo "===> Building antrea/antrea-controller-ubuntu Docker image <==="
+ifneq ($(NO_PULL),)
+	docker build -t antrea/antrea-controller-ubuntu:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.controller.ubuntu $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+else
+	docker build --pull -t antrea/antrea-controller-ubuntu:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.controller.ubuntu $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+endif
 	docker tag antrea/antrea-controller-ubuntu:$(DOCKER_IMG_VERSION) antrea/antrea-controller-ubuntu
 
 .PHONY: build-controller-ubuntu
@@ -472,7 +571,7 @@ manifest-coverage:
 .PHONY: antrea-mc-controller
 antrea-mc-controller:
 	@echo "===> Building antrea/antrea-mc-controller Docker image <==="
-	docker build -t antrea/antrea-mc-controller:$(DOCKER_IMG_VERSION) -f multicluster/build/images/Dockerfile $(DOCKER_BUILD_ARGS) .
+	docker build -t antrea/antrea-mc-controller:$(DOCKER_IMG_VERSION) -f multicluster/build/images/Dockerfile $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
 	docker tag antrea/antrea-mc-controller:$(DOCKER_IMG_VERSION) antrea/antrea-mc-controller
 
 # Build bins in a golang container, and build the antrea-mc-controller Docker image.
@@ -482,8 +581,32 @@ build-antrea-mc-controller:
 	docker build -t antrea/antrea-mc-controller:$(DOCKER_IMG_VERSION) -f multicluster/build/images/Dockerfile.build $(DOCKER_BUILD_ARGS) .
 	docker tag antrea/antrea-mc-controller:$(DOCKER_IMG_VERSION) antrea/antrea-mc-controller
 
-.PHONY: build-antrea-mc-controller-coverage
-build-antrea-mc-controller-coverage:
+.PHONY: antrea-mc-controller-debian
+antrea-mc-controller-debian:
+	@echo "===> Building antrea/antrea-mc-controller Debian Docker image <==="
+ifneq ($(NO_PULL),)
+	docker build -t antrea/antrea-mc-controller-debian:$(DOCKER_IMG_VERSION) -f multicluster/build/images/Dockerfile.debian $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+else
+	docker build --pull -t antrea/antrea-mc-controller-debian:$(DOCKER_IMG_VERSION) -f multicluster/build/images/Dockerfile.debian $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+endif
+	docker tag antrea/antrea-mc-controller-debian:$(DOCKER_IMG_VERSION) antrea/antrea-mc-controller-debian
+	docker tag antrea/antrea-mc-controller-debian:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antrea/antrea-mc-controller-debian
+	docker tag antrea/antrea-mc-controller-debian:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antrea/antrea-mc-controller-debian:$(DOCKER_IMG_VERSION)
+
+.PHONY: antrea-mc-controller-ubi
+antrea-mc-controller-ubi:
+	@echo "===> Building antrea/antrea-mc-controller UBI Docker image <==="
+ifneq ($(NO_PULL),)
+	docker build -t antrea/antrea-mc-controller-ubi:$(DOCKER_IMG_VERSION) -f multicluster/build/images/Dockerfile.ubi $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+else
+	docker build --pull -t antrea/antrea-mc-controller-ubi:$(DOCKER_IMG_VERSION) -f multicluster/build/images/Dockerfile.ubi $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+endif
+	docker tag antrea/antrea-mc-controller-ubi:$(DOCKER_IMG_VERSION) antrea/antrea-mc-controller-ubi
+	docker tag antrea/antrea-mc-controller-ubi:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antrea/antrea-mc-controller-ubi
+	docker tag antrea/antrea-mc-controller-ubi:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antrea/antrea-mc-controller-ubi:$(DOCKER_IMG_VERSION)
+
+.PHONY: antrea-mc-controller-coverage
+antrea-mc-controller-coverage:
 	@echo "===> Building antrea/antrea-mc-controller-coverage Docker image <==="
 	docker build -t antrea/antrea-mc-controller-coverage:$(DOCKER_IMG_VERSION) -f multicluster/build/images/Dockerfile.build.coverage $(DOCKER_BUILD_ARGS) .
 	docker tag antrea/antrea-mc-controller-coverage:$(DOCKER_IMG_VERSION) antrea/antrea-mc-controller-coverage
@@ -493,6 +616,26 @@ flow-aggregator-image:
 	@echo "===> Building antrea/flow-aggregator Docker image <==="
 	docker build -t antrea/flow-aggregator:$(DOCKER_IMG_VERSION) -f build/images/flow-aggregator/Dockerfile $(DOCKER_BUILD_ARGS) .
 	docker tag antrea/flow-aggregator:$(DOCKER_IMG_VERSION) antrea/flow-aggregator
+
+.PHONY: flow-aggregator-image-debian
+flow-aggregator-image-debian:
+	@echo "===> Building antrea/flow-aggregator Docker image <==="
+ifneq ($(NO_PULL),)
+	docker build -t antrea/flow-aggregator-debian:$(DOCKER_IMG_VERSION) -f build/images/flow-aggregator/Dockerfile.debian $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+else
+	docker build --pull -t antrea/flow-aggregator-debian:$(DOCKER_IMG_VERSION) -f build/images/flow-aggregator/Dockerfile.debian $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+endif
+	docker tag antrea/flow-aggregator-debian:$(DOCKER_IMG_VERSION) antrea/flow-aggregator-debian
+
+.PHONY: flow-aggregator-image-ubi
+flow-aggregator-image-ubi:
+	@echo "===> Building antrea/flow-aggregator Docker image <==="
+ifneq ($(NO_PULL),)
+	docker build -t antrea/flow-aggregator-ubi:$(DOCKER_IMG_VERSION) -f build/images/flow-aggregator/Dockerfile.ubi $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+else
+	docker build --pull -t antrea/flow-aggregator-ubi:$(DOCKER_IMG_VERSION) -f build/images/flow-aggregator/Dockerfile.ubi $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
+endif
+	docker tag antrea/flow-aggregator-ubi:$(DOCKER_IMG_VERSION) antrea/flow-aggregator-ubi
 
 .PHONY: flow-aggregator-ubuntu-coverage
 flow-aggregator-ubuntu-coverage:

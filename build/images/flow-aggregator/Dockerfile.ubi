@@ -1,0 +1,22 @@
+# Prerequisite to build this Dockerfile:
+# - Pre-built Antrea binaries in bin/.
+
+ARG BUILD_INFO
+FROM nsx-ujo-docker-local.packages.vcfd.broadcom.net/antrea/ubi:9.4-1214
+
+LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
+LABEL description="The docker image for the flow aggregator"
+LABEL build-info="${BUILD_INFO}"
+
+COPY bin/flow-aggregator /
+COPY bin/antctl /usr/local/bin/
+COPY build/images/ovs/CentOS.repo /tmp/CentOS.repo
+
+RUN rm -f /etc/yum.repos.d/* && mv /tmp/CentOS.repo /etc/yum.repos.d/CentOS.repo && \
+    # Disable the default redhat.repo. This substitutes `subscription-manager config --rhsm.manage_repos=0`
+    # as subscription-manager is not supported running in containers.
+    sed -i.bak "s/^manage_repos = .$/manage_repos = 0/g" /etc/rhsm/rhsm.conf && \
+    yum install -y ca-certificates && yum remove -y vim-minimal && yum clean all -y
+
+ENTRYPOINT ["/flow-aggregator"]
+RUN echo "${BUILD_INFO}" > /build-info

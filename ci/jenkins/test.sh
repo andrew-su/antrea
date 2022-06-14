@@ -433,10 +433,11 @@ function deliver_antrea_linux {
     DOCKER_REGISTRY="${DOCKER_REGISTRY}" ./hack/build-antrea-linux-all.sh --pull
     docker save -o antrea-ubuntu.tar antrea/antrea-agent-ubuntu:latest antrea/antrea-controller-ubuntu:latest
     echo "===== Pull necessary images on Control-Plane node ====="
-    common_images=("registry.k8s.io/e2e-test-images/agnhost:2.40")
-    k8s_images=("registry.k8s.io/e2e-test-images/agnhost:2.52" "registry.k8s.io/e2e-test-images/jessie-dnsutils:1.5" "registry.k8s.io/e2e-test-images/nginx:1.14-2")
-    conformance_images=("k8sprow.azurecr.io/kubernetes-e2e-test-images/agnhost:2.52" "k8sprow.azurecr.io/kubernetes-e2e-test-images/jessie-dnsutils:1.5" "k8sprow.azurecr.io/kubernetes-e2e-test-images/nginx:1.14-2")
-    e2e_images=("toolbox:1.4-0" "nginx:1.21.6-alpine")
+    harbor_images=("agnhost:2.13-linux" "nginx:1.15-alpine")
+    antrea_images=("e2eteam/agnhost:2.13" "docker.io/library/nginx:1.15-alpine")
+    common_images=("registry.k8s.io/e2e-test-images/agnhost:2.29")
+    k8s_images=("registry.k8s.io/e2e-test-images/agnhost:2.45" "registry.k8s.io/e2e-test-images/jessie-dnsutils:1.5" "registry.k8s.io/e2e-test-images/nginx:1.14-2")
+    e2e_images=("k8sprow.azurecr.io/kubernetes-e2e-test-images/agnhost:2.45" "k8sprow.azurecr.io/kubernetes-e2e-test-images/jessie-dnsutils:1.5" "k8sprow.azurecr.io/kubernetes-e2e-test-images/nginx:1.14-2")
 
     echo "===== Deliver Antrea YAML to Controller nodes ====="
     IP=$(kubectl get nodes -o wide --no-headers=true | awk -v role="$CONTROL_PLANE_NODE_ROLE" '$3 ~ role {print $6}')
@@ -589,6 +590,8 @@ function deliver_antrea {
     echo "====== Delivering Antrea to all Nodes ======"
     docker save -o antrea-ubuntu.tar antrea/antrea-agent-ubuntu:latest antrea/antrea-controller-ubuntu:latest
     docker save -o flow-aggregator.tar antrea/flow-aggregator:latest
+    docker pull nsx-ujo-docker-local.packages.vcfd.broadcom.net/antrea/perftool:iperf-3.9
+    docker save -o perftool.tar nsx-ujo-docker-local.packages.vcfd.broadcom.net/antrea/perftool:iperf-3.9
 
     if [[ $TESTBED_TYPE == "flexible-ipam" ]]; then
         kubectl get nodes -o wide --no-headers=true | awk '{print $6}' | while read IP; do

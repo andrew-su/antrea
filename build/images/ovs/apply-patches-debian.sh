@@ -35,15 +35,7 @@ function version_let() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" == "
 # greater than or equal to
 function version_get() { test "$(printf '%s\n' "$@" | sort -rV | head -n 1)" == "$1"; }
 
-function apply_patch() {
-    commit_sha="$1"
-    shift
-    curl -s "https://github.com/openvswitch/ovs/commit/$commit_sha.patch" | \
-        git apply "$@"
-}
-
-# OVS hardcodes the installation path to /usr/lib/python3.7/dist-packages/ but this location
-# does not seem to be in the Python path in Ubuntu. There may be a better way to do this,
-# but this seems like an acceptable workaround.
-sed -i 's/python3\.7/python3\.12/' debian/openvswitch-test.install
-sed -i 's/python3\.7/python3\.12/' debian/python3-openvswitch.install
+sed -i 's/python3\.7/python3\.9/' debian/openvswitch-test.install
+sed -i 's/python3\.7/python3\.9/' debian/python3-openvswitch.install
+# Do not install man pages
+for F in ./debian/*.manpages ; do echo > "${F}" ; done

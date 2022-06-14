@@ -13,7 +13,8 @@
 # limitations under the License.
 
 ARG BUILD_TAG
-FROM nsx-ujo-docker-local.packages.vcfd.broadcom.net/interworking/ubuntu:22.04-adbb9011
+
+FROM nsx-ujo-docker-local.packages.vcfd.broadcom.net/antrea/debian:bullseye-20240904-slim
 ARG BUILD_INFO
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
@@ -28,14 +29,14 @@ USER root
 RUN echo 'Acquire::https::Verify-Peer "false";' > /etc/apt/apt.conf.d/99insecure && \
     echo 'Acquire::https::Verify-Host "false";' >> /etc/apt/apt.conf.d/99insecure && \
     echo 'APT::Get::AllowUnauthenticated "true";' >> /etc/apt/apt.conf.d/99insecure && \
-    echo "deb https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu jammy main restricted universe" > /etc/apt/sources.list && \
-    echo "deb https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu jammy-security main restricted" >> /etc/apt/sources.list && \
-    echo "deb https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu jammy-updates main restricted" >> /etc/apt/sources.list
+    echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bullseye main" > /etc/apt/sources.list && \
+    echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bullseye-updates main" >> /etc/apt/sources.list
 
 RUN apt-get update && \
   DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends ca-certificates && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
+
 
 COPY build/images/scripts/* /usr/local/bin/
 COPY bin/antctl bin/antrea-controller bin/antrea-resource-init /usr/local/bin/

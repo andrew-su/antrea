@@ -12,49 +12,93 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM ubuntu:24.04 AS cni-binaries
+ARG BUILD_TAG
+FROM dockerhub.artifactory.vcfd.broadcom.net/ubuntu:24.04 as cni-binaries
 
 ARG CNI_BINARIES_VERSION
+ARG DOWNLOAD_CNI_BINARIES=false
+
+COPY cni-plugins-*.tgz /tmp
+
+RUN echo 'Acquire::https::Verify-Peer "false";' > /etc/apt/apt.conf.d/99insecure && \
+    echo 'Acquire::https::Verify-Host "false";' >> /etc/apt/apt.conf.d/99insecure && \
+    echo 'APT::Get::AllowUnauthenticated "true";' >> /etc/apt/apt.conf.d/99insecure
+
+RUN mv /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources.bak
+
+COPY <<EOF /etc/apt/sources.list.d/broadcom.sources
+Types: deb
+URIs: https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu/
+Suites: noble noble-updates noble-backports
+Components: main universe restricted multiverse
+Trusted: yes
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+Types: deb
+URIs: https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu/
+Suites: noble-security
+Components: main universe restricted multiverse
+Trusted: yes
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+EOF
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends wget ca-certificates
+    apt-get install -y --no-install-recommends wget ca-certificates && \
+    rm -rf /var/cache/apt/* /var/lib/apt/lists/*
 
 # Leading dot is required for the tar command below
 ENV CNI_PLUGINS="./host-local ./loopback ./portmap ./bandwidth"
 
 # Download containernetworking plugin binaries for the correct architecture
 RUN set -eux; \
-    dpkgArch="$(dpkg --print-architecture)"; \
-    case "${dpkgArch##*-}" in \
-         amd64) pluginsArch='amd64' ;; \
-	 armhf) pluginsArch='arm' ;; \
-	 arm64) pluginsArch='arm64' ;; \
-         *) pluginsArch=''; echo >&2; echo >&2 "unsupported architecture '$dpkgArch'"; echo >&2 ; exit 1 ;; \
-    esac; \
     mkdir -p /opt/cni/bin; \
-    wget -q -O - https://github.com/containernetworking/plugins/releases/download/$CNI_BINARIES_VERSION/cni-plugins-linux-${pluginsArch}-$CNI_BINARIES_VERSION.tgz | tar xz -C /opt/cni/bin $CNI_PLUGINS
+    if ${DOWNLOAD_CNI_BINARIES}; then \
+        dpkgArch="$(dpkg --print-architecture)"; \
+        case "${dpkgArch##*-}" in \
+            amd64) pluginsArch='amd64' ;; \
+        armhf) pluginsArch='arm' ;; \
+        arm64) pluginsArch='arm64' ;; \
+            *) pluginsArch=''; echo >&2; echo >&2 "unsupported architecture '$dpkgArch'"; echo >&2 ; exit 1 ;; \
+        esac; \
+        wget --no-check-certificate -q -O - https://github.com/containernetworking/plugins/releases/download/$CNI_BINARIES_VERSION/cni-plugins-linux-${pluginsArch}-$CNI_BINARIES_VERSION.tgz | tar xz -C /opt/cni/bin $CNI_PLUGINS; \
+    else \
+        tar -zxvf /tmp/cni-plugins-*.tgz -C /opt/cni/bin $CNI_PLUGINS; \
+    fi
 
 FROM antrea-openvswitch
 
 ARG SURICATA_VERSION
+ARG INSTALL_SURICATA_FROM_PACKAGE=false
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
 LABEL description="An Ubuntu based Docker base image for Antrea."
 
+# Disable SSL peer verification, host verification and allow unauthenticated packages
+# to fix build failure. This is usually not recommended, but should be Ok for a trusted
+# site from Broadcom.
+RUN echo 'Acquire::https::Verify-Peer "false";' > /etc/apt/apt.conf.d/99insecure && \
+    echo 'Acquire::https::Verify-Host "false";' >> /etc/apt/apt.conf.d/99insecure && \
+    echo 'APT::Get::AllowUnauthenticated "true";' >> /etc/apt/apt.conf.d/99insecure && \
+    echo "deb https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu jammy main restricted universe" > /etc/apt/sources.list && \
+    echo "deb https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu jammy-security main restricted" >> /etc/apt/sources.list && \
+    echo "deb https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu jammy-updates main restricted" >> /etc/apt/sources.list
+
 USER root
 
-# See https://github.com/kubernetes-sigs/iptables-wrappers
-# /iptables-wrapper-installer.sh will have permissions of 600.
-# --chmod=700 doesn't work with older versions of Docker and requires DOCKER_BUILDKIT=1, so we use
-# chmod in the RUN command below instead.
-ADD https://raw.githubusercontent.com/kubernetes-sigs/iptables-wrappers/9e6ce59c864623ea71a6f7d59c35fcb13a919b87/iptables-wrapper-installer.sh /iptables-wrapper-installer.sh
+COPY iptables-wrapper-installer.sh /iptables-wrapper-installer.sh
+COPY suricata*.deb /tmp
 
-RUN apt-get update && apt-get install -y --no-install-recommends ipset jq inotify-tools gpg-agent software-properties-common && \
+RUN apt-get update && apt-get install -y --no-install-recommends ipset jq iproute2 inotify-tools gpg-agent software-properties-common && \
     # ethtool is for commercial release Antrea to toggle Geneve checksum offload.
     apt-get install -y --no-install-recommends ethtool && \
-    add-apt-repository ppa:oisf/suricata-${SURICATA_VERSION} && apt-get update && apt-get install -y suricata && \
+    if ${INSTALL_SURICATA_FROM_PACKAGE}; then \
+        apt install -y /tmp/suricata*.deb --no-install-recommends && \
+        apt-mark hold suricata; \
+    else \
+        SURICATA_VERSION=$(echo ${SURICATA_VERSION} | cut -d'.' -f1-2); \
+        add-apt-repository ppa:oisf/suricata-${SURICATA_VERSION} && apt-get update && apt-get install -y suricata; \
+    fi && \
     apt-get remove -y gpg-agent software-properties-common && apt-get autoremove -y && rm -rf /var/cache/apt/* /var/lib/apt/lists/* && \
-    chmod +x /iptables-wrapper-installer.sh && \
     /iptables-wrapper-installer.sh
 
 COPY --from=cni-binaries /opt/cni/bin /opt/cni/bin

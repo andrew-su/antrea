@@ -1,4 +1,4 @@
-# Copyright 2023 Antrea Authors
+# Copyright 2024 Antrea Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,14 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM nsx-ujo-docker-local.artifactory.eng.vmware.com/interworking/static:nonroot
+ARG BUILD_TAG
+
+FROM nsx-ujo-docker-local.artifactory.eng.vmware.com/antrea/photon:5.0-8f8225ff2
 ARG BUILD_INFO
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
-LABEL description="The Docker image to deploy the Antrea Multi-cluster Controller."
+LABEL description="The Docker image to deploy the antrea-controller."
 LABEL build-info="${BUILD_INFO}"
 
 USER root
 
-COPY multicluster/bin/antrea-mc-controller /
+COPY build/images/scripts/* /usr/local/bin/
+COPY bin/antctl bin/antrea-controller bin/antrea-resource-init /usr/local/bin/
 RUN echo "${BUILD_INFO}" > /build-info

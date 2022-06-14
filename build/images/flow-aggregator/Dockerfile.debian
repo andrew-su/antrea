@@ -1,0 +1,28 @@
+# Prerequisite to build this Dockerfile:
+# - Pre-built Antrea binaries in bin/.
+
+# Chose this base image so that a shell is available for users to exec into the container, run antctl and run tools like pprof easily
+FROM nsx-ujo-docker-local.packages.vcfd.broadcom.net/antrea/debian:bullseye-20240904-slim
+ARG BUILD_INFO
+
+LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
+LABEL description="The docker image for the flow aggregator"
+LABEL build-info="${BUILD_INFO}"
+
+COPY bin/flow-aggregator /
+COPY bin/antctl /usr/local/bin/
+
+# Disable SSL peer verification, host verification and allow unauthenticated packages
+# to fix build failure. This is usually not recommended, but should be Ok for a trusted
+# site from Broadcom.
+RUN echo 'Acquire::https::Verify-Peer "false";' > /etc/apt/apt.conf.d/99insecure && \
+    echo 'Acquire::https::Verify-Host "false";' >> /etc/apt/apt.conf.d/99insecure && \
+    echo 'APT::Get::AllowUnauthenticated "true";' >> /etc/apt/apt.conf.d/99insecure && \
+    echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bullseye main" > /etc/apt/sources.list && \
+    echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bullseye-updates main" >> /etc/apt/sources.list && \
+    apt-get update && apt -y upgrade \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+ENTRYPOINT ["/flow-aggregator"]
+RUN echo "${BUILD_INFO}" > /build-info

@@ -30,7 +30,15 @@ Build the antrea base image.
         --platform <PLATFORM>   Target platform for the image if server is multi-platform capable
         --distro <distro>       Target Linux distribution
         --no-cache              Do not use the local build cache nor the cached image from the registry
-        --build-tag             Custom build tag for images."
+        --build-tag             Custom build tag for images.
+        --download-cni-binaries Download CNI binaries from internet. You can also download the
+                                binaries manually and put them in the current directory.
+                                Currently cni-plugins-*.tgz and whereabouts-*.tgz are required.
+        --ipsec                 Build with IPsec support Default is false.
+        --distro <distro>       Target Linux distribution.
+        --use-public-photon     Use public Photon repository. Should only be used in CI and for local testing.
+        --use-upstream-suricata Use upstream Suricata package instead of pre-built package.
+        --rpm-repo-url <url>    URL of the RPM repository to use for Photon builds."
 
 function print_usage {
     echoerr "$_usage"
@@ -42,6 +50,12 @@ NO_CACHE=false
 PLATFORM=""
 DISTRO="ubuntu"
 BUILD_TAG=""
+DOWNLOAD_CNI_BINARIES=false
+IPSEC=false
+RPM_REPO_URL=""
+USE_PUBLIC_PHOTON=false
+INSTALL_SURICATA_FROM_PACKAGE=true
+SUPPORT_DISTROS=("ubuntu" "ubi" "debian" "photon")
 
 while [[ $# -gt 0 ]]
 do
@@ -72,6 +86,26 @@ case $key in
     BUILD_TAG="$2"
     shift 2
     ;;
+    --ipsec)
+    IPSEC=true
+    shift
+    ;;
+    --download-cni-binaries)
+    DOWNLOAD_CNI_BINARIES=true
+    shift
+    ;;
+    --rpm-repo-url)
+    RPM_REPO_URL="$2"
+    shift 2
+    ;;
+    --use-public-photon)
+    USE_PUBLIC_PHOTON=true
+    shift
+    ;;
+    --use-upstream-suricata)
+    INSTALL_SURICATA_FROM_PACKAGE=false
+    shift
+    ;;
     -h|--help)
     print_usage
     exit 0
@@ -100,7 +134,15 @@ if [ "$PLATFORM" != "" ]; then
     PLATFORM_ARG="--platform $PLATFORM"
 fi
 
-if [ "$DISTRO" != "ubuntu" ] && [ "$DISTRO" != "ubi" ]; then
+DISTRO_VALID=false
+for dist in "${SUPPORT_DISTROS[@]}"; do
+    if [ "$DISTRO" == "$dist" ]; then
+        DISTRO_VALID=true
+        break
+    fi
+done
+
+if ! $DISTRO_VALID; then
     echoerr "Invalid distribution $DISTRO"
     exit 1
 fi
@@ -109,6 +151,21 @@ pushd $THIS_DIR > /dev/null
 
 CNI_BINARIES_VERSION=$(head -n 1 ../deps/cni-binaries-version)
 SURICATA_VERSION=$(head -n 1 ../deps/suricata-version)
+SURICATA_VERSION_SHORT=$(echo $SURICATA_VERSION | cut -f1,2 -d'.')
+
+if [ "$INSTALL_SURICATA_FROM_PACKAGE" == "true" ]; then
+    if [ "$DISTRO" == "ubuntu" -o "$DISTRO" == "debian" ] && ! compgen -G "suricata*.deb" > /dev/null; then
+        echoerr "Suricata deb not found."
+        exit 1
+    elif [ "$DISTRO" == "photon" -o "$DISTRO" == "ubi" ] && ! compgen -G "suricata*.rpm" > /dev/null; then
+        echoerr "Suricata rpm not found."
+        exit 1
+    fi
+    if [ "$DISTRO" == "photon" ] && ! compgen -G "libnet*.rpm" > /dev/null; then
+        echoerr "libnet rpm not found."
+        exit 1
+    fi
+fi
 
 BUILD_CACHE_TAG=$(../build-tag.sh)
 
@@ -116,11 +173,50 @@ if [[ $BUILD_TAG == "" ]]; then
     BUILD_TAG=$BUILD_CACHE_TAG
 fi
 
+if [ "$IPSEC" == "true" ]; then
+    BUILD_TAG="${BUILD_TAG}-ipsec"
+fi
+
+
 ANTREA_OPENVSWITCH_IMAGE=""
 if [ "$DISTRO" == "ubuntu" ]; then
     ANTREA_OPENVSWITCH_IMAGE="antrea/openvswitch-$TARGETARCH:$BUILD_TAG"
 elif [ "$DISTRO" == "ubi" ]; then
     ANTREA_OPENVSWITCH_IMAGE="antrea/openvswitch-ubi-$TARGETARCH:$BUILD_TAG"
+elif [ "$DISTRO" == "debian" ]; then
+    ANTREA_OPENVSWITCH_IMAGE="antrea/openvswitch-debian-$TARGETARCH:$BUILD_TAG"
+elif [ "$DISTRO" == "photon" ]; then
+    ANTREA_OPENVSWITCH_IMAGE="antrea/openvswitch-photon-$TARGETARCH:$BUILD_TAG"
+    SURICATA_VERSION="6.0.10"
+    LIBNET_VERSION="1.1.6"
+    curl -LO "https://artifactory.eng.vmware.com/artifactory/nsx-ujo-local/cayman_antrea/suricata-${SURICATA_VERSION}.tar.gz"
+    curl -LO "https://artifactory.eng.vmware.com/artifactory/nsx-ujo-local/cayman_antrea/libnet-${LIBNET_VERSION}.tar.gz"
+fi
+
+if [ "$DISTRO" == "photon" ]; then
+    if [ "$RPM_REPO_URL" == "" ] && ! ${USE_PUBLIC_PHOTON} ; then
+        echoerr "Must specify --rpm-repo-url or --use-public-photon"
+        exit 1
+    fi
+    if [ "$RPM_REPO_URL" != "" ] && ${USE_PUBLIC_PHOTON} ; then
+        echoerr "Cannot specify both --rpm-repo-url and --use-public-photon"
+        exit 1
+    fi
+    if [ "$INSTALL_SURICATA_FROM_PACKAGE" != "true" ]; then
+        LIBNET_VERSION="1.1.6"
+        curl -LO "https://packages.vcfd.broadcom.net/artifactory/nsx-ujo-local/cayman_antrea/suricata-${SURICATA_VERSION}.tar.gz"
+        curl -LO "https://packages.vcfd.broadcom.net/artifactory/nsx-ujo-local/cayman_antrea/libnet-${LIBNET_VERSION}.tar.gz"
+    fi
+fi
+
+if [ "$IPSEC" == "true" ]; then
+    BUILD_TAG="${BUILD_TAG}-ipsec"
+fi
+
+# Ignore the version of the CNI binaries if we do not want to download them.
+if ! [ ${DOWNLOAD_CNI_BINARIES} == "true" ] && ! compgen -G "cni-plugins-*.tgz" > /dev/null; then
+    echoerr "CNI binaries tarball not found. Use --download-cni-binaries to download it."
+    exit 1
 fi
 
 if $PULL; then
@@ -149,7 +245,7 @@ fi
 function docker_build_and_push() {
     local image="$1"
     local dockerfile="$2"
-    local build_args="--build-arg CNI_BINARIES_VERSION=$CNI_BINARIES_VERSION --build-arg SURICATA_VERSION=$SURICATA_VERSION"
+    local build_args="--build-arg CNI_BINARIES_VERSION=$CNI_BINARIES_VERSION --build-arg SURICATA_VERSION=$SURICATA_VERSION --build-arg BUILD_TAG=$BUILD_TAG --build-arg DOWNLOAD_CNI_BINARIES=$DOWNLOAD_CNI_BINARIES --build-arg INSTALL_SURICATA_FROM_PACKAGE=$INSTALL_SURICATA_FROM_PACKAGE"
     local build_context="--build-context antrea-openvswitch=docker-image://$ANTREA_OPENVSWITCH_IMAGE"
     local cache_args=""
     if $PUSH; then
@@ -160,6 +256,10 @@ function docker_build_and_push() {
     else
         cache_args="$cache_args --cache-from type=registry,ref=$image-cache:$BUILD_CACHE_TAG,mode=max"
     fi
+
+    # The cni-binaries layer shared by all distros
+    docker buildx build $PLATFORM_ARG -o type=docker -t antrea/cni-binaries:$CNI_BINARIES_VERSION $cache_args $build_args -f Dockerfile --target cni-binaries .
+
     docker buildx build $PLATFORM_ARG -o type=docker -t $image:$BUILD_TAG $cache_args $build_args $build_context -f $dockerfile .
 
     if $PUSH; then
@@ -172,6 +272,18 @@ if [ "$DISTRO" == "ubuntu" ]; then
     docker_build_and_push "antrea/base-ubuntu-$TARGETARCH" Dockerfile
 elif [ "$DISTRO" == "ubi" ]; then
     docker_build_and_push "antrea/base-ubi-$TARGETARCH" Dockerfile.ubi
+elif [ "$DISTRO" == "debian" ]; then
+    docker_build_and_push "antrea/base-debian-$TARGETARCH" Dockerfile.debian
+elif [ "$DISTRO" == "photon" ]; then
+    if [ "$RPM_REPO_URL" == "" ] && ! ${USE_PUBLIC_PHOTON} ; then
+        echoerr "Must specify --rpm-repo-url or --use-public-photon"
+        exit 1
+    fi
+    if [ "$RPM_REPO_URL" != "" ] && ${USE_PUBLIC_PHOTON} ; then
+        echoerr "Cannot specify both --rpm-repo-url and --use-public-photon"
+        exit 1
+    fi
+    docker_build_and_push "antrea/base-photon-$TARGETARCH" Dockerfile.photon
 fi
 
 popd > /dev/null

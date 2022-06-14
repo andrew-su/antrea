@@ -32,6 +32,7 @@ verify_helm() {
         #  - v3.8.1
         #  - v3.8.1+g5cb9af4
         helm_version="${helm_version%+*}"
+        helm_version="${helm_version%+*}"
         if [ "${helm_version}" == "${_HELM_VERSION}" ]; then
             # If version is exact match, stop here.
             echo "$helm"
@@ -62,11 +63,16 @@ verify_helm() {
     esac
     
     >&2 echo "Installing helm"
-    local helm_url="https://get.helm.sh/helm-${_HELM_VERSION}-${ostype}-${arch}.tar.gz"
-    curl -sLo helm.tar.gz "${helm_url}" || return 1
     mkdir -p "$_BINDIR" || return 1
-    tar -xzf helm.tar.gz -C "$_BINDIR" --strip-components=1 "${ostype}-${arch}/helm" || return 1
-    rm -f helm.tar.gz
+    if [ -z $1 ]; then
+        local helm_url="https://get.helm.sh/helm-${_HELM_VERSION}-${ostype}-${arch}.tar.gz"
+        curl -sLo helm.tar.gz "${helm_url}" || return 1
+        tar -xzf helm.tar.gz -C "$_BINDIR" --strip-components=1 "${ostype}-${arch}/helm" || return 1
+        rm -f helm.tar.gz
+    else
+        cp $1 "$_BINDIR"
+        chmod +x "$_BINDIR"/helm
+    fi
     helm="$_BINDIR/helm"
     echo "$helm"
     return 0
