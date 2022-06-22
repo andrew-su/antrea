@@ -30,7 +30,7 @@ echo ============================================================
 echo
 echo ====== NOTE ======
 echo For operator image, need to override the entrypoint and user in docker run command
-echo Example: docker run -idt --rm --name operator -u root --entrypoint bash localhost:5000/vmware.io/antrea/antrea-operator:vmware-1.5.2
+echo Example: docker run -idt --rm --name operator -u root --entrypoint bash localhost:5000/vmware.io/antrea/antrea-operator:vmware-1.7.0
 
 rm -rf /etc/yum.repos.d/*
 cat > /etc/yum.repos.d/CentOS.repo <<EOF

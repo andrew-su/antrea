@@ -1,5 +1,16 @@
 #### Build utility functions ####
 
+function check_manifests() {
+  make manifest
+  diff="$(git status --porcelain --untracked-files=no)"
+  if [ ! -z "$diff" ]; then
+    echo "Antrea manifests is not up-to-date. Run 'make manifest' to update."
+    return 1
+  else
+    return 0
+  fi
+}
+
 function fips_make() {
   chmod +x ${GOBUILD_CAYMAN_GO_ROOT}/lin64/bin/go
   chmod +x -R ${GOBUILD_CAYMAN_GO_ROOT}/lin64/pkg/tool/linux_amd64
@@ -84,11 +95,10 @@ function compile_e2e() {
   do
     image_name=${test_image}
     if [ "$image_name" = "multi-cluster" ]; then
-        git reset --hard remotes/origin/topic/${ANTREA_VERSION_DIGIT}-common
         fips_make "go test -c -v -x -o bin/e2e-${image_name}-${ANTREA_VERSION} ${ANTREA_DOMAIN}/multicluster/test/e2e"
         continue
     fi
-    git reset --hard remotes/origin/topic/${ANTREA_VERSION_DIGIT}-${test_image}-release
+    git checkout -f -- test
     if [ ${ipsec} = 'ipsec' ]; then
       image_name="${test_image}-ipsec"
     else

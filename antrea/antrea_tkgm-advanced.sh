@@ -8,32 +8,34 @@ archive_ovs_source
 echo "====== Generating version Files for CI and Consumers ======"
 publish_version_files
 
-echo "====== Checkout TKGm Release Branch ======"
+echo "====== Checkout Features Branch ======"
+git reset --hard origin/topic/${ANTREA_VERSION_DIGIT}-features
+check_manifests
+
+echo "===== Compile antrea e2e testcases ======"
 compile_e2e "noipsec" "tkgm"
 compile_e2e "ipsec" "tkgm"
 git status
 
-echo "====== Building Binaries for TKGm ======"
-git reset --hard origin/topic/${ANTREA_VERSION_DIGIT}-tkgm-release
+echo "====== Building Binaries for TKGm advanced ======"
 fips_make
 
 echo "====== Building Debian Images ======"
-echo "====== Building openvswitch-debian Image ======"
 pushd build/images/ovs
 cp ${OVS_DIR}/openvswitch-${OVS_VER}.tar.gz .
-docker build --build-arg OVS_VERSION=${OVS_VER} -t antrea/openvswitch-debian .
+echo "====== Building openvswitch-debian Image ======"
+docker build -f Dockerfile.debian --build-arg OVS_VERSION=${OVS_VER} -t antrea/openvswitch-debian:standard .
+echo "====== Building openvswitch-debian-ipsec Image ======"
+docker build -f Dockerfile.debian --build-arg IPSEC=true --build-arg OVS_VERSION=${OVS_VER} -t antrea/openvswitch-debian:ipsec .
 popd
 
-echo "====== Building antrea-debian Image ======"
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
+echo "====== Building antrea-debian Image ======"
 make debian VERSION=${IMAGE_VERSION}
-make flow-aggregator-image
-docker tag antrea/flow-aggregator-debian antrea/flow-aggregator-debian:${IMAGE_VERSION}
 
-echo "====== Building openvswitch-debian-ipec Image ======"
-pushd build/images/ovs
-docker build --cache-from ovs-debs -f Dockerfile-ipsec --build-arg OVS_VERSION=${OVS_VER} -t antrea/openvswitch-debian-ipsec .
-popd
+echo "====== Building flow-aggregator-debian Image ======"
+make flow-aggregator-image-debian VERSION=${IMAGE_VERSION}
+
 echo "====== Building antrea-debian-ipsec Image ======"
 make debian-ipsec VERSION=${IMAGE_VERSION}
 
@@ -46,19 +48,17 @@ echo "====== Saving TKGm Manifests ======"
 mkdir -p "${OUTPUT_DIR}/manifests"
 
 # Antrea yamls for TKG
-# Complicated Yaml customization is done directly in Antrea topic/tkg branch
-# Here we only replace image version.
 # antrea-ipsec is not used in TKGm.
-cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml"
-cp "${REPO_ROOT}/build/yamls/antrea-ipsec.yml" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
-cp "${REPO_ROOT}/build/yamls/flow-aggregator.yml" "${OUTPUT_DIR}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
-sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml"
-sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml"
-sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian-ipsec:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
-sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-advanced-debian-ipsec:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
-cp "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml" "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
-sed -i -e 's/tlsCipherSuites:.\+/#tlsCipherSuites:/g' "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
-sed -i -e "s/image: projects.registry.vmware.com\/antrea\/flow-aggregator:latest/image: antrea\/flow-aggregator-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
+MANIFESTS_DIR=$(mktemp -d)
+IMG_NAME=antrea/antrea-advanced-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
+IMG_NAME=antrea/flow-aggregator-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest-flow-aggregator.sh --mode release > "${MANIFESTS_DIR}/flow-aggregator.yml"
+cp ${MANIFESTS_DIR}/antrea-advanced.yml "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
+cp ${MANIFESTS_DIR}/antrea-advanced-fips.yml "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml"
+cp ${MANIFESTS_DIR}/flow-aggregator.yml "${OUTPUT_DIR}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
+
+MANIFESTS_DIR=$(mktemp -d)
+IMG_NAME=antrea/antrea-advanced-debian-ipsec IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
+cp ${MANIFESTS_DIR}/antrea-advanced-ipsec.yml "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
 
 echo "====== Saving and Signing TKGm Images ======"
 # Image for TKG

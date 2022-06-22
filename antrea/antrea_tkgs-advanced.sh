@@ -5,23 +5,25 @@ export NO_PULL=1
 echo "====== Archiving OpenvSwitch Source Code ======"
 archive_ovs_source
 
-echo "===== Compile antrea e2e testcases ======"
-compile_e2e "noipsec" "tkgs"
-
 echo "====== Generating version Files for CI and Consumers ======"
 publish_version_files
 
-echo "====== Checkout TKGS Release Branch ======"
-# Patching build scripts and Dockerfiles
-git reset --hard origin/topic/${ANTREA_VERSION_DIGIT}-tkgs-release
+echo "====== Checkout Features Branch ======"
+git reset --hard origin/topic/${ANTREA_VERSION_DIGIT}-features
+check_manifests
+
+echo "===== Compile antrea e2e testcases ======"
+compile_e2e "noipsec" "tkgs"
 git status
 
 echo "====== Building Binaries for TKGS ======"
 fips_make
+
 echo "====== Building Photon Images ======"
-echo Photon images are for local testing, they are not consumed by cayman_photon.
-echo We maintain a dedicated Antrea Dockerfile in cayman_photon. Antrea photon
-echo image is actually built there.
+echo "Photon images are for local testing, they are not consumed by cayman_photon.
+We maintain a dedicated Antrea Dockerfile in cayman_photon. Antrea photon
+image is actually built there."
+
 echo "====== Preparing local Photon Yum Repo ======"
 mkdir -p /tmp/photo-iso
 sudo mount -o loop "${GOBUILD_CSC_PHOTON_ROOT}/csc-photon-3.0.0-x86_64.iso" /tmp/photo-iso
@@ -41,34 +43,41 @@ function stop_local_repo {
 trap stop_local_repo Exit
 
 REPO_URL="http://`ip -f inet -o address show scope global | head -n 1| cut -f 7 -d ' ' | cut -f 1 -d '/'`:8080/RPMS"
-sed -i -e "s|baseurl=.*\$|baseurl=${REPO_URL}|g" "${PROJECT_DIR}/images/ovs-photon/photon-iso.repo"
-sed -i -e "s|baseurl=.*\$|baseurl=${REPO_URL}|g" "${PROJECT_DIR}/images/antrea-photon/photon-iso.repo"
 
+pushd build/images/ovs
 echo "====== Buildling openvswitch-photon Image ======"
-pushd "${PROJECT_DIR}/images/ovs-photon/"
 cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
 cp ${OVS_DIR}/openvswitch-*.tar.gz .
-docker build --build-arg OVS_VERSION=${OVS_VER} --target ovs-rpms -t antrea/openvswitch-rpms-photon .
-docker build --build-arg OVS_VERSION=${OVS_VER} --cache-from antrea/openvswitch-rpms-photon -t antrea/openvswitch-photon .
+docker build -f Dockerfile.photon --build-arg OVS_VERSION=${OVS_VER} --build-arg RPM_REPO_URL=${REPO_URL} --target ovs-rpms -t antrea/openvswitch-rpms-photon .
+docker build -f Dockerfile.photon --build-arg OVS_VERSION=${OVS_VER} --build-arg RPM_REPO_URL=${REPO_URL} --cache-from antrea/openvswitch-rpms-photon -t antrea/openvswitch-photon .
 rm -f photon-rootfs.tar.gz
-popd
-
-echo "====== Building antrea-photon Image ======"
-cp -vf ${PROJECT_DIR}/images/antrea-photon/* .
-cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
-cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
-docker build -t localhost:5000/vmware.io/antrea/antrea-photon:${IMAGE_VERSION} .
-rm -f photon-rootfs.tar.gz
-
-echo "====== Building Ubuntu Images ======"
 echo "====== Building openvswitch-ubuntu Image ======"
-pushd build/images/ovs
-cp ${OVS_DIR}/openvswitch-${OVS_VER}.tar.gz .
 docker build --build-arg OVS_VERSION=${OVS_VER} -t antrea/openvswitch-ubuntu .
 popd
 
-echo "====== Building antrea-ubuntu Image ======"
+echo "====== Building antrea-photon Image ======"
+cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
+make photon VERSION=${IMAGE_VERSION} RPM_REPO_URL=${REPO_URL}
+docker tag antrea/antrea-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-photon:${IMAGE_VERSION}
+docker tag antrea/antrea-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea:${IMAGE_VERSION}
+rm -f photon-rootfs.tar.gz
+
+echo "====== Saving and Signing TKGs Images ======"
+# A test photon image
+image_id="$(docker inspect -f '{{.ID}}' "localhost:5000/vmware.io/antrea/antrea-photon:${IMAGE_VERSION}")"
+digest_filename="antrea-photon-${IMAGE_VERSION}-image-digests.txt"
+checksum_filename="antrea-photon-${IMAGE_VERSION}-image-checksums.txt"
+mkdir -p "${PUBLISH_DIR}/photon/images"
+docker save localhost:5000/vmware.io/antrea/antrea-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea:${IMAGE_VERSION} | gzip -9 > "${PUBLISH_DIR}/photon/images/antrea-photon-${IMAGE_VERSION}.tar.gz"
+echo "localhost:5000/vmware.io/antrea/antrea-photon@${image_id}" > "${PUBLISH_DIR}/photon/images/${digest_filename}"
+pushd "${PUBLISH_DIR}/photon/images"
+sha256sum -- * > ${checksum_filename}
+# See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
+gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
+popd
+
+echo "====== Building antrea-ubuntu Image ======"
 make ubuntu VERSION=${IMAGE_VERSION}
 docker tag antrea/antrea-ubuntu:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-ubuntu:${IMAGE_VERSION}
 docker tag antrea/antrea-ubuntu:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea:${IMAGE_VERSION}
@@ -89,16 +98,15 @@ sha256sum -- * > ${checksum_filename}
 gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
 popd
 
-echo "====== Saving TKGS Deliverables ======"
 echo "====== Saving TKGS Manifests ======"
 # Antrea yamls for TKG Service. antrea-ipsec is not supported yet
 # Complicated Yaml customization is done directly in Antrea topic/tkgs branch
 # Here we only replace image version
-for k8s_version in "1.20" "1.21" "1.22" "1.23"; do
+for k8s_version in "1.21" "1.22" "1.23" "1.24"; do
+  MANIFESTS_DIR=$(mktemp -d)
   mkdir -p "${PUBLISH_DIR}/add-on/${k8s_version}"
-  cp "${REPO_ROOT}/build/yamls/antrea.yml" "${PUBLISH_DIR}/add-on/${k8s_version}/antrea.yaml"
-  sed -i -e "s/image: antrea\/antrea-.*\$/image: localhost:5000\/vmware.io\/antrea\/antrea-photon:${IMAGE_VERSION}/g" "${PUBLISH_DIR}/add-on/${k8s_version}/antrea.yaml"
-  sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: localhost:5000\/vmware.io\/antrea\/antrea-photon:${IMAGE_VERSION}/g" "${PUBLISH_DIR}/add-on/${k8s_version}/antrea.yaml"
+  IMG_NAME=localhost:5000/vmware.io/antrea/antrea IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
+  cp ${MANIFESTS_DIR}/antrea-advanced-tkgs.yml ${PUBLISH_DIR}/add-on/${k8s_version}/antrea.yaml
 done
 
 echo "====== Saving TKGS Binaries ======"
@@ -117,22 +125,6 @@ mkdir -p "${PUBLISH_DIR}/photon/rpms/"
 docker run -idt --rm --name ovs-rpms antrea/openvswitch-rpms-photon sh
 docker cp ovs-rpms:/tmp/ovs-rpms "${PUBLISH_DIR}/photon/rpms/"
 docker stop ovs-rpms
-
-echo "====== Saving and Signing TKGs Images ======"
-
-# A test photon image
-image_id="$(docker inspect -f '{{.ID}}' "localhost:5000/vmware.io/antrea/antrea-photon:${IMAGE_VERSION}")"
-digest_filename="antrea-photon-${IMAGE_VERSION}-image-digests.txt"
-checksum_filename="antrea-photon-${IMAGE_VERSION}-image-checksums.txt"
-mkdir -p "${PUBLISH_DIR}/photon/images"
-docker tag localhost:5000/vmware.io/antrea/antrea-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea:${IMAGE_VERSION}
-docker save localhost:5000/vmware.io/antrea/antrea-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea:${IMAGE_VERSION} | gzip -9 > "${PUBLISH_DIR}/photon/images/antrea-photon-${IMAGE_VERSION}.tar.gz"
-echo "localhost:5000/vmware.io/antrea/antrea-photon@${image_id}" > "${PUBLISH_DIR}/photon/images/${digest_filename}"
-pushd "${PUBLISH_DIR}/photon/images"
-sha256sum -- * > ${checksum_filename}
-# See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
-gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
-popd
 
 echo "====== Cleanup TKGS Build Result ======"
 make clean

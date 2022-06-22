@@ -5,50 +5,44 @@ export NO_PULL=1
 echo "====== Archiving OpenvSwitch Source Code ======"
 archive_ovs_source
 
-echo "===== Compile antrea e2e testcases ======"
-compile_e2e "noipsec" "tkgm-standard"
-
 echo "====== Generating version Files for CI and Consumers ======"
 publish_version_files
 
-echo "====== Checkout TKGm standard Release Branch ======"
-git reset --hard origin/topic/${ANTREA_VERSION_DIGIT}-tkgm-standard-release
+echo "====== Checkout Common Branch ======"
+git reset --hard origin/topic/${ANTREA_VERSION_DIGIT}-common
+check_manifests
+
+echo "===== Compile antrea e2e testcases ======"
+compile_e2e "noipsec" "tkgm-standard"
 git status
 
 echo "====== Building Binaries for TKGm ======"
 fips_make
 
-echo "====== Building Debian standard Images ======"
 echo "====== Building openvswitch-debian Image ======"
 pushd build/images/ovs
 cp ${OVS_DIR}/openvswitch-${OVS_VER}.tar.gz .
-docker build --build-arg OVS_VERSION=${OVS_VER} -t antrea/openvswitch-debian .
+docker build -f Dockerfile.debian --build-arg OVS_VERSION=${OVS_VER} -t antrea/openvswitch-debian:standard .
 popd
 
 echo "====== Building Binaries for Antrea Standard Product ======"
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
+echo "====== Building Debian TKGm standard Images ======"
 make debian VERSION=${IMAGE_VERSION}
-make flow-aggregator-image
-docker tag antrea/flow-aggregator-debian antrea/flow-aggregator-debian:${IMAGE_VERSION}
-echo "====== Building Debian Images ======"
-echo "====== Building openvswitch-debian Image ======"
+make flow-aggregator-image-debian VERSION=${IMAGE_VERSION}
 
 # Create archives for scripts and binaries
 echo "====== Saving TKGm Deliverables ======"
 # "${BUILDROOT}/output" will be published to lin64/antrea by antrea_defs.py:CaymanAntreaBuilderLin.install
 OUTPUT_DIR="${BUILDROOT}/output"
 
-echo "====== Saving TKGm Manifests ======"
+echo "====== Generating TKGm Manifests ======"
 mkdir -p "${OUTPUT_DIR}/manifests"
-
-cp "${REPO_ROOT}/build/yamls/antrea.yml" "${OUTPUT_DIR}/manifests/antrea-standard-${BINARY_VERSION}.yml"
-cp "${REPO_ROOT}/build/yamls/flow-aggregator.yml" "${OUTPUT_DIR}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
-sed -i -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-standard-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-standard-${BINARY_VERSION}.yml"
-sed -i -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-standard-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/antrea-standard-${BINARY_VERSION}.yml"
-sed -i -e "s/image: projects.registry.vmware.com\/antrea\/flow-aggregator:latest/image: antrea\/flow-aggregator-debian:${IMAGE_VERSION}/g" "${OUTPUT_DIR}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
-# Antrea standard doesn't support enterpriseAntrea config, if present, Antrea controller will crash.
-sed -i -e 's/enterpriseAntrea:.\+//g' "${OUTPUT_DIR}/manifests/antrea-standard-${BINARY_VERSION}.yml"
-sed -i -e 's/tlsCipherSuites:.\+/#tlsCipherSuites:/g' "${OUTPUT_DIR}/manifests/antrea-standard-${BINARY_VERSION}.yml"
+MANIFESTS_DIR=$(mktemp -d)
+IMG_NAME=antrea/antrea-standard-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
+IMG_NAME=antrea/flow-aggregator-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest-flow-aggregator.sh --mode release > "${MANIFESTS_DIR}"/flow-aggregator.yml
+cp "${MANIFESTS_DIR}/antrea-standard.yml" "${OUTPUT_DIR}/manifests/antrea-standard-${BINARY_VERSION}.yml"
+cp "${MANIFESTS_DIR}/flow-aggregator.yml" "${OUTPUT_DIR}/manifests/flow-aggregator-debian-${BINARY_VERSION}.yml"
 
 echo "====== Saving and Signing TKGm Images ======"
 mkdir -p "${OUTPUT_DIR}/images"

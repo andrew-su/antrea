@@ -2,14 +2,17 @@
 echo "====== Disabling --pull in All Makefile Docker Build Target ======"
 export NO_PULL=1
 
-echo "====== Compiling antrea e2e testcases ======"
-compile_e2e "noipsec" "multi-cluster"
-
 echo "====== Generating version Files for CI and Consumers ======"
 publish_version_files
 
+echo "====== Checkout Common Branch ======"
+git reset --hard origin/topic/${ANTREA_VERSION_DIGIT}-common
+check_manifests
+
+echo "====== Compiling antrea e2e testcases ======"
+compile_e2e "noipsec" "multi-cluster"
+
 echo "====== Preparing Antrea Multi-cluster Deliverables: Manifests ======"
-git reset --hard "origin/topic/${ANTREA_VERSION_DIGIT}-common"
 git status
 antrea_mc_deliverables="antrea-multicluster-${ANTREA_VERSION_DIGIT}"
 mkdir -p "${PUBLISH_DIR}/${antrea_mc_deliverables}"
