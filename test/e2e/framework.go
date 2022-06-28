@@ -229,7 +229,10 @@ type TestOptions struct {
 	// be run in a Kind cluster, where the FRR container can be configured using Docker exec with the container ID.
 	// TODO: Introduce a BGP router implementation that can be configured remotely over networking to replace FRR.
 	// This would allow the e2e tests for BGPPolicy to be run in environments other than just a Kind cluster.
-	externalFRRCID string
+	externalFRRCID    string
+	externalServerIPs string
+
+	runOnTKGs bool
 }
 
 type flowVisibilityTestOptions struct {
