@@ -56,17 +56,19 @@ cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/antrea-standard-*.zip  "${cayman_antrea_pub
 mkdir -p "${cayman_antrea_publish}/advanced-release"
 cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/windows-advanced/antrea-windows-advanced.zip  "${cayman_antrea_publish}/advanced-release"
 cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/antrea-advanced-*.zip  "${cayman_antrea_publish}/advanced-release"
-
+mkdir -p "${cayman_antrea_publish}/multi-cluster"
+cp -rv ${GOBUILD_CAYMAN_ANTREA_MULTI_CLUSTER_ROOT}/lin64 "${cayman_antrea_publish}/multi-cluster"
+cp -rf ${GOBUILD_CAYMAN_ANTREA_MULTI_CLUSTER_ROOT}/antrea-multicluster-debian-*.zip "${cayman_antrea_publish}/multi-cluster"
 cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/VERSION "${cayman_antrea_publish}/"
 
 echo "====== Copying cayman_antrea-operator-for-kubernetes Product Deliverables ======"
 operator_publish="${PUBLISH_DIR}/openshift"
 mkdir -p "${operator_publish}"
-cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/ubi/images  "${operator_publish}/antrea"
+cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/ubi  "${operator_publish}/antrea"
 cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/VERSION  "${operator_publish}/antrea"
 mkdir -p "${operator_publish}/antrea-interworking"
 cp -rv ${GOBUILD_ANTREA_INTERWORKING_ROOT}/antrea-interworking/images/interworking-ubi-*.tar "${operator_publish}/antrea-interworking"
 cp -rv ${GOBUILD_CAYMAN_ANTREA_OPERATOR_FOR_KUBERNETES_ROOT}/lin64 "${operator_publish}/operator"
 cp -rv ${GOBUILD_CAYMAN_ANTREA_OPERATOR_FOR_KUBERNETES_ROOT}/VERSION "${operator_publish}/operator"
-
+cp -rf ${GOBUILD_CAYMAN_ANTREA_MULTI_CLUSTER_ROOT}/antrea-multicluster-ubi-*.zip "${cayman_antrea_publish}/multi-cluster"
 echo "****** antrea_release_build.sh finished ******"
