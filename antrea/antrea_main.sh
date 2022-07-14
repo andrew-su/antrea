@@ -21,6 +21,7 @@ fips_make
 echo "====== Building flow-aggregator Image ======"
 FLOW_AGGREGATOR_DELIVERABLES_DIR=$(mktemp -d)
 make flow-aggregator-image-debian VERSION=${IMAGE_VERSION}
+make flow-aggregator-image-ubi VERSION=${IMAGE_VERSION}
 echo "====== Preparing Manifests for flow-aggregator ======"
 IMG_NAME=antrea/flow-aggregator-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest-flow-aggregator.sh --mode release > "${FLOW_AGGREGATOR_DELIVERABLES_DIR}/flow-aggregator-debian-${IMAGE_VERSION}.yml"
 echo "====== Saving flow-aggregator Image ======"
@@ -180,6 +181,13 @@ checksum_filename="antrea-ubi-${IMAGE_VERSION}-image-checksums.txt"
 mkdir -p "${PUBLISH_DIR}/ubi/images/"
 docker save localhost:5000/vmware.io/antrea/antrea-ubi:${IMAGE_VERSION} | gzip -9 > "${PUBLISH_DIR}/ubi/images/antrea-ubi-${IMAGE_VERSION}.tar.gz"
 echo "localhost:5000/vmware.io/antrea/antrea-ubi@${image_id}" > "${PUBLISH_DIR}/ubi/images/${digest_filename}"
+
+flow_aggregator_ubi_image_id="$(docker inspect -f '{{.ID}}' "antrea/flow-aggregator-ubi:${IMAGE_VERSION}")"
+flow_aggregator_ubi_digest_filename="flow-aggregator-ubi-${IMAGE_VERSION}-image-digests.txt"
+docker tag antrea/flow-aggregator-ubi:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/flow-aggregator-ubi:${IMAGE_VERSION}
+docker save localhost:5000/vmware.io/antrea/flow-aggregator-ubi:${IMAGE_VERSION} | gzip -9 >  "${PUBLISH_DIR}/ubi/images/flow-aggregator-ubi-${IMAGE_VERSION}.tar.gz"
+echo "localhost:5000/vmware.io/antrea/flow-aggregator-ubi@${flow_aggregator_ubi_image_id}" > "${PUBLISH_DIR}/ubi/images/${flow_aggregator_ubi_digest_filename}"
+
 pushd "${PUBLISH_DIR}/ubi/images"
 sha256sum -- * > ${checksum_filename}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
