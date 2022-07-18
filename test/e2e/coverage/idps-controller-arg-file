@@ -1,0 +1,9 @@
+--config
+/etc/antrea/idps/idps-controller.conf
+--logtostderr=false
+--log_dir=/var/log/antrea/idps
+--alsologtostderr
+--log_file_max_size=100
+--log_file_max_num=4
+--v=4
+

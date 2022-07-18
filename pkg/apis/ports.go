@@ -29,4 +29,6 @@ const (
 	WireGuardListenPort = 51820
 	// MulticlusterWireGuardListenPort is the default port for Multi-cluster WireGuard encrypted traffic.
 	MulticlusterWireGuardListenPort = 51821
+	// IDPSControllerAPIPort is the default port for the idps-controller APIServer.
+	IDPSControllerAPIPort = 20349
 )

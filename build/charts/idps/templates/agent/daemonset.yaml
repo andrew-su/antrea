@@ -1,0 +1,185 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: antrea-idps-agent
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: antrea-idps
+    component: antrea-idps-agent
+spec:
+  selector:
+    matchLabels:
+      app: antrea-idps
+      component: antrea-idps-agent
+  {{- with .Values.agent.updateStrategy }}
+  updateStrategy: {{- toYaml . | nindent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      annotations:
+        # Starting with v1.21, Kubernetes supports default container annotation.
+        # Using "kubectl logs/exec/attach/cp" doesn't have to specify "-c antrea-idps-agent" when troubleshooting.
+        kubectl.kubernetes.io/default-container: antrea-idps-agent
+        # Automatically restart Pods with a RollingUpdate if the ConfigMap changes
+        # See https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.agent.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        app: antrea-idps
+        component: antrea-idps-agent
+        {{- with .Values.agent.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      hostNetwork: true
+      dnsPolicy: {{ .Values.agent.dnsPolicy }}
+      priorityClassName: {{ .Values.agent.priorityClassName }}
+      {{- with .Values.agent.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agent.tolerations }}
+      tolerations:
+        {{- toYaml . | trim | nindent 8 }}
+      {{- end }}
+      shareProcessNamespace: true
+      serviceAccountName: antrea-idps-agent
+      initContainers:
+        - name: init
+          image:  "{{ .Values.suricataImage.repository }}:{{ .Values.suricataImage.tag }}"
+          imagePullPolicy: {{ .Values.suricataImage.pullPolicy }}
+          command: ["/bin/bash"]
+          args:
+            - -c
+            - "mkdir -p /etc/suricata/rules && \
+              touch /etc/suricata/reference.config && \
+              touch /etc/suricata/threshold.config && \
+              touch {{ .Values.suricata.classificationConfig }} && \
+              touch {{ .Values.suricata.customAddrsConf }}  && \
+              touch {{ .Values.suricata.customPortsConf }} && \
+              chown -R {{ .Values.suricata.uid }}:{{ .Values.suricata.gid }} /log /etc/suricata && \
+              ip link show antrea-tap0 > /dev/null 2>&1 || ip link add dev antrea-tap0 type veth peer name suricata-tap0 && \
+              ip link set antrea-tap0 up && \
+              ip link set suricata-tap0 up"
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+          volumeMounts:
+            - name: host-var-log-antrea
+              mountPath: /log
+              subPath: suricata
+            - name: empty-dir-signatures
+              mountPath: /etc/suricata
+      containers:
+        - name: antrea-idps-agent
+          image: "{{ .Values.idpsImage.repository }}:{{ .Values.idpsImage.tag }}"
+          imagePullPolicy: {{ .Values.idpsImage.pullPolicy }}
+          {{- if ((.Values.testing).coverage) }}
+          command: ["/bin/sh"]
+          args: ["-c", "sleep 2; antrea-idps-agent-coverage -test.run=TestBincoverRunMain -test.coverprofile=antrea-idps-agent.cov.out -args-file=/antrea-idps-arg-file; while true; do sleep 5 & wait $!; done"]
+          {{- else}}
+          command: ["antrea-idps-agent"]
+          args:
+            - "--config=/etc/antrea/idps/idps-agent.conf"
+            - "--logtostderr=false"
+            - "--log_dir=/var/log/antrea/idps"
+            - "--alsologtostderr"
+            - "--log_file_max_size={{ .Values.agent.idpsAgent.logFileMaxSize }}"
+            - "--log_file_max_num={{ .Values.agent.idpsAgent.logFileMaxNum }}"
+            {{- if .Values.logVerbosity }}
+            - "--v={{ .Values.logVerbosity }}"
+            {{- end }}
+          {{- end}}
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          resources: {{- .Values.agent.idpsAgent.resources | toYaml | nindent 12 }}
+          volumeMounts:
+          - name: antrea-idps-config
+            mountPath: /etc/antrea/idps/idps-agent.conf
+            subPath: idps-agent.conf
+            readOnly: true
+          - name: host-var-log-antrea
+            mountPath: /var/log/antrea/idps
+            subPath: idps
+          - name: empty-dir-signatures
+            mountPath: /etc/suricata
+        - name: suricata
+          image: "{{ .Values.suricataImage.repository }}:{{ .Values.suricataImage.tag }}"
+          imagePullPolicy: {{ .Values.suricataImage.pullPolicy }}
+          resources: {{- .Values.agent.suricata.resources | toYaml | nindent 12 }}
+          command: ["/entrypoint.sh"]
+          env:
+            - name: SERVICE_UID
+              value: {{ .Values.suricata.uid | quote }}
+            - name: SERVICE_GID
+              value: {{ .Values.suricata.gid | quote }}
+            - name: CAPTURE_MODE
+              value: af-packet
+            - name: TILLER_YAML
+              value: |
+                ---
+                global:
+                  engine:
+                    runmode: workers
+                    classification_file: {{ .Values.suricata.classificationConfig | squote }}
+                  sniff_ifaces: ["suricata-tap0"]
+                  af_packet:
+                    threads:
+                  common:
+                    af_packet_enabled: true
+                  vars:
+                    custom_addrs_conf: {{ .Values.suricata.customAddrsConf | squote }}
+                    custom_ports_conf: {{ .Values.suricata.customPortsConf | squote }}
+                    home_network_conf: {{ .Values.suricata.homeNetworkConf | squote }}
+                  rules:
+                    files:
+                      {{- range .Values.signatureProviders }}
+                      - '{{ .name }}.rules'
+                      {{- end}}
+                  outputs:
+                    eve_log:
+                      alert:
+                        filetype: 'regular'
+                        filename: '/log/eve.alert.%Y-%m-%d.json'
+                        rotate-interval: day
+                      file_store:
+                        enabled: no
+                  logging:
+                    console:
+                      enabled: yes
+                    file:
+                      enabled: no
+                      filename: '/log/suricata.log'
+          securityContext:
+            capabilities:
+              add:
+                - IPC_LOCK
+                - NET_ADMIN
+                - NET_RAW
+                - SYS_NICE
+          volumeMounts:
+          - name: host-var-log-antrea
+            mountPath: /log
+            subPath: suricata
+          - name: empty-dir-signatures
+            mountPath: /etc/suricata
+          - name: antrea-idps-config
+            subPath: idps-suricata.home-network.yaml
+            mountPath: {{ .Values.suricata.homeNetworkConf }}
+            readOnly: true
+      volumes:
+        - name: antrea-idps-config
+          configMap:
+            name: antrea-idps-config
+        - name: host-var-log-antrea
+          hostPath:
+            path: /var/log/antrea
+            type: DirectoryOrCreate
+        - name: empty-dir-signatures
+          emptyDir: {}

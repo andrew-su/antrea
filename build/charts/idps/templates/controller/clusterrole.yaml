@@ -1,0 +1,87 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: antrea-idps-controller
+  labels:
+    app: antrea-idps
+rules:
+  - apiGroups:
+      - ""
+    resourceNames:
+      - extension-apiserver-authentication
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resourceNames:
+      - antrea-idps-ca
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - create
+  - apiGroups:
+      - crd.antrea.io
+    resources:
+      - trafficcontrols
+    verbs:
+      - create
+      - delete
+      - update
+      - patch
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - crd.antrea.tanzu.vmware.com
+    resources:
+      - idpspolicies
+    verbs:
+      - create
+      - delete
+      - update
+      - patch
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - crd.antrea.tanzu.vmware.com
+    resources:
+      - idpssignatureproviderinfos
+    verbs:
+      - create
+      - update
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - crd.antrea.tanzu.vmware.com
+    resources:
+      - nsxregistrations
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+    verbs:
+      - create

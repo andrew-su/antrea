@@ -1,0 +1,121 @@
+# -- Container image to use for Antrea IDPS components.
+idpsImage:
+  repository: "projects.registry.vmware.com/antreainterworking/idps"
+  pullPolicy: "IfNotPresent"
+  tag: "latest"
+
+# -- Container image to use for Antrea Suricata components.
+suricataImage:
+  repository: "projects.registry.vmware.com/antreainterworking/suricata"
+  pullPolicy: "IfNotPresent"
+  tag: "latest"
+
+suricata:
+  # -- UID to use for Suricata container.
+  uid: "1000"
+  # -- GID to use for Suricata container.
+  gid: "1000"
+  # -- For Suricata option classification-file.
+  classificationConfig: /etc/suricata/idps-suricata.ntics.classification.config
+  # -- Include customer-provided address groups.
+  customAddrsConf: /etc/suricata/idps-suricata.ntics.addrs.yaml
+  # -- Include customer-provided port groups.
+  customPortsConf: /etc/suricata/idps-suricata.ntics.ports.yaml
+  # -- Include the home network information.
+  homeNetworkConf: /etc/suricata/idps-suricata.ntics.home-network.yaml
+
+signatureProviders:
+  ntics:
+    # -- The name of the signature provider to be used by antrea-idps-agent Pods.
+    name: ntics
+    # -- The base URL of NTICS APIs which is used by antrea-idps-controller Pods.
+    apiBaseURL: "https://api.prod.nsxti.vmware.com"
+    # -- The interval to update the signature data, which is to be used by antrea-idps-controller Pods.
+    syncInterval: 600
+
+agent:
+  # -- Annotations to be added to antrea-idps-agent Pods.
+  podAnnotations: {}
+  # -- Labels to be added to antrea-idps-agent Pods.
+  podLabels: {}
+  # -- Tolerations for the antrea-idps-agent Pods.
+  tolerations:
+    # Mark it as a critical add-on.
+    - key: CriticalAddonsOnly
+      operator: Exists
+    # Make sure it gets scheduled on all Nodes.
+    - effect: NoSchedule
+      operator: Exists
+    # Make sure it doesn't get evicted.
+    - effect: NoExecute
+      operator: Exists
+  # -- Node selector for the antrea-idps-agent Pods.
+  nodeSelector:
+    kubernetes.io/os: linux
+  # -- Prority class to use for the antrea-idps-agent Pods.
+  priorityClassName: "system-node-critical"
+  # -- Affinity for the antrea-idps-agent Pods.
+  affinity: {}
+  # -- DNS Policy for the antrea-idps-agent Pods.
+  dnsPolicy: "ClusterFirstWithHostNet"
+  # -- Update strategy for the antrea-idps-agent DaemonSet.
+  updateStrategy:
+    type: RollingUpdate
+  idpsAgent:
+    # -- Max size in MBs of any single log file.
+    logFileMaxSize: 100
+    # -- Max number of log files.
+    logFileMaxNum: 4
+    # -- Resource requests and limits for the antrea-idps-agent container.
+    resources:
+      requests:
+        cpu: "200m"
+  suricata:
+    # -- Resource requests and limits for the Suricata container.
+    resources:
+      requests:
+        cpu: "200m"
+
+controller:
+  # -- Port for the antrea-idps-controller APIServer to serve on.
+  apiPort: 20349
+  # -- Annotations to be added to antrea-idps-controller Pod.
+  podAnnotations: {}
+  # -- Labels to be added to antrea-idps-controller Pod.
+  podLabels: {}
+  # -- Tolerations for the antrea-idps-controller Pod.
+  tolerations:
+    # Mark it as a critical add-on.
+    - key: CriticalAddonsOnly
+      operator: Exists
+    # Allow it to schedule onto master nodes.
+    - key: node-role.kubernetes.io/master
+      effect: NoSchedule
+    # Control-plane taint for Kubernetes >= 1.24.
+    - key: node-role.kubernetes.io/control-plane
+      effect: NoSchedule
+  # -- Node selector for the antrea-idps-controller Pod.
+  nodeSelector:
+    kubernetes.io/os: linux
+  # -- Prority class to use for the antrea-idps-controller Pod.
+  priorityClassName: "system-cluster-critical"
+  # -- Affinity for the antrea-idps-controller Pod.
+  affinity: {}
+  idpsController:
+    # -- Max size in MBs of any single log file.
+    logFileMaxSize: 100
+    # -- Max number of log files.
+    logFileMaxNum: 4
+    # -- Resource requests and limits for the antrea-idps-controller container.
+    resources:
+      requests:
+        cpu: "200m"
+
+testing:
+  ## -- enable code coverage measurement (used when testing Antrea only).
+  coverage: false
+  simulator:
+    enable: false
+
+## -- Global log verbosity switch for all IDPS components.
+logVerbosity: 0

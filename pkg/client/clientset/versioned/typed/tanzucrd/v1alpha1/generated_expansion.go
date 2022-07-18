@@ -16,6 +16,12 @@
 
 package v1alpha1
 
+type IDPSPolicyExpansion interface{}
+
+type IDPSSignatureProviderInfoExpansion interface{}
+
+type NSXRegistrationExpansion interface{}
+
 type TierEntitlementExpansion interface{}
 
 type TierEntitlementBindingExpansion interface{}

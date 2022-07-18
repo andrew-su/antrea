@@ -98,6 +98,12 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Crd().V1beta1().Traceflows().Informer()}, nil
 
 		// Group=crd.antrea.tanzu.vmware.com, Version=v1alpha1
+	case tanzucrdv1alpha1.SchemeGroupVersion.WithResource("idpspolicies"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.TanzuCrd().V1alpha1().IDPSPolicies().Informer()}, nil
+	case tanzucrdv1alpha1.SchemeGroupVersion.WithResource("idpssignatureproviderinfos"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.TanzuCrd().V1alpha1().IDPSSignatureProviderInfos().Informer()}, nil
+	case tanzucrdv1alpha1.SchemeGroupVersion.WithResource("nsxregistrations"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.TanzuCrd().V1alpha1().NSXRegistrations().Informer()}, nil
 	case tanzucrdv1alpha1.SchemeGroupVersion.WithResource("tierentitlements"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.TanzuCrd().V1alpha1().TierEntitlements().Informer()}, nil
 	case tanzucrdv1alpha1.SchemeGroupVersion.WithResource("tierentitlementbindings"):

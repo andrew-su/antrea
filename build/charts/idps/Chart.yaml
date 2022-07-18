@@ -1,0 +1,8 @@
+apiVersion: v2
+name: antrea-idps
+type: application
+displayName: Antrea IDPS
+home: https://antrea.io/
+version: 1.17.0-dev
+appVersion: 1.17.0-dev
+kubeVersion: ">= 1.16.0-0"

@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: antrea-idps-controller
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: antrea-idps
+    component: antrea-idps-controller
+spec:
+  strategy:
+    # Ensure the existing Pod is stopped before the new one is created.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: antrea-idps
+      component: antrea-idps-controller
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        # Automatically restart Pod if the ConfigMap changes
+        # See https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.controller.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        app: antrea-idps
+        component: antrea-idps-controller
+        {{- with .Values.controller.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.controller.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      hostNetwork: true
+      priorityClassName: {{ .Values.controller.priorityClassName }}
+      {{- with .Values.controller.tolerations }}
+      tolerations:
+        {{- toYaml . | trim | nindent 8 }}
+      {{- end }}
+      serviceAccountName: antrea-idps-controller
+      containers:
+        - name: antrea-idps-controller
+          image: "{{ .Values.idpsImage.repository }}:{{ .Values.idpsImage.tag }}"
+          imagePullPolicy: {{ .Values.idpsImage.pullPolicy }}
+          resources: {{- .Values.controller.idpsController.resources | toYaml | nindent 12 }}
+          {{- if ((.Values.testing).coverage) }}
+          command: ["/bin/sh"]
+          args: ["-c", "antrea-idps-controller-coverage -test.run=TestBincoverRunMain -test.coverprofile=antrea-idps-controller.cov.out -args-file=/antrea-controller-arg-file; while true; do sleep 5 & wait $!; done"]
+          {{- else }}
+          command: ["antrea-idps-controller"]
+          args:
+            - "--config=/etc/antrea/idps/idps-controller.conf"
+            - "--logtostderr=false"
+            - "--log_dir=/var/log/antrea/idps"
+            - "--alsologtostderr"
+            - "--log_file_max_size={{ .Values.controller.idpsController.logFileMaxSize }}"
+            - "--log_file_max_num={{ .Values.controller.idpsController.logFileMaxNum }}"
+            {{- if .Values.logVerbosity }}
+            - "--v={{ .Values.logVerbosity }}"
+            {{- end }}
+          {{- end }}
+          ports:
+            - containerPort: 20349
+              name: api
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              host: localhost
+              path: /readyz
+              port: api
+              scheme: HTTPS
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            periodSeconds: 10
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              host: localhost
+              path: /livez
+              port: api
+              scheme: HTTPS
+            timeoutSeconds: 5
+            periodSeconds: 10
+            failureThreshold: 5
+          volumeMounts:
+            - name: antrea-idps-config
+              mountPath: /etc/antrea/idps/idps-controller.conf
+              subPath: idps-controller.conf
+              readOnly: true
+            - name: host-var-log-antrea
+              mountPath: /var/log/antrea/idps
+              subPath: idps
+            - name: antrea-idps-licenses
+              mountPath: /var/run/antrea/idps/licenses
+              readOnly: true
+      volumes:
+        - name: antrea-idps-config
+          configMap:
+            name: antrea-idps-config
+        - name: antrea-idps-licenses
+          secret:
+            secretName: antrea-idps-licenses
+            defaultMode: 0400
+        - name: host-var-log-antrea
+          hostPath:
+            path: /var/log/antrea
+            type: DirectoryOrCreate

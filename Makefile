@@ -155,6 +155,26 @@ antrea-controller:
 	@mkdir -p $(BINDIR)
 	GOOS=linux $(GO) build -o $(BINDIR) $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/cmd/antrea-controller
 
+.PHONY: antrea-idps-controller
+antrea-idps-controller:
+	@mkdir -p $(BINDIR)
+	GOOS=linux $(GO) build -o $(BINDIR)/antrea-idps-controller $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/cmd/idps-controller
+
+.PHONY: antrea-idps-controller-instr-binary
+antrea-idps-controller-instr-binary:
+	@mkdir -p $(BINDIR)
+	GOOS=linux $(GO) test -tags testbincover -covermode count -coverpkg=antrea.io/antrea/pkg/... -c -o $(BINDIR)/antrea-idps-controller-coverage $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/cmd/idps-controller
+
+.PHONY: antrea-idps-agent
+antrea-idps-agent:
+	@mkdir -p $(BINDIR)
+	GOOS=linux $(GO) build -o $(BINDIR)/antrea-idps-agent $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/cmd/idps-agent
+
+.PHONY: antrea-idps-agent-instr-binary
+antrea-idps-agent-instr-binary:
+	@mkdir -p $(BINDIR)
+	GOOS=linux $(GO) test -tags testbincover -covermode count -coverpkg=antrea.io/antrea/pkg/... -c -o $(BINDIR)/antrea-idps-agent-coverage $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/cmd/idps-agent
+
 .PHONY: .coverage
 .coverage:
 	mkdir -p $(CURDIR)/.coverage
@@ -565,6 +585,7 @@ manifest:
 	$(CURDIR)/hack/generate-manifest-windows.sh --mode dev > build/yamls/antrea-windows.yml
 	$(CURDIR)/hack/generate-manifest-windows.sh --mode dev --include-ovs > build/yamls/antrea-windows-with-ovs.yml
 	$(CURDIR)/hack/generate-manifest-flow-aggregator.sh --mode dev > build/yamls/flow-aggregator.yml
+	$(CURDIR)/hack/generate-manifest-idps.sh --mode dev --out build/yamls
 
 .PHONY: manifest-scale
 manifest-scale:
@@ -671,6 +692,41 @@ else
 	docker build --pull -t antrea/antrea-ods-debian:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.build.ods.debian .
 endif
 	docker tag antrea/antrea-ods-debian:$(DOCKER_IMG_VERSION) antrea/antrea-ods-debian
+
+.PHONY: suricata-image
+suricata-image:
+	@echo "===> Building antreainterworking/suricata Docker image <==="
+ifneq ($(NO_PULL),)
+	docker build -t antreainterworking/suricata:$(DOCKER_IMG_VERSION) -f build/images/suricata/Dockerfile .
+else
+	docker build --pull -t antreainterworking/suricata:$(DOCKER_IMG_VERSION) -f build/images/suricata/Dockerfile .
+endif
+	docker tag antreainterworking/suricata:$(DOCKER_IMG_VERSION) antreainterworking/suricata
+	docker tag antreainterworking/suricata:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/suricata
+	docker tag antreainterworking/suricata:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/suricata:$(DOCKER_IMG_VERSION)
+
+.PHONY: idps-image
+idps-image:
+	@echo "===> Building antreainterworking/idps Docker image <==="
+ifneq ($(NO_PULL),)
+	docker build -t antreainterworking/idps:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile $(DOCKER_BUILD_ARGS) .
+else
+	docker build --pull -t antreainterworking/idps:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile $(DOCKER_BUILD_ARGS) .
+endif
+	docker tag antreainterworking/idps:$(DOCKER_IMG_VERSION) antreainterworking/idps
+	docker tag antreainterworking/idps:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/idps
+	docker tag antreainterworking/idps:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/idps:$(DOCKER_IMG_VERSION)
+
+.PHONY: idps-coverage
+idps-coverage:
+	@echo "===> Building antreainterworking/idps-coverage Docker image <==="
+ifneq ($(NO_PULL),)
+	docker build -t antreainterworking/idps-coverage:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile.coverage $(DOCKER_BUILD_ARGS) .
+else
+	docker build --pull -t antreainterworking/idps-coverage:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile.coverage $(DOCKER_BUILD_ARGS) .
+endif
+	docker tag antreainterworking/idps-coverage:$(DOCKER_IMG_VERSION) antreainterworking/idps-coverage
+	docker tag antreainterworking/idps-coverage:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/idps-coverage
 
 .PHONY: verify
 verify:

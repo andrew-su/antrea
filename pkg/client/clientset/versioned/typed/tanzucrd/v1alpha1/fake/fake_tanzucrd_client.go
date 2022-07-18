@@ -26,6 +26,18 @@ type FakeTanzuCrdV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeTanzuCrdV1alpha1) IDPSPolicies() v1alpha1.IDPSPolicyInterface {
+	return &FakeIDPSPolicies{c}
+}
+
+func (c *FakeTanzuCrdV1alpha1) IDPSSignatureProviderInfos() v1alpha1.IDPSSignatureProviderInfoInterface {
+	return &FakeIDPSSignatureProviderInfos{c}
+}
+
+func (c *FakeTanzuCrdV1alpha1) NSXRegistrations() v1alpha1.NSXRegistrationInterface {
+	return &FakeNSXRegistrations{c}
+}
+
 func (c *FakeTanzuCrdV1alpha1) TierEntitlements() v1alpha1.TierEntitlementInterface {
 	return &FakeTierEntitlements{c}
 }

@@ -26,6 +26,9 @@ import (
 
 type TanzuCrdV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	IDPSPoliciesGetter
+	IDPSSignatureProviderInfosGetter
+	NSXRegistrationsGetter
 	TierEntitlementsGetter
 	TierEntitlementBindingsGetter
 }
@@ -33,6 +36,18 @@ type TanzuCrdV1alpha1Interface interface {
 // TanzuCrdV1alpha1Client is used to interact with features provided by the crd.antrea.tanzu.vmware.com group.
 type TanzuCrdV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *TanzuCrdV1alpha1Client) IDPSPolicies() IDPSPolicyInterface {
+	return newIDPSPolicies(c)
+}
+
+func (c *TanzuCrdV1alpha1Client) IDPSSignatureProviderInfos() IDPSSignatureProviderInfoInterface {
+	return newIDPSSignatureProviderInfos(c)
+}
+
+func (c *TanzuCrdV1alpha1Client) NSXRegistrations() NSXRegistrationInterface {
+	return newNSXRegistrations(c)
 }
 
 func (c *TanzuCrdV1alpha1Client) TierEntitlements() TierEntitlementInterface {

@@ -1,0 +1,31 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: antrea-idps-agent
+  labels:
+    app: antrea-idps
+rules:
+  - apiGroups:
+      - ""
+    resourceNames:
+      - antrea-idps-ca
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - crd.antrea.tanzu.vmware.com
+    resources:
+      - idpssignatureproviderinfos
+    verbs:
+      - get
+      - watch
+      - list
+  - nonResourceURLs:
+      {{- range .Values.signatureProviders }}
+      - /signatures/{{ .name }}
+      {{- end}}
+    verbs:
+      - get

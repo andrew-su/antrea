@@ -1,0 +1,14 @@
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: antrea-idps-agent
+  labels:
+    app: antrea-idps
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: antrea-idps-agent
+subjects:
+  - kind: ServiceAccount
+    name: antrea-idps-agent
+    namespace: {{ .Release.Namespace }}

@@ -47,6 +47,12 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&TierEntitlementList{},
 		&TierEntitlementBinding{},
 		&TierEntitlementBindingList{},
+		&IDPSPolicy{},
+		&IDPSPolicyList{},
+		&IDPSSignatureProviderInfo{},
+		&IDPSSignatureProviderInfoList{},
+		&NSXRegistration{},
+		&NSXRegistrationList{},
 	)
 
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)

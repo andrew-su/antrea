@@ -91,6 +91,7 @@ MOCKGEN_TARGETS=(
   "pkg/clusteridentity ClusterIdentityProvider testing"
   "pkg/controller/querier ControllerQuerier testing"
   "pkg/flowaggregator/exporter Interface testing"
+  "pkg/idps/agent/suricata Interface testing"
   "pkg/ipfix IPFIXExportingProcess,IPFIXBufferedExporter,IPFIXRegistry,IPFIXCollectingProcess,IPFIXAggregationProcess testing"
   "pkg/ovs/openflow Bridge,Table,Flow,Action,CTAction,FlowBuilder,Group,BucketBuilder,PacketOutBuilder,Meter,MeterBandBuilder testing"
   "pkg/ovs/ovsconfig OVSBridgeClient testing"

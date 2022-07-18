@@ -22,6 +22,12 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// IDPSPolicies returns a IDPSPolicyInformer.
+	IDPSPolicies() IDPSPolicyInformer
+	// IDPSSignatureProviderInfos returns a IDPSSignatureProviderInfoInformer.
+	IDPSSignatureProviderInfos() IDPSSignatureProviderInfoInformer
+	// NSXRegistrations returns a NSXRegistrationInformer.
+	NSXRegistrations() NSXRegistrationInformer
 	// TierEntitlements returns a TierEntitlementInformer.
 	TierEntitlements() TierEntitlementInformer
 	// TierEntitlementBindings returns a TierEntitlementBindingInformer.
@@ -37,6 +43,21 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// IDPSPolicies returns a IDPSPolicyInformer.
+func (v *version) IDPSPolicies() IDPSPolicyInformer {
+	return &iDPSPolicyInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// IDPSSignatureProviderInfos returns a IDPSSignatureProviderInfoInformer.
+func (v *version) IDPSSignatureProviderInfos() IDPSSignatureProviderInfoInformer {
+	return &iDPSSignatureProviderInfoInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// NSXRegistrations returns a NSXRegistrationInformer.
+func (v *version) NSXRegistrations() NSXRegistrationInformer {
+	return &nSXRegistrationInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // TierEntitlements returns a TierEntitlementInformer.

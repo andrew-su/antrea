@@ -1,0 +1,647 @@
+---
+# Source: antrea-idps/templates/agent/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: antrea-idps-agent
+  namespace: kube-system
+  labels:
+    app: antrea-idps
+---
+# Source: antrea-idps/templates/controller/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: antrea-idps-controller
+  namespace: kube-system
+  labels:
+    app: antrea-idps
+---
+# Source: antrea-idps/templates/controller/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: antrea-idps-licenses
+  namespace: kube-system
+  labels:
+    app: antrea-idps
+type: Opaque
+data:
+  nsx-license: ""
+---
+# Source: antrea-idps/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: antrea-idps-config
+  namespace: kube-system
+  labels:
+    app: antrea-idps
+data:
+  idps-agent.conf: ""
+  idps-controller.conf: |
+    # The port for the antrea-idps-controller APIServer to serve on.
+    # Note that if it's set to another value, the `containerPort` of the `api` port of the
+    # `antrea-idps-controller` container must be set to the same value.
+    apiPort: 20349
+
+    # The configuration for signature provider NTICS.
+    signatureProviderNTICS:
+      # The base URL of NTICS APIs.
+      apiBaseURL: https://api.prod.nsxti.vmware.com
+
+      # The interval to sync the signature data.
+      syncInterval: 600
+  idps-suricata.home-network.yaml: |
+    %YAML 1.1
+    ---
+
+    HOME_NETWORK: "[10.0.0.0/8,172.16.0.0/12,192.168.0.0/16]"
+---
+# Source: antrea-idps/templates/crds/idpspolicy.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: idpspolicies.crd.antrea.tanzu.vmware.com
+spec:
+  group: crd.antrea.tanzu.vmware.com
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+            - spec
+          properties:
+            spec:
+              type: object
+              required:
+                - appliedTo
+              properties:
+                appliedTo:
+                  type: object
+                  properties:
+                    podSelector:
+                      type: object
+                      properties:
+                        matchExpressions:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              key:
+                                type: string
+                              operator:
+                                enum:
+                                  - In
+                                  - NotIn
+                                  - Exists
+                                  - DoesNotExist
+                                type: string
+                              values:
+                                type: array
+                                items:
+                                  type: string
+                                  pattern: "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$"
+                        matchLabels:
+                          x-kubernetes-preserve-unknown-fields: true
+                    namespaceSelector:
+                      type: object
+                      properties:
+                        matchExpressions:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              key:
+                                type: string
+                              operator:
+                                enum:
+                                  - In
+                                  - NotIn
+                                  - Exists
+                                  - DoesNotExist
+                                type: string
+                              values:
+                                type: array
+                                items:
+                                  type: string
+                                  pattern: "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$"
+                        matchLabels:
+                          x-kubernetes-preserve-unknown-fields: true
+  scope: Cluster
+  names:
+    plural: idpspolicies
+    singular: idpspolicy
+    kind: IDPSPolicy
+---
+# Source: antrea-idps/templates/crds/idpssignatureproviderinfo.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: idpssignatureproviderinfos.crd.antrea.tanzu.vmware.com
+spec:
+  group: crd.antrea.tanzu.vmware.com
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+            - signatureBundle
+          properties:
+            signatureBundle:
+              type: object
+              required:
+                - version
+                - sha256CheckSum
+              properties:
+                version:
+                  type: integer
+                sha256CheckSum:
+                  type: string
+                  pattern: "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$"
+  scope: Cluster
+  names:
+    plural: idpssignatureproviderinfos
+    singular: idpssignatureproviderinfo
+    kind: IDPSSignatureProviderInfo
+    shortNames:
+      - ispi
+---
+# Source: antrea-idps/templates/crds/nsxregistration.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: nsxregistrations.crd.antrea.tanzu.vmware.com
+spec:
+  group: crd.antrea.tanzu.vmware.com
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+            - timestamp
+          properties:
+            timestamp:
+              type: string
+  scope: Cluster
+  names:
+    plural: nsxregistrations
+    singular: nsxregistration
+    kind: NSXRegistration
+    shortNames:
+      - nsxreg
+---
+# Source: antrea-idps/templates/agent/clusterrole.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: antrea-idps-agent
+  labels:
+    app: antrea-idps
+rules:
+  - apiGroups:
+      - ""
+    resourceNames:
+      - antrea-idps-ca
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - crd.antrea.tanzu.vmware.com
+    resources:
+      - idpssignatureproviderinfos
+    verbs:
+      - get
+      - watch
+      - list
+  - nonResourceURLs:
+      - /signatures/ntics
+    verbs:
+      - get
+---
+# Source: antrea-idps/templates/controller/clusterrole.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: antrea-idps-controller
+  labels:
+    app: antrea-idps
+rules:
+  - apiGroups:
+      - ""
+    resourceNames:
+      - extension-apiserver-authentication
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resourceNames:
+      - antrea-idps-ca
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - create
+  - apiGroups:
+      - crd.antrea.io
+    resources:
+      - trafficcontrols
+    verbs:
+      - create
+      - delete
+      - update
+      - patch
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - crd.antrea.tanzu.vmware.com
+    resources:
+      - idpspolicies
+    verbs:
+      - create
+      - delete
+      - update
+      - patch
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - crd.antrea.tanzu.vmware.com
+    resources:
+      - idpssignatureproviderinfos
+    verbs:
+      - create
+      - update
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - crd.antrea.tanzu.vmware.com
+    resources:
+      - nsxregistrations
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+    verbs:
+      - create
+---
+# Source: antrea-idps/templates/agent/clusterrolebinding.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: antrea-idps-agent
+  labels:
+    app: antrea-idps
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: antrea-idps-agent
+subjects:
+  - kind: ServiceAccount
+    name: antrea-idps-agent
+    namespace: kube-system
+---
+# Source: antrea-idps/templates/controller/clusterrolebinding.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: antrea-idps-controller
+  labels:
+    app: antrea-idps
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: antrea-idps-controller
+subjects:
+  - kind: ServiceAccount
+    name: antrea-idps-controller
+    namespace: kube-system
+---
+# Source: antrea-idps/templates/controller/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: antrea-idps
+  namespace: kube-system
+  labels:
+    app: antrea-idps
+spec:
+  ports:
+    - port: 443
+      protocol: TCP
+      targetPort: api
+  selector:
+    app: antrea-idps
+    component: antrea-idps-controller
+---
+# Source: antrea-idps/templates/agent/daemonset.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: antrea-idps-agent
+  namespace: kube-system
+  labels:
+    app: antrea-idps
+    component: antrea-idps-agent
+spec:
+  selector:
+    matchLabels:
+      app: antrea-idps
+      component: antrea-idps-agent
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        # Starting with v1.21, Kubernetes supports default container annotation.
+        # Using "kubectl logs/exec/attach/cp" doesn't have to specify "-c antrea-idps-agent" when troubleshooting.
+        kubectl.kubernetes.io/default-container: antrea-idps-agent
+        # Automatically restart Pods with a RollingUpdate if the ConfigMap changes
+        # See https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
+        checksum/config: ea40f09f69923141428fa493aeb7292c5323495bff0459745a03a0e8d77a647b
+      labels:
+        app: antrea-idps
+        component: antrea-idps-agent
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      priorityClassName: system-node-critical
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - effect: NoSchedule
+          operator: Exists
+        - effect: NoExecute
+          operator: Exists
+      shareProcessNamespace: true
+      serviceAccountName: antrea-idps-agent
+      initContainers:
+        - name: init
+          image:  "projects.registry.vmware.com/antreainterworking/suricata:latest"
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash"]
+          args:
+            - -c
+            - "mkdir -p /etc/suricata/rules && \
+              touch /etc/suricata/reference.config && \
+              touch /etc/suricata/threshold.config && \
+              touch /etc/suricata/idps-suricata.ntics.classification.config && \
+              touch /etc/suricata/idps-suricata.ntics.addrs.yaml  && \
+              touch /etc/suricata/idps-suricata.ntics.ports.yaml && \
+              chown -R 1000:1000 /log /etc/suricata && \
+              ip link show antrea-tap0 > /dev/null 2>&1 || ip link add dev antrea-tap0 type veth peer name suricata-tap0 && \
+              ip link set antrea-tap0 up && \
+              ip link set suricata-tap0 up"
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+          volumeMounts:
+            - name: host-var-log-antrea
+              mountPath: /log
+              subPath: suricata
+            - name: empty-dir-signatures
+              mountPath: /etc/suricata
+      containers:
+        - name: antrea-idps-agent
+          image: "projects.registry.vmware.com/antreainterworking/idps:latest"
+          imagePullPolicy: IfNotPresent
+          command: ["antrea-idps-agent"]
+          args:
+            - "--config=/etc/antrea/idps/idps-agent.conf"
+            - "--logtostderr=false"
+            - "--log_dir=/var/log/antrea/idps"
+            - "--alsologtostderr"
+            - "--log_file_max_size=100"
+            - "--log_file_max_num=4"
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          resources:
+            requests:
+              cpu: 200m
+          volumeMounts:
+          - name: antrea-idps-config
+            mountPath: /etc/antrea/idps/idps-agent.conf
+            subPath: idps-agent.conf
+            readOnly: true
+          - name: host-var-log-antrea
+            mountPath: /var/log/antrea/idps
+            subPath: idps
+          - name: empty-dir-signatures
+            mountPath: /etc/suricata
+        - name: suricata
+          image: "projects.registry.vmware.com/antreainterworking/suricata:latest"
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 200m
+          command: ["/entrypoint.sh"]
+          env:
+            - name: SERVICE_UID
+              value: "1000"
+            - name: SERVICE_GID
+              value: "1000"
+            - name: CAPTURE_MODE
+              value: af-packet
+            - name: TILLER_YAML
+              value: |
+                ---
+                global:
+                  engine:
+                    runmode: workers
+                    classification_file: '/etc/suricata/idps-suricata.ntics.classification.config'
+                  sniff_ifaces: ["suricata-tap0"]
+                  af_packet:
+                    threads:
+                  common:
+                    af_packet_enabled: true
+                  vars:
+                    custom_addrs_conf: '/etc/suricata/idps-suricata.ntics.addrs.yaml'
+                    custom_ports_conf: '/etc/suricata/idps-suricata.ntics.ports.yaml'
+                    home_network_conf: '/etc/suricata/idps-suricata.ntics.home-network.yaml'
+                  rules:
+                    files:
+                      - 'ntics.rules'
+                  outputs:
+                    eve_log:
+                      alert:
+                        filetype: 'regular'
+                        filename: '/log/eve.alert.%Y-%m-%d.json'
+                        rotate-interval: day
+                      file_store:
+                        enabled: no
+                  logging:
+                    console:
+                      enabled: yes
+                    file:
+                      enabled: no
+                      filename: '/log/suricata.log'
+          securityContext:
+            capabilities:
+              add:
+                - IPC_LOCK
+                - NET_ADMIN
+                - NET_RAW
+                - SYS_NICE
+          volumeMounts:
+          - name: host-var-log-antrea
+            mountPath: /log
+            subPath: suricata
+          - name: empty-dir-signatures
+            mountPath: /etc/suricata
+          - name: antrea-idps-config
+            subPath: idps-suricata.home-network.yaml
+            mountPath: /etc/suricata/idps-suricata.ntics.home-network.yaml
+            readOnly: true
+      volumes:
+        - name: antrea-idps-config
+          configMap:
+            name: antrea-idps-config
+        - name: host-var-log-antrea
+          hostPath:
+            path: /var/log/antrea
+            type: DirectoryOrCreate
+        - name: empty-dir-signatures
+          emptyDir: {}
+---
+# Source: antrea-idps/templates/controller/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: antrea-idps-controller
+  namespace: kube-system
+  labels:
+    app: antrea-idps
+    component: antrea-idps-controller
+spec:
+  strategy:
+    # Ensure the existing Pod is stopped before the new one is created.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: antrea-idps
+      component: antrea-idps-controller
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        # Automatically restart Pod if the ConfigMap changes
+        # See https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
+        checksum/config: ea40f09f69923141428fa493aeb7292c5323495bff0459745a03a0e8d77a647b
+      labels:
+        app: antrea-idps
+        component: antrea-idps-controller
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      hostNetwork: true
+      priorityClassName: system-cluster-critical
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+      serviceAccountName: antrea-idps-controller
+      containers:
+        - name: antrea-idps-controller
+          image: "projects.registry.vmware.com/antreainterworking/idps:latest"
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 200m
+          command: ["antrea-idps-controller"]
+          args:
+            - "--config=/etc/antrea/idps/idps-controller.conf"
+            - "--logtostderr=false"
+            - "--log_dir=/var/log/antrea/idps"
+            - "--alsologtostderr"
+            - "--log_file_max_size=100"
+            - "--log_file_max_num=4"
+          ports:
+            - containerPort: 20349
+              name: api
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              host: localhost
+              path: /readyz
+              port: api
+              scheme: HTTPS
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            periodSeconds: 10
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              host: localhost
+              path: /livez
+              port: api
+              scheme: HTTPS
+            timeoutSeconds: 5
+            periodSeconds: 10
+            failureThreshold: 5
+          volumeMounts:
+            - name: antrea-idps-config
+              mountPath: /etc/antrea/idps/idps-controller.conf
+              subPath: idps-controller.conf
+              readOnly: true
+            - name: host-var-log-antrea
+              mountPath: /var/log/antrea/idps
+              subPath: idps
+            - name: antrea-idps-licenses
+              mountPath: /var/run/antrea/idps/licenses
+              readOnly: true
+      volumes:
+        - name: antrea-idps-config
+          configMap:
+            name: antrea-idps-config
+        - name: antrea-idps-licenses
+          secret:
+            secretName: antrea-idps-licenses
+            defaultMode: 0400
+        - name: host-var-log-antrea
+          hostPath:
+            path: /var/log/antrea
+            type: DirectoryOrCreate

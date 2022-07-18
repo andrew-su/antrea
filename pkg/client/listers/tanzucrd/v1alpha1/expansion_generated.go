@@ -16,6 +16,18 @@
 
 package v1alpha1
 
+// IDPSPolicyListerExpansion allows custom methods to be added to
+// IDPSPolicyLister.
+type IDPSPolicyListerExpansion interface{}
+
+// IDPSSignatureProviderInfoListerExpansion allows custom methods to be added to
+// IDPSSignatureProviderInfoLister.
+type IDPSSignatureProviderInfoListerExpansion interface{}
+
+// NSXRegistrationListerExpansion allows custom methods to be added to
+// NSXRegistrationLister.
+type NSXRegistrationListerExpansion interface{}
+
 // TierEntitlementListerExpansion allows custom methods to be added to
 // TierEntitlementLister.
 type TierEntitlementListerExpansion interface{}
