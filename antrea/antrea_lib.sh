@@ -148,6 +148,7 @@ function build_windows() {
   make docker-windows-bin
   cp bin/antrea-agent.exe "${PUBLISH_DIR}/windows/bin/antrea-agent.exe"
   cp bin/antrea-cni.exe "${PUBLISH_DIR}/windows/bin/antrea-cni.exe"
+  cp bin/antctl.exe "${PUBLISH_DIR}/windows/bin/antctl.exe"
 
   DownloadDir="${REPO_ROOT}/download"
   rm -rf "${DownloadDir}"
