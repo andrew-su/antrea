@@ -194,6 +194,21 @@ sha256sum -- * > ${checksum_filename}
 gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
 popd
 
+echo "====== Preparing Manifests for flow-aggregator-ubi ======"
+antrea_ubi_deliverables="antrea-ubi-${ANTREA_VERSION_DIGIT}"
+mkdir -p "${PUBLISH_DIR}/${antrea_ubi_deliverables}/manifests"
+IMG_NAME=localhost:5000/vmware.io/antrea/flow-aggregator-ubi IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest-flow-aggregator.sh --mode release > "${PUBLISH_DIR}/${antrea_ubi_deliverables}/manifests/flow-aggregator-ubi-${IMAGE_VERSION}.yml"
+
+echo "====== Preparing UBI Deliverables ======"
+cp -r "${PUBLISH_DIR}/ubi/images" "${PUBLISH_DIR}/${antrea_ubi_deliverables}"
+echo "${BUILD_NUMBER}" > "${PUBLISH_DIR}/${antrea_ubi_deliverables}/build_number.txt"
+pushd "${PUBLISH_DIR}"
+zip --verbose -r "${antrea_ubi_deliverables}.zip" "${antrea_ubi_deliverables}"
+popd
+mkdir -p "${PUBLISH_DIR}/ubi/zip/"
+mv "${PUBLISH_DIR}/${antrea_ubi_deliverables}.zip" "${PUBLISH_DIR}/ubi/zip/"
+rm -rf "${PUBLISH_DIR}/${antrea_ubi_deliverables}"
+
 echo "====== Cleanup Antrea Advanced Product Build Result ======"
 make clean
 
