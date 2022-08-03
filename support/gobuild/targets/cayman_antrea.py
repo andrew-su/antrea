@@ -266,3 +266,26 @@ class CaymanAntreaMultiCluster(_CaymanAntrea):
         }
 
         return comps
+
+class CaymanAntreaIPsec(_CaymanAntrea):
+    """
+    CaymanAntrea Open Source component
+    """
+
+    product_map = {
+        specs.cayman_antrea.LINUX_HOSTTYPE: ['lin64'],
+    }
+
+    def GetClusterRequirements(self):
+        return CaymanAntrea.product_map.keys()
+
+    def GetBuildProductNames(self):
+        return {'name': 'cayman_antrea_ipsec',
+                'longname': 'cayman_antrea_ipsec'}
+
+    def GetCommands(self, hosttype):
+        products = CaymanAntrea.product_map[hosttype]
+        return [self._Command(hosttype=hosttype, product=product, args={"BUILD_PRODUCT":"cayman_antrea_ipsec"}) for product in products]
+
+    def GetComponentPath(self):
+        return '%(buildroot)/publish'
