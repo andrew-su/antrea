@@ -289,3 +289,53 @@ class CaymanAntreaIPsec(_CaymanAntrea):
 
     def GetComponentPath(self):
         return '%(buildroot)/publish'
+
+class CaymanAntreaIDPS(_CaymanAntrea):
+    """
+    CaymanAntrea Open Source component
+    """
+
+    product_map = {
+        specs.cayman_antrea.LINUX_HOSTTYPE: ['lin64'],
+    }
+
+    def GetClusterRequirements(self):
+        return CaymanAntrea.product_map.keys()
+
+    def GetBuildProductNames(self):
+        return {'name': 'cayman_antrea_idps',
+                'longname': 'cayman_antrea_idps'}
+
+    def GetCommands(self, hosttype):
+        products = CaymanAntrea.product_map[hosttype]
+        return [self._Command(hosttype=hosttype, product=product, args={"BUILD_PRODUCT":"cayman_antrea_idps"}) for product in products]
+
+    def GetComponentPath(self):
+        return '%(buildroot)/publish'
+
+    def GetComponentDependencies(self):
+        buildtype = self.options.get('buildtype')
+        comps = {
+            'cayman': {
+                'branch': specs.cayman_antrea.CAYMAN_BRANCH,
+                'change': specs.cayman_antrea.CAYMAN_CLN,
+                'buildtype': specs.cayman_antrea.CAYMAN_BUILDTYPE,
+                'hosttypes': specs.cayman_antrea.CAYMAN_HOSTTYPES},
+            "cayman_python": {
+                "branch": specs.cayman_antrea.CAYMAN_PYTHON_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_PYTHON_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_PYTHON_BUILDTYPE,
+                "hosttypes": specs.cayman_antrea.CAYMAN_PYTHON_HOSTTYPES},
+            "cayman_go": {
+                "branch": specs.cayman_antrea.CAYMAN_GO_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_GO_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_GO_BUILDTYPE,
+                "files": specs.cayman_antrea.CAYMAN_GO_FILES},
+            "cayman_openssl": {
+                "branch": specs.cayman_antrea.CAYMAN_OPENSSL_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_OPENSSL_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_OPENSSL_BUILDTYPE,
+                "hosttypes": specs.cayman_antrea.CAYMAN_OPENSSL_HOSTTYPES},
+        }
+
+        return comps
