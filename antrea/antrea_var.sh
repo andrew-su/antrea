@@ -63,3 +63,10 @@ echo "BRANCH_NAME=${BRANCH_NAME}" "IMAGE_VERSION=$IMAGE_VERSION" "BINARY_VERSION
 
 ANTREA_BRANCH=${BRANCH_NAME}
 ANTREA_VERSION=${IMAGE_VERSION}
+
+# https://confluence.eng.vmware.com/pages/viewpage.action?spaceKey=BT&title=Product+signing+-+official+vs+test+keys
+if [ "${GOBUILD_OFFICIAL_SIGNING_ALLOWED}" = "1" ]; then  
+  GPG_KEY_ID="001E5CC9" # official key ID 
+else
+  GPG_KEY_ID="B2418631" # test key ID
+fi

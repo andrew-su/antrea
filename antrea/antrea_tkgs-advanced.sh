@@ -74,7 +74,7 @@ echo "localhost:5000/vmware.io/antrea/antrea-photon@${image_id}" > "${PUBLISH_DI
 pushd "${PUBLISH_DIR}/photon/images"
 sha256sum -- * > ${checksum_filename}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
-gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
+gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=${GPG_KEY_ID}
 popd
 
 echo "====== Building antrea-ubuntu Image ======"
@@ -95,7 +95,7 @@ echo "localhost:5000/vmware.io/antrea/antrea-ubuntu@${image_id}" > "${PUBLISH_DI
 pushd "${PUBLISH_DIR}/ubuntu/images"
 sha256sum -- * > ${checksum_filename}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
-gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
+gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=${GPG_KEY_ID}
 popd
 
 echo "====== Saving TKGS Manifests ======"

@@ -54,7 +54,7 @@ echo "antrea/antrea-advanced-debian@${image_id}" > "${OUTPUT_DIR}/images/${diges
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > "${CHECKSUM_FILENAME}"
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
-gpgsignc textsign -i "${CHECKSUM_FILENAME}" -o "${CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=001E5CC9
+gpgsignc textsign -i "${CHECKSUM_FILENAME}" -o "${CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=${GPG_KEY_ID}
 popd
 
 echo "====== Saving and Signing Antrea IPsec Executables ======"
@@ -65,7 +65,7 @@ pushd "${OUTPUT_DIR}/executables"
 BINARY_CHECKSUM_FILENAME="antrea-advanced-ipsec-${BINARY_VERSION}-checksums.txt"
 sha256sum -- * > ${BINARY_CHECKSUM_FILENAME}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
-gpgsignc textsign -i "${BINARY_CHECKSUM_FILENAME}" -o "${BINARY_CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=001E5CC9
+gpgsignc textsign -i "${BINARY_CHECKSUM_FILENAME}" -o "${BINARY_CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=${GPG_KEY_ID}
 popd
 
 echo "====== Preparing Antrea IPsec Deliverables ======"

@@ -51,7 +51,7 @@ env = {
 # Pass through certain environment variables.
 for v in ['SystemRoot', 'SystemDrive',
           'PROCESSOR_ARCHITECTURE',
-          'TMP', 'TEMP', 'TMPDIR', 'windir']:
+          'TMP', 'TEMP', 'TMPDIR', 'windir', 'GOBUILD_OFFICIAL_SIGNING_ALLOWED']:
     if v in os.environ:
         env[v] = os.environ[v]
 

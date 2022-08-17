@@ -75,7 +75,7 @@ cp -rf "${FLOW_AGGREGATOR_DELIVERABLES_DIR}/." "${OUTPUT_DIR}/images/"
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${checksum_filename}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
-gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
+gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=${GPG_KEY_ID}
 popd
 
 echo "====== Saving and Signing Antrea Standard Product Executables ======"
@@ -85,7 +85,7 @@ pushd "${OUTPUT_DIR}/executables"
 BINARY_CHECKSUM_FILENAME="antctl-${BINARY_VERSION}-checksums.txt"
 sha256sum -- * > ${BINARY_CHECKSUM_FILENAME}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
-gpgsignc textsign -i ${BINARY_CHECKSUM_FILENAME} -o "${BINARY_CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=001E5CC9
+gpgsignc textsign -i ${BINARY_CHECKSUM_FILENAME} -o "${BINARY_CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=${GPG_KEY_ID}
 popd
 
 echo "====== Preparing Antrea Standard Product Deliverables: Images, executables ======"
@@ -150,7 +150,7 @@ cp -rf "${FLOW_AGGREGATOR_DELIVERABLES_DIR}/." "${OUTPUT_DIR}/images/"
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${checksum_filename}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
-gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
+gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=${GPG_KEY_ID}
 popd
 
 echo "====== Saving and Signing Antrea Advanced Product Executables ======"
@@ -163,7 +163,7 @@ pushd "${OUTPUT_DIR}/executables"
 BINARY_CHECKSUM_FILENAME="antctl-${BINARY_VERSION}-checksums.txt"
 sha256sum -- "antctl-${BINARY_VERSION}.gz" > ${BINARY_CHECKSUM_FILENAME}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
-gpgsignc textsign -i ${BINARY_CHECKSUM_FILENAME} -o "${BINARY_CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=001E5CC9
+gpgsignc textsign -i ${BINARY_CHECKSUM_FILENAME} -o "${BINARY_CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=${GPG_KEY_ID}
 popd
 cp ${OUTPUT_DIR}/executables/antctl* "${ANTCTL_STANDALONE_DIR}/"
 
@@ -201,7 +201,7 @@ echo "localhost:5000/vmware.io/antrea/flow-aggregator-ubi@${flow_aggregator_ubi_
 pushd "${PUBLISH_DIR}/ubi/images"
 sha256sum -- * > ${checksum_filename}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
-gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=001E5CC9
+gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=${GPG_KEY_ID}
 popd
 
 echo "====== Preparing Manifests for flow-aggregator-ubi ======"
