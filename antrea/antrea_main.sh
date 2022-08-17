@@ -20,12 +20,16 @@ fips_make
 
 echo "====== Building flow-aggregator Image ======"
 FLOW_AGGREGATOR_DELIVERABLES_DIR=$(mktemp -d)
+FLOW_AGGREGATOR_MANIFESTS_DIR=$(mktemp -d)
 make flow-aggregator-image-debian VERSION=${IMAGE_VERSION}
 make flow-aggregator-image-ubi VERSION=${IMAGE_VERSION}
 echo "====== Preparing Manifests for flow-aggregator ======"
-IMG_NAME=antrea/flow-aggregator-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest-flow-aggregator.sh --mode release > "${FLOW_AGGREGATOR_DELIVERABLES_DIR}/flow-aggregator-debian-${IMAGE_VERSION}.yml"
+IMG_NAME=antrea/flow-aggregator-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest-flow-aggregator.sh --mode release > "${FLOW_AGGREGATOR_MANIFESTS_DIR}/flow-aggregator-${BINARY_VERSION}.yml"
 echo "====== Saving flow-aggregator Image ======"
 docker save antrea/flow-aggregator-debian:${IMAGE_VERSION} | gzip -9 > "${FLOW_AGGREGATOR_DELIVERABLES_DIR}/flow-aggregator-debian-${IMAGE_VERSION}.tar.gz"
+digest_filename_flow_aggregator="flow-aggregator-debian-${IMAGE_VERSION}-image-digests.txt"
+image_id_flow_aggregator_debian="$(docker inspect -f '{{.ID}}' "antrea/flow-aggregator-debian:${IMAGE_VERSION}")"
+echo "antrea/flow-aggregator-debian@${image_id_flow_aggregator_debian}" > "${FLOW_AGGREGATOR_DELIVERABLES_DIR}/${digest_filename_flow_aggregator}"
 
 echo "====== Building openvswitch-debian Image ======"
 pushd build/images/ovs
@@ -48,7 +52,7 @@ MANIFESTS_DIR=$(mktemp -d)
 IMG_NAME=antrea/antrea-standard-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
 cp "${MANIFESTS_DIR}/antrea-standard.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-${BINARY_VERSION}.yml"
 cp "${MANIFESTS_DIR}/antrea-standard-fips.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-fips-${BINARY_VERSION}.yml"
-cp "${FLOW_AGGREGATOR_DELIVERABLES_DIR}/flow-aggregator-debian-${IMAGE_VERSION}.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/"
+cp "${FLOW_AGGREGATOR_MANIFESTS_DIR}/flow-aggregator-${BINARY_VERSION}.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/"
 
 # Create archives for scripts and binaries
 echo "====== Saving Antrea Standard Product Deliverables ======"
@@ -63,8 +67,11 @@ mkdir -p "${OUTPUT_DIR}/images"
 # Just publish Antrea images.
 docker tag antrea/antrea-debian:${IMAGE_VERSION} antrea/antrea-standard-debian:${IMAGE_VERSION}
 docker save antrea/antrea-standard-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-standard-debian-${IMAGE_VERSION}.tar.gz"
-cp "${FLOW_AGGREGATOR_DELIVERABLES_DIR}/flow-aggregator-debian-${IMAGE_VERSION}.tar.gz" "${OUTPUT_DIR}/images/"
 echo "antrea/antrea-standard-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
+
+# Saving flow-aggregator image
+cp -rf "${FLOW_AGGREGATOR_DELIVERABLES_DIR}/." "${OUTPUT_DIR}/images/"
+
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${checksum_filename}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
@@ -121,7 +128,7 @@ MANIFESTS_DIR=$(mktemp -d)
 IMG_NAME=antrea/antrea-advanced-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
 cp ${MANIFESTS_DIR}/antrea-advanced.yml "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-${BINARY_VERSION}.yml"
 cp ${MANIFESTS_DIR}/antrea-advanced-fips.yml "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-fips-${BINARY_VERSION}.yml"
-cp "${FLOW_AGGREGATOR_DELIVERABLES_DIR}/flow-aggregator-debian-${IMAGE_VERSION}.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/"
+cp "${FLOW_AGGREGATOR_MANIFESTS_DIR}/flow-aggregator-${BINARY_VERSION}.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/"
 
 echo "====== Saving Antrea Advanced Product Deliverables ======"
 OUTPUT_DIR="${BUILDROOT}/advanced-output"
@@ -135,8 +142,11 @@ mkdir -p "${OUTPUT_DIR}/images"
 # Just publish Antrea images.
 docker tag antrea/antrea-debian:${IMAGE_VERSION} antrea/antrea-advanced-debian:${IMAGE_VERSION}
 docker save antrea/antrea-advanced-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-advanced-debian-${IMAGE_VERSION}.tar.gz"
-cp "${FLOW_AGGREGATOR_DELIVERABLES_DIR}/flow-aggregator-debian-${IMAGE_VERSION}.tar.gz" "${OUTPUT_DIR}/images/"
 echo "antrea/antrea-advanced-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
+
+# Saving flow-aggregator image
+cp -rf "${FLOW_AGGREGATOR_DELIVERABLES_DIR}/." "${OUTPUT_DIR}/images/"
+
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${checksum_filename}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
