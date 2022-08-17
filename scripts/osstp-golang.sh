@@ -5,7 +5,7 @@
 
 set -xe
 
-RELEASE_VERSION=1.4.0
+RELEASE_VERSION=1.5.0
 RESULTS=`pwd`/osstp_results
 ANTREA_ROOTDIR=`pwd`/antrea/src
 

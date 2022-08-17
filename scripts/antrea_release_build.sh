@@ -12,7 +12,7 @@ cat /proc/cpuinfo
 
 # before updating RELEASE_VERSION, need to upload the new ODP file to artifactory for that release,
 # https://build-artifactory.eng.vmware.com/artifactory/nsx-ujo-local/VMware-Antrea-${RELEASE_VERSION}-ODP.tar.gz
-RELEASE_VERSION=1.4.0
+RELEASE_VERSION=1.5.0
 REPO_ROOT="${PROJECT_DIR}"
 
 cd "${REPO_ROOT}"
