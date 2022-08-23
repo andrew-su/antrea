@@ -13,7 +13,7 @@ RUN make antrea-idps-agent antrea-idps-controller
 
 FROM harbor-repo.vmware.com/dockerhub-proxy-cache/library/debian:stable-slim
 
-RUN apt update && apt install curl -y
+RUN apt update && apt install curl ca-certificates -y
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
 LABEL description="The Docker image to deploy the Antrea IDPS."
