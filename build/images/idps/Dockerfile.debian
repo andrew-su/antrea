@@ -12,4 +12,4 @@ RUN apt-get update && \
 
 USER root
 
-COPY bin/idps-* /usr/local/bin/
+COPY bin/antrea-idps-* /usr/local/bin/

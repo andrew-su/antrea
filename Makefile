@@ -158,22 +158,22 @@ antrea-controller:
 .PHONY: antrea-idps-controller
 antrea-idps-controller:
 	@mkdir -p $(BINDIR)
-	GOOS=linux $(GO) build -o $(BINDIR)/antrea-idps-controller $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/cmd/idps-controller
+	GOOS=linux $(GO) build -o $(BINDIR) $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/cmd/antrea-idps-controller
 
 .PHONY: antrea-idps-controller-instr-binary
 antrea-idps-controller-instr-binary:
 	@mkdir -p $(BINDIR)
-	GOOS=linux $(GO) test -tags testbincover -covermode count -coverpkg=antrea.io/antrea/pkg/... -c -o $(BINDIR)/antrea-idps-controller-coverage $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/cmd/idps-controller
+	GOOS=linux $(GO) test -tags testbincover -covermode count -coverpkg=antrea.io/antrea/pkg/... -c -o $(BINDIR)/antrea-idps-controller-coverage $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/cmd/antrea-idps-controller
 
 .PHONY: antrea-idps-agent
 antrea-idps-agent:
 	@mkdir -p $(BINDIR)
-	GOOS=linux $(GO) build -o $(BINDIR)/antrea-idps-agent $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/cmd/idps-agent
+	GOOS=linux $(GO) build -o $(BINDIR) $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/cmd/antrea-idps-agent
 
 .PHONY: antrea-idps-agent-instr-binary
 antrea-idps-agent-instr-binary:
 	@mkdir -p $(BINDIR)
-	GOOS=linux $(GO) test -tags testbincover -covermode count -coverpkg=antrea.io/antrea/pkg/... -c -o $(BINDIR)/antrea-idps-agent-coverage $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/cmd/idps-agent
+	GOOS=linux $(GO) test -tags testbincover -covermode count -coverpkg=antrea.io/antrea/pkg/... -c -o $(BINDIR)/antrea-idps-agent-coverage $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/cmd/antrea-idps-agent
 
 .PHONY: .coverage
 .coverage:

@@ -7,4 +7,4 @@ RUN yum clean all -y && yum update -y && yum reinstall yum -y && yum install cur
 
 USER root
 
-COPY bin/idps-* /usr/local/bin/
+COPY bin/antrea-idps-* /usr/local/bin/
