@@ -70,8 +70,14 @@ if [ "$MODE" != "dev" ] && [ "$MODE" != "release" ]; then
     exit 1
 fi
 
-if [ "$MODE" == "release" ] && [ -z "$IMG_NAME" ]; then
-    echoerr "In 'release' mode, environment variable IMG_NAME must be set"
+if [ "$MODE" == "release" ] && [ -z "$SURICATA_IMG_NAME" ]; then
+    echoerr "In 'release' mode, environment variable SURICATA_IMG_NAME must be set"
+    print_help
+    exit 1
+fi
+
+if [ "$MODE" == "release" ] && [ -z "$IDPS_IMG_NAME" ]; then
+    echoerr "In 'release' mode, environment variable IDPS_IMG_NAME must be set"
     print_help
     exit 1
 fi
@@ -102,7 +108,7 @@ fi
 
 EXTRA_VALUES=""
 if [ "$MODE" == "release" ]; then
-    EXTRA_VALUES="--set image.repository=$IMG_NAME,image.tag=$IMG_TAG"
+    EXTRA_VALUES="--set idpsImage.repository=$IDPS_IMG_NAME,idpsImage.tag=$IMG_TAG,suricataImage.repository=$SURICATA_IMG_NAME,suricataImage.tag=$IMG_TAG"
 fi
 
 IDPS_CHART="$THIS_DIR/../build/charts/idps"

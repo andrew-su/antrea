@@ -1,0 +1,10 @@
+FROM registry.access.redhat.com/ubi8
+
+LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
+LABEL description="The Docker image to deploy the IDPS."
+
+RUN yum clean all -y && yum update -y && yum reinstall yum -y && yum install curl -y
+
+USER root
+
+COPY bin/idps-* /usr/local/bin/

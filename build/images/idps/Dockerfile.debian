@@ -1,0 +1,15 @@
+FROM harbor-repo.vmware.com/dockerhub-proxy-cache/library/debian:stable-slim
+
+LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
+LABEL description="The Docker image to deploy the IDPS."
+
+RUN echo "deb http://build-artifactory.eng.vmware.com/debian-remote stable main" > /etc/apt/sources.list && \
+    echo "deb http://build-artifactory.eng.vmware.com/debian-remote stable-updates main" >> /etc/apt/sources.list && \
+    echo "deb http://build-artifactory.eng.vmware.com/debian-security-remote stable-security main" >> /etc/apt/sources.list
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl
+
+USER root
+
+COPY bin/idps-* /usr/local/bin/

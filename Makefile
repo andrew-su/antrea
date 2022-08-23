@@ -717,6 +717,30 @@ endif
 	docker tag antreainterworking/idps:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/idps
 	docker tag antreainterworking/idps:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/idps:$(DOCKER_IMG_VERSION)
 
+.PHONY: idps-image-debian
+idps-image-debian:
+	@echo "===> Building antrea/idps Debian Docker image <==="
+ifneq ($(NO_PULL),)
+	docker build -t antreainterworking/idps-debian:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile.debian $(DOCKER_BUILD_ARGS) .
+else
+	docker build --pull -t antreainterworking/idps-debian:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile.debian $(DOCKER_BUILD_ARGS) .
+endif
+	docker tag antreainterworking/idps-debian:$(DOCKER_IMG_VERSION) antreainterworking/idps-debian
+	docker tag antreainterworking/idps-debian:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/idps-debian
+	docker tag antreainterworking/idps-debian:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/idps-debian:$(DOCKER_IMG_VERSION)
+
+.PHONY: idps-image-ubi
+idps-image-ubi:
+	@echo "===> Building antrea/idps UBI Docker image <==="
+ifneq ($(NO_PULL),)
+	docker build -t antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile.ubi $(DOCKER_BUILD_ARGS) .
+else
+	docker build --pull -t antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile.ubi $(DOCKER_BUILD_ARGS) .
+endif
+	docker tag antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION) antreainterworking/idps-ubi
+	docker tag antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/idps-ubi
+	docker tag antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION)
+
 .PHONY: idps-coverage
 idps-coverage:
 	@echo "===> Building antreainterworking/idps-coverage Docker image <==="
