@@ -3,7 +3,7 @@ FROM registry.access.redhat.com/ubi8
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
 LABEL description="The Docker image to deploy the IDPS."
 
-RUN yum clean all -y && yum update -y && yum reinstall yum -y && yum install curl -y
+RUN yum clean all -y && yum update -y && yum reinstall yum -y && yum install curl procps -y
 
 USER root
 
