@@ -44,7 +44,7 @@ for variant in "debian" "ubi"; do
   pushd "${OUTPUT_DIR}/images-${variant}/"
   sha256sum -- * > ${checksum_filename}
   # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
-  gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=${GPG_KEY_ID}
+  gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=${GPG_KEY_ID} ${GPGSIGNC_OPTS}
   popd
 
   antrea_idps_deliverables="antrea-idps-${variant}-${ANTREA_VERSION_DIGIT}"

@@ -59,7 +59,7 @@ checksum_filename="antrea-standard-debian-${IMAGE_VERSION}-image-checksums.txt"
 echo "antrea/antrea-standard-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${checksum_filename}
-gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=${GPG_KEY_ID}
+gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=${GPG_KEY_ID} ${GPGSIGNC_OPTS}
 popd
 
 echo "====== Saving and Signing TKGm Executables ======"
@@ -69,7 +69,7 @@ gzip -c "bin/e2e-tkgm-standard-${ANTREA_VERSION}" > "${OUTPUT_DIR}/executables/e
 pushd "${OUTPUT_DIR}/executables"
 BINARY_CHECKSUM_FILENAME="antctl-${BINARY_VERSION}-checksums.txt"
 sha256sum -- * > ${BINARY_CHECKSUM_FILENAME}
-gpgsignc textsign -i ${BINARY_CHECKSUM_FILENAME} -o "${BINARY_CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=${GPG_KEY_ID}
+gpgsignc textsign -i ${BINARY_CHECKSUM_FILENAME} -o "${BINARY_CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=${GPG_KEY_ID} ${GPGSIGNC_OPTS}
 popd
 
 mkdir -p ${PUBLISH_DIR}/lin64/antrea/executables/
