@@ -14,6 +14,9 @@ popd
 
 ANTREA_DOMAIN="antrea.io/antrea"
 
+# This is for "make ubuntu" to use commercial release Dockerfile instead of open-source Dockerfile
+export OSS_UBUNTU_BUILD=n
+
 # BRANCH_NAME can be
 # vmware-master # In this case ANTREA_TARGET=main
 # vmware-master-$ANTREA_TARGET
