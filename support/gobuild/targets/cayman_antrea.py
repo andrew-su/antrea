@@ -115,6 +115,11 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
                 "change": specs.cayman_antrea.NSX_OVS_BUILD_CLN,
                 "buildtype": specs.cayman_antrea.NSX_OVS_BUILD_BUILDTYPE,
                 "files": specs.cayman_antrea.NSX_OVS_BUILD_FILES},
+            "cayman_whereabouts": {
+                "branch": specs.cayman_antrea.CAYMAN_WHEREABOUTS_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_WHEREABOUTS_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_WHEREABOUTS_BUILDTYPE,
+                "files": specs.cayman_antrea.CAYMAN_WHEREABOUTS_FILES},
         }
 
         return comps

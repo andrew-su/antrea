@@ -29,6 +29,7 @@ popd
 
 echo "====== Building antrea-debian-ipsec Image ======"
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
+cp ${GOBUILD_CAYMAN_WHEREABOUTS_ROOT}/lin64/whereabouts/images/whereabouts-*.tar.gz .
 make debian-ipsec VERSION=${IMAGE_VERSION}
 
 # Create archives for scripts and binaries

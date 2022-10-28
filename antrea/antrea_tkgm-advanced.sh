@@ -30,6 +30,7 @@ docker build -f Dockerfile.debian --build-arg IPSEC=true --build-arg OVS_VERSION
 popd
 
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
+cp ${GOBUILD_CAYMAN_WHEREABOUTS_ROOT}/lin64/whereabouts/images/whereabouts-*.tar.gz .
 echo "====== Building antrea-debian Image ======"
 make debian VERSION=${IMAGE_VERSION}
 
