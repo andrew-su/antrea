@@ -41,6 +41,9 @@ WIN_IMAGE_NODE=""
 echo "" > WIN_DHCP
 GOLANG_RELEASE_DIR=${WORKDIR}/golang-releases
 
+RUN_IDPS=true # Commercial release only.
+NSX_LICENSE="" # Commercial release only.
+
 WINDOWS_CONFORMANCE_FOCUS="\[sig-network\].+\[Conformance\]|\[sig-windows\]"
 WINDOWS_CONFORMANCE_SKIP="\[LinuxOnly\]|\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:.+\]|\[sig-cli\]|\[sig-storage\]|\[sig-auth\]|\[sig-api-machinery\]|\[sig-apps\]|\[sig-node\]|\[Privileged\]"
 WINDOWS_NETWORKPOLICY_FOCUS="\[Feature:NetworkPolicy\]"
@@ -74,7 +77,9 @@ Run K8s e2e community tests (Conformance & Network Policy) or Antrea e2e tests o
         --proxyall               Enable proxyAll to test AntreaProxy.
         --build-tag              Custom build tag for images.
         --docker-user            Username for Docker account.
-        --docker-password        Password for Docker account."
+        --docker-password        Password for Docker account.
+        --no-idps                Don't test Antrea IDPS (commercial release only).
+        --nsx-license            The NSX license to test Antrea IDPS (commercial release only)."
 
 function print_usage {
     echoerr "$_usage"
@@ -111,6 +116,14 @@ case $key in
     ;;
     --testbed-type)
     TESTBED_TYPE="$2"
+    shift 2
+    ;;
+    --no-idps) # Commercial release only.
+    RUN_IDPS=false
+    shift
+    ;;
+    --nsx-license) # Commercial release only.
+    NSX_LICENSE="$2"
     shift 2
     ;;
     --proxyall)
@@ -155,6 +168,12 @@ if [[ "${IP_MODE}" != "${DEFAULT_IP_MODE}" && "${IP_MODE}" != "ipv6" && "${IP_MO
     echoerr "--ip-mode must be ipv4, ipv6 or dual"
     exit 1
 fi
+if [ "$RUN_IDPS" == true ] && [ "$NSX_LICENSE" == "" ]; then
+    echoerr "To test Antrea IDPS, environment variable NSX_LICENSE must be set"
+    print_help
+    exit 1
+fi
+
 if [[ "$WORKDIR" != "$DEFAULT_WORKDIR" && "$KUBECONFIG_PATH" == "$DEFAULT_KUBECONFIG_PATH" ]]; then
     KUBECONFIG_PATH=${WORKDIR}/.kube/config
 fi
@@ -512,6 +531,34 @@ function deliver_antrea_windows {
     echo "==== Finish building and delivering Windows images ===="
 }
 
+function deliver_antrea_idps {
+    echo "====== Cleanup Antrea IDPS ======"
+    kubectl delete -f ${WORKDIR}/idps.yml || true
+
+    echo "====== Building Antrea IDPS for the Following Commit ======"
+    make suricata-image idps-image
+
+    sed -i "s/--v=0/--v=4/g" build/yamls/idps.yml
+
+    echo "====== Delivering Antrea IDPS to all the Nodes ======"
+    docker save -o antrea-suricata.tar projects.registry.vmware.com/antreainterworking/suricata:latest
+    docker save -o antrea-idps.tar projects.registry.vmware.com/antreainterworking/idps:latest
+
+    if [[ $TESTBED_TYPE == "jumper" ]]; then
+        kubectl get nodes -o wide --no-headers=true | awk '{print $6}' | while read IP; do
+            scp -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i "${WORKDIR}/.ssh/id_rsa" antrea-suricata.tar jenkins@${IP}:${DEFAULT_WORKDIR}/antrea-suricata.tar
+            scp -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i "${WORKDIR}/.ssh/id_rsa" antrea-idps.tar jenkins@${IP}:${DEFAULT_WORKDIR}/antrea-idps.tar
+            ssh -o StrictHostKeyChecking=no -i "${WORKDIR}/.ssh/id_rsa" -n jenkins@${IP} "${CLEAN_STALE_IMAGES_CONTAINERD};ctr -n=k8s.io images import ${DEFAULT_WORKDIR}/antrea-suricata.tar; ctr -n=k8s.io images import ${DEFAULT_WORKDIR}/antrea-idps.tar" || true
+        done
+    else
+        kubectl get nodes -o wide --no-headers=true | awk -v role="$CONTROL_PLANE_NODE_ROLE" '$3 !~ role {print $6}' | while read IP; do
+            rsync -avr --progress --inplace -e "ssh -o StrictHostKeyChecking=no" antrea-suricata.tar jenkins@[${IP}]:${WORKDIR}/antrea-suricata.tar
+            rsync -avr --progress --inplace -e "ssh -o StrictHostKeyChecking=no" antrea-idps.tar jenkins@[${IP}]:${WORKDIR}/antrea-idps.tar
+            ssh -o StrictHostKeyChecking=no -n jenkins@${IP} "${CLEAN_STALE_IMAGES}; docker load -i ${WORKDIR}/antrea-suricata.tar; docker load -i ${WORKDIR}/antrea-idps.tar" || true
+        done
+    fi
+}
+
 function deliver_antrea {
     echo "====== Cleanup Antrea Installation Before Delivering Antrea ======"
     clean_antrea
@@ -673,7 +720,12 @@ function run_e2e {
     elif [[ $TESTBED_TYPE == "kind-flexible-ipam" ]]; then
         go test -v antrea.io/antrea/test/e2e --logs-export-dir `pwd`/antrea-test-logs --provider kind --kind.kubeconfig ${KUBECONFIG_PATH} -timeout=100m --prometheus --antrea-ipam
     else
-        go test -v antrea.io/antrea/test/e2e --logs-export-dir `pwd`/antrea-test-logs --provider remote -timeout=100m --prometheus
+        idps_flag=""
+        if [[ ${RUN_IDPS} == true ]]; then
+          # shellcheck disable=SC2034
+          idps_flag="--antrea-idps --nsx-license $NSX_LICENSE"
+        fi
+        go test -v antrea.io/antrea/test/e2e --logs-export-dir `pwd`/antrea-test-logs --provider remote -timeout=100m --prometheus ${idps_flag}
     fi
     if [[ "$?" != "0" ]]; then
         TEST_FAILURE=true
@@ -1024,6 +1076,11 @@ if [[ ${TESTCASE} == "windows-install-ovs" ]]; then
 fi
 
 trap clean_antrea EXIT
+
+if [[ ${RUN_IDPS} == true ]]; then
+    deliver_antrea_idps
+fi
+
 if [[ ${TESTCASE} =~ "windows" ]]; then
     if [[ ${TESTCASE} == "windows-e2e-ovs-as-service" ]]; then
         WINDOWS_YAML_NAME="antrea-windows"

@@ -235,7 +235,9 @@ type TestOptions struct {
 	externalFRRCID    string
 	externalServerIPs string
 
-	runOnTKGs bool
+	runOnTKGs        bool   // Commercial release only.
+	enableAntreaIDPS bool   // Commercial release only.
+	nsxLicense       string // Commercial release only.
 }
 
 type flowVisibilityTestOptions struct {
