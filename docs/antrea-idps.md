@@ -168,33 +168,54 @@ Suricata is the IDS engine.
 
 ## Practical Steps
 
-### Step 1: Deploy Antrea
+### Step 1: Deploy Antrea and Antrea-interworking
 
-For detailed information on the Antrea requirements and instructions on how to
-deploy Antrea, please refer to [getting-started.md](../../getting-started.md).
-As of now, the `TrafficControl` feature gate is disabled by default, you will need
-to enable it like the following command.
-
-To deploy the latest version of Antrea, use:
+To deploy Antrea and Antrea-interworking, use:
 
 ```bash
-curl -s https://raw.githubusercontent.com/antrea-io/antrea/main/build/yamls/antrea.yml | \
-  sed "s/.*TrafficControl:.*/      TrafficControl: true/" | \
-  kubectl apply -f -
+ANTREA_BUILD="ob-xxxxx"
+ANTREA_INTERWORKING_BUILD="ob-xxxxx"
+CLUSTER_NAME="cluter01"
+NSX_MANAGER_IP="1.1.1.1"
+NSX_MANAGER_USER="dummyUser"
+NSX_MANAGER_PASSWORD="dummyPasswd"
+DEPLOY_TYPE="k8s-docker" # k8s-docker or k8s-containerd
+
+wget http://build-squid.eng.vmware.com/build/mts/release/bora-$(echo "${ANTREA_IDPS_BUILD}" | cut -d - -f 2)/publish/antrea-interworking/scripts/deploy.sh
+./deploy.sh ${ANTREA_BUILD} ${ANTREA_INTERWORKING_BUILD} ${CLUSTER_NAME} ${NSX_MANAGER_IP} ${NSX_MANAGER_USER} ${NSX_MANAGER_PASSWORD} ${DEPLOY_TYPE}
+rm -rf ./deploy.sh
 ```
+
+Note that, please replace the dummy values in above script according to your environment. For more details, please refer
+to repo [antrea-interworking](https://gitlab.eng.vmware.com/core-build/antrea-interworking).
 
 ### Step 2: Deploy Antrea IDPS
 
 To deploy Antrea IDPS, use:
 
 ```bash
-LICENSE=<YOUR-NSX-LICENSE>
-curl -s https://gitlab.eng.vmware.com/core-build/mirrors_github_antrea/-/raw/main/build/yamls/idps.yml | \
-sed "s/.*nsx-license: \"\"/  nsx-license: \"$(echo $LICENSE | base64)\"/" | \
-kubectl apply -f -
+NSX_LICENSE="00000-00000-00000-00000-00000"
+ANTREA_IDPS_BUILD="ob-xxxxx"
+DEPLOY_TYPE="k8s-docker" # k8s-docker or k8s-containerd
+
+wget http://build-squid.eng.vmware.com/build/mts/release/bora-$(echo "${ANTREA_IDPS_BUILD}" | cut -d - -f 2)/publish/antrea-idps/scripts/deploy_idps.sh
+./deploy_idps.sh --idps-build ${ANTREA_IDPS_BUILD} --nsx-license ${LICENSE} --deploy-type ${DEPLOY_TYPE}
+rm -rf ./deploy_idps.sh
 ```
 
-Note that, replace `YOUR-NSX-LICENSE` with your NSX license without quotes.
+Note that, please replace the dummy values in above script according to your environment.
+
+### Step 3: Restart Antrea-interworking
+
+After Antrea IDPS is deployed, restart Antrea-interworking, use:
+
+```bash
+kubectl rollout restart deployment interworking -n vmware-system-antrea
+```
+
+This is because the CRD called NSXRegistration that is used by both Antrea IDPS and Antrea-interworking is defined in
+Antrea IDPS deployment yaml file. Antrea-interworking checks whether the NSXRegistration CRD exists only during the Pod
+startup, as a result, the Antrea-interworking Pod should be restarted after Antrea IDPS is deployed.
 
 ### Testing
 
