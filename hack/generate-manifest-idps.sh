@@ -112,11 +112,16 @@ if [ "$MODE" == "release" ]; then
 fi
 
 IDPS_CHART="$THIS_DIR/../build/charts/idps"
+VALUES_DIR="$THIS_DIR/../build/charts/idps/chart-values"
+VALUES_FILES=$(cd $VALUES_DIR && find * -type f -name "*.yml" )
 # Suppress potential Helm warnings about invalid permissions for Kubeconfig file
 # by throwing away related warnings.
-$HELM template \
-      --namespace kube-system \
-      $EXTRA_VALUES \
-      "$IDPS_CHART" \
-      > "$OUTPUT_DIR/idps.yml" \
-      2> >(grep -v 'This is insecure' >&2)
+for values in $VALUES_FILES; do
+  $HELM template \
+        --namespace kube-system \
+        -f "$VALUES_DIR/$values" \
+        $EXTRA_VALUES \
+        "$IDPS_CHART" \
+        > "$OUTPUT_DIR/$values" \
+        2> >(grep -v 'This is insecure' >&2)
+done

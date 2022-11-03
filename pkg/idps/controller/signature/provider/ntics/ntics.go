@@ -39,7 +39,6 @@ const (
 	SignatureProviderName = "ntics"
 
 	nsxLicenseFile = "/var/run/antrea/idps/licenses/nsx-license"
-	deviceType     = "NSX-Edge"
 
 	pathRegister             = "1.0/auth/register"
 	pathAuthenticate         = "1.0/auth/authenticate"
@@ -143,9 +142,11 @@ type SignatureProvider struct {
 	updatePeriod time.Duration
 
 	// nsxLicenseKey and deviceType are used to register a device to NTICS, and a client ID and client secret will be returned.
+	// deviceType is used to identify current device.
 	nsxLicenseKey           string
 	nsxLicenseKeyUpdateChan chan struct{}
 	nsxLicenseKeyUpdateLock sync.Mutex
+	deviceType              string
 
 	// clientID and clientSecret are used to authenticate to NITCS, and an API token will be returned.
 	clientID     string
@@ -177,6 +178,7 @@ func NewSignatureProvider(signatureProviderInfoInformer tanzucrdinformers.IDPSSi
 		apiBaseURL:                        signatureProviderNTICSConfig.APIBaseURL,
 		updatePeriod:                      time.Second * time.Duration(signatureProviderNTICSConfig.SyncInterval),
 		nsxLicenseKeyUpdateChan:           make(chan struct{}, 1),
+		deviceType:                        signatureProviderNTICSConfig.DeviceType,
 	}
 }
 
@@ -592,7 +594,7 @@ func (n *SignatureProvider) register() error {
 	url := genURL(n.apiBaseURL, pathRegister, nil)
 	requestObj := registerInfo{
 		LicenseKeys: []string{n.nsxLicenseKey},
-		DeviceType:  deviceType,
+		DeviceType:  n.deviceType,
 	}
 	if n.clientID != "" {
 		// Include an existing client ID in the request. If client ID is not specified, a random client ID will be returned

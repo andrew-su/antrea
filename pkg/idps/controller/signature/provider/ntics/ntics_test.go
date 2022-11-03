@@ -75,7 +75,7 @@ func mockRouteRegister(w http.ResponseWriter, r *http.Request) {
 	var requestObj registerInfo
 	decodeBody(r.Body, &requestObj)
 
-	if requestObj.LicenseKeys[0] == validTestLicense && requestObj.DeviceType == deviceType {
+	if requestObj.LicenseKeys[0] == validTestLicense {
 		w.WriteHeader(http.StatusOK)
 		responseObj := authenticateInfo{
 			ClientID:     validTestClientID,

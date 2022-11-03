@@ -85,3 +85,17 @@ rules:
       - subjectaccessreviews
     verbs:
       - create
+  {{- range $rule := .Values.controller.extraClusterRoleRules }}
+  - apiGroups:
+      {{- range $apiGroup := $rule.apiGroups }}
+      - {{ $apiGroup | toYaml }}
+      {{- end }}
+    resources:
+      {{- range $resource := $rule.resources }}
+      - {{ $resource | toYaml }}
+      {{- end }}
+    verbs:
+      {{- range $verb := $rule.verbs }}
+      - {{ $verb | toYaml }}
+      {{- end }}
+  {{- end }}

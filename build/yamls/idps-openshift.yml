@@ -54,7 +54,7 @@ data:
       syncInterval: 600
 
       # The value is used to identify current device when registering to NTICS.
-      deviceType: Antrea-Kubernetes
+      deviceType: Antrea-Openshift
   idps-suricata.home-network.yaml: |
     %YAML 1.1
     ---
@@ -322,6 +322,12 @@ rules:
       - subjectaccessreviews
     verbs:
       - create
+  - apiGroups:
+      - crd.antrea.tanzu.vmware.com
+    resources:
+      - idpspolicies/finalizer
+    verbs:
+      - '*'
 ---
 # Source: antrea-idps/templates/agent/clusterrolebinding.yaml
 kind: ClusterRoleBinding
@@ -396,7 +402,7 @@ spec:
         kubectl.kubernetes.io/default-container: antrea-idps-agent
         # Automatically restart Pods with a RollingUpdate if the ConfigMap changes
         # See https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
-        checksum/config: 6b5479795d72bea51b8b08651d0f31a96eed65b2ea88b978b31aee0f53359719
+        checksum/config: bb76ff4a855670aa9f5b61c1e95ce81ff4074e853f7deca89ca57ea14aa910b2
       labels:
         app: antrea-idps
         component: antrea-idps-agent
@@ -526,6 +532,7 @@ spec:
                 - NET_ADMIN
                 - NET_RAW
                 - SYS_NICE
+                - CAP_SETFCAP
           volumeMounts:
           - name: host-var-log-antrea
             mountPath: /log
@@ -570,7 +577,7 @@ spec:
       annotations:
         # Automatically restart Pod if the ConfigMap changes
         # See https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
-        checksum/config: 6b5479795d72bea51b8b08651d0f31a96eed65b2ea88b978b31aee0f53359719
+        checksum/config: bb76ff4a855670aa9f5b61c1e95ce81ff4074e853f7deca89ca57ea14aa910b2
       labels:
         app: antrea-idps
         component: antrea-idps-controller

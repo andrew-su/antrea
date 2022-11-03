@@ -1,0 +1,19 @@
+signatureProviders:
+  ntics:
+    # -- The value is used to identify current device when registering to NTICS, which is to be used by antrea-idps-controller Pods.
+    deviceType: Antrea-Openshift
+
+controller:
+  # -- Extra ClusterRole rules for the antrea-idps-controller Pod.
+  extraClusterRoleRules:
+    - apiGroups:
+        - crd.antrea.tanzu.vmware.com
+      resources:
+        - idpspolicies/finalizer
+      verbs:
+        - "*"
+
+agent:
+  suricata:
+    # -- Extra security capabilities for the Suricata container.
+    extraSecurityCapabilities: ["CAP_SETFCAP"]

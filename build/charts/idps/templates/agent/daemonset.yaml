@@ -163,6 +163,9 @@ spec:
                 - NET_ADMIN
                 - NET_RAW
                 - SYS_NICE
+                {{- range $capability := .Values.agent.suricata.extraSecurityCapabilities }}
+                - {{ $capability | toYaml | trim }}
+                {{- end }}
           volumeMounts:
           - name: host-var-log-antrea
             mountPath: /log

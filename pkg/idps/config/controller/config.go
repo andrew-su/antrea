@@ -23,4 +23,6 @@ type SignatureProviderConfig struct {
 	APIBaseURL string `yaml:"apiBaseURL,omitempty"`
 	// SyncInterval is the period (seconds) to sync the signature data. Defaults to 600.
 	SyncInterval int `yaml:"syncInterval,omitempty"`
+	// DeviceType is used to identify current device when registering to signature provider NTICS.
+	DeviceType string `yaml:"deviceType,omitempty"`
 }

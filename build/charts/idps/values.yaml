@@ -32,6 +32,8 @@ signatureProviders:
     apiBaseURL: "https://api.prod.nsxti.vmware.com"
     # -- The interval to update the signature data, which is to be used by antrea-idps-controller Pods.
     syncInterval: 600
+    # -- The value is used to identify current device when registering to NTICS, which is to be used by antrea-idps-controller Pods.
+    deviceType: Antrea-Kubernetes
 
 agent:
   # -- Annotations to be added to antrea-idps-agent Pods.
@@ -54,8 +56,6 @@ agent:
     kubernetes.io/os: linux
   # -- Prority class to use for the antrea-idps-agent Pods.
   priorityClassName: "system-node-critical"
-  # -- Affinity for the antrea-idps-agent Pods.
-  affinity: {}
   # -- DNS Policy for the antrea-idps-agent Pods.
   dnsPolicy: "ClusterFirstWithHostNet"
   # -- Update strategy for the antrea-idps-agent DaemonSet.
@@ -75,6 +75,8 @@ agent:
     resources:
       requests:
         cpu: "200m"
+    # -- Extra security capabilities for the Suricata container.
+    extraSecurityCapabilities: []
 
 controller:
   # -- Port for the antrea-idps-controller APIServer to serve on.
@@ -99,8 +101,8 @@ controller:
     kubernetes.io/os: linux
   # -- Prority class to use for the antrea-idps-controller Pod.
   priorityClassName: "system-cluster-critical"
-  # -- Affinity for the antrea-idps-controller Pod.
-  affinity: {}
+  # -- Extra ClusterRole rules for the antrea-idps-controller Pod.
+  extraClusterRoleRules: []
   idpsController:
     # -- Max size in MBs of any single log file.
     logFileMaxSize: 100
