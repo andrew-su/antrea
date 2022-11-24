@@ -41,7 +41,7 @@ WIN_IMAGE_NODE=""
 echo "" > WIN_DHCP
 GOLANG_RELEASE_DIR=${WORKDIR}/golang-releases
 
-RUN_IDPS=true # Commercial release only.
+RUN_IDPS=false # Commercial release only.
 NSX_LICENSE="" # Commercial release only.
 
 WINDOWS_CONFORMANCE_FOCUS="\[sig-network\].+\[Conformance\]|\[sig-windows\]"
@@ -79,6 +79,7 @@ Run K8s e2e community tests (Conformance & Network Policy) or Antrea e2e tests o
         --docker-user            Username for Docker account.
         --docker-password        Password for Docker account.
         --no-idps                Don't test Antrea IDPS (commercial release only).
+        --idps                   Test Antrea IDPS (commercial release only).
         --nsx-license            The NSX license to test Antrea IDPS (commercial release only)."
 
 function print_usage {
@@ -118,8 +119,8 @@ case $key in
     TESTBED_TYPE="$2"
     shift 2
     ;;
-    --no-idps) # Commercial release only.
-    RUN_IDPS=false
+    --idps) # Commercial release only.
+    RUN_IDPS=true
     shift
     ;;
     --nsx-license) # Commercial release only.
