@@ -78,9 +78,9 @@ cp -r "${OUTPUT_DIR}/manifests" "${PUBLISH_DIR}/${antrea_advanced_ipsec_delivera
 pushd "${PUBLISH_DIR}"
 zip --verbose -r "${antrea_advanced_ipsec_deliverables}.zip" "${antrea_advanced_ipsec_deliverables}"
 popd
-cp -r "${OUTPUT_DIR}/executables" "${PUBLISH_DIR}"
 
 echo "====== Cleanup Antrea IPsec Build Result ======"
 make clean
 rm -rf "${PUBLISH_DIR}/${antrea_advanced_ipsec_deliverables}"
-rm -rf "${OUTPUT_DIR}"
+rm -rf "${OUTPUT_DIR}/images"
+rm -f "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
