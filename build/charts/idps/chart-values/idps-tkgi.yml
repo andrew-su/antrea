@@ -1,4 +1,4 @@
 signatureProviders:
   ntics:
     # -- The value is used to identify current device when registering to NTICS, which is to be used by antrea-idps-controller Pods.
-    deviceType: Antrea-TKGI
+    deviceType: Antrea-TKGi

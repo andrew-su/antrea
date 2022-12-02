@@ -33,7 +33,7 @@ signatureProviders:
     # -- The interval to update the signature data, which is to be used by antrea-idps-controller Pods.
     syncInterval: 600
     # -- The value is used to identify current device when registering to NTICS, which is to be used by antrea-idps-controller Pods.
-    deviceType: Antrea-Kubernetes
+    deviceType: Antrea-Standalone
 
 agent:
   # -- Annotations to be added to antrea-idps-agent Pods.

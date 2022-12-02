@@ -54,7 +54,7 @@ data:
       syncInterval: 600
 
       # The value is used to identify current device when registering to NTICS.
-      deviceType: Antrea-Kubernetes
+      deviceType: Antrea-Standalone
   idps-suricata.home-network.yaml: |
     %YAML 1.1
     ---
@@ -396,7 +396,7 @@ spec:
         kubectl.kubernetes.io/default-container: antrea-idps-agent
         # Automatically restart Pods with a RollingUpdate if the ConfigMap changes
         # See https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
-        checksum/config: 6b5479795d72bea51b8b08651d0f31a96eed65b2ea88b978b31aee0f53359719
+        checksum/config: 617afa01b0f6458615994140b2880b27a018c48cbc4ee52ea21ff0da6ad9da97
       labels:
         app: antrea-idps
         component: antrea-idps-agent
@@ -570,7 +570,7 @@ spec:
       annotations:
         # Automatically restart Pod if the ConfigMap changes
         # See https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
-        checksum/config: 6b5479795d72bea51b8b08651d0f31a96eed65b2ea88b978b31aee0f53359719
+        checksum/config: 617afa01b0f6458615994140b2880b27a018c48cbc4ee52ea21ff0da6ad9da97
       labels:
         app: antrea-idps
         component: antrea-idps-controller
