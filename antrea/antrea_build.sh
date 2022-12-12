@@ -18,8 +18,8 @@ source "${PROJECT_DIR}/antrea_lib.sh"
 update_docker
 
 docker version
-docker pull nsx-ujo-docker-local.artifactory.eng.vmware.com/golang:1.17
-docker tag nsx-ujo-docker-local.artifactory.eng.vmware.com/golang:1.17 golang:1.17
+docker pull nsx-ujo-docker-local.artifactory.eng.vmware.com/golang:1.19
+docker tag nsx-ujo-docker-local.artifactory.eng.vmware.com/golang:1.19 golang:1.19
 
 echo "===== Building Antrea Target ${ANTREA_TARGET} ====="
 pushd "${REPO_ROOT}"

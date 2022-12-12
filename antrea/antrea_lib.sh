@@ -20,10 +20,13 @@ function fips_make() {
   GIT_SHA="$(git rev-parse --short HEAD)"
   ANTREA_VER=$(head -n 1 VERSION)
 
+  # antrea/src is a gitsubmodule, the .git file under is a text file containing a path to parent .git/modules/antrea/src.
+  # We don't map parent .git/modules/antrea/src to Golang container, so go build fails to get VCS information from .git.
+  # We add -buildvcs=false in GOFLAGS to disable this go build behavior.
   if [ $# -eq 0 ]; then
-    cmd="mkdir -p bin; go env -w CC='x86_64-linux-gnu-gcc'; GOOS=linux go build -o bin -ldflags ' -X ${ANTREA_DOMAIN}/pkg/version.Version=${ANTREA_VER} -X ${ANTREA_DOMAIN}/pkg/version.GitSHA=${GIT_SHA} -X ${ANTREA_DOMAIN}/pkg/version.GitTreeState=clean -X ${ANTREA_DOMAIN}/pkg/version.ReleaseStatus=unreleased' ${ANTREA_DOMAIN}/cmd/..."
+    cmd="mkdir -p bin; go env -w CC='x86_64-linux-gnu-gcc' GOFLAGS='-buildvcs=false' GOOS=linux; go build -o bin -ldflags ' -X ${ANTREA_DOMAIN}/pkg/version.Version=${ANTREA_VER} -X ${ANTREA_DOMAIN}/pkg/version.GitSHA=${GIT_SHA} -X ${ANTREA_DOMAIN}/pkg/version.GitTreeState=clean -X ${ANTREA_DOMAIN}/pkg/version.ReleaseStatus=unreleased' ${ANTREA_DOMAIN}/cmd/..."
   else
-    cmd="mkdir -p bin; go env -w CC='x86_64-linux-gnu-gcc'; GOOS=linux $1"
+    cmd="mkdir -p bin; go env -w CC='x86_64-linux-gnu-gcc' GOFLAGS='-buildvcs=false' GOOS=linux; $1"
   fi
 
 	docker run --rm -u $(id -u):$(id -g) \
@@ -37,7 +40,7 @@ function fips_make() {
 		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/pkg:/usr/local/go/pkg \
 		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/bin:/usr/local/go/bin \
 		-v ${REPO_ROOT}:/usr/src/${ANTREA_DOMAIN} \
-		golang:1.17 /bin/bash -c "${cmd}"
+		golang:1.19 /bin/bash -c "${cmd}"
   chmod -R 0755 bin
 }
 
@@ -95,7 +98,7 @@ function compile_e2e() {
   do
     image_name=${test_image}
     if [ "$image_name" = "multi-cluster" ]; then
-        fips_make "go test -c -v -x -o bin/e2e-${image_name}-${ANTREA_VERSION} ${ANTREA_DOMAIN}/multicluster/test/e2e"
+        fips_make "go test -c -v -o bin/e2e-${image_name}-${ANTREA_VERSION} ${ANTREA_DOMAIN}/multicluster/test/e2e"
         continue
     fi
     git checkout -f -- test
@@ -104,7 +107,7 @@ function compile_e2e() {
     else
       rm -f test/e2e/ipsec_test.go
     fi
-    fips_make "go test -c -v -x -o bin/e2e-${image_name}-${ANTREA_VERSION} ${ANTREA_DOMAIN}/test/e2e"
+    fips_make "go test -c -v -o bin/e2e-${image_name}-${ANTREA_VERSION} ${ANTREA_DOMAIN}/test/e2e"
   done
 
   # "${BUILDROOT}/output" will be published to lin64/antrea by antrea_defs.py:CaymanAntreaBuilderLin.install
@@ -145,7 +148,10 @@ function build_windows() {
   cp build/yamls/windows/base/conf/antrea-cni.conflist "${PUBLISH_DIR}/windows/etc/antrea-cni.conflist"
 
   mkdir -p "${PUBLISH_DIR}/windows/bin"
-  make docker-windows-bin
+  # antrea/src is a gitsubmodule, the .git file under is a text file containing a path to parent .git/modules/antrea/src.
+  # We don't map parent .git/modules/antrea/src to Golang container, so go build fails to get VCS information from .git.
+  # We add -buildvcs=false in GOFLAGS to disable this go build behavior.
+  make docker-windows-bin GOFLAGS="-buildvcs=false"
   cp bin/antrea-agent.exe "${PUBLISH_DIR}/windows/bin/antrea-agent.exe"
   cp bin/antrea-cni.exe "${PUBLISH_DIR}/windows/bin/antrea-cni.exe"
   cp bin/antctl.exe "${PUBLISH_DIR}/windows/bin/antctl.exe"
@@ -160,8 +166,8 @@ function build_windows() {
   cp "${DownloadDir}/cni-plugins-windows/host-local.exe" "${PUBLISH_DIR}/windows/bin/host-local.exe"
 
   cp hack/windows/Helper.psm1 "${PUBLISH_DIR}/windows/Helper.psm1"
-  cp hack/windows/Start.ps1 "${PUBLISH_DIR}/windows/Start.ps1"
-  cp hack/windows/Stop.ps1 "${PUBLISH_DIR}/windows/Stop.ps1"
+  cp hack/windows/Start-AntreaAgent.ps1 "${PUBLISH_DIR}/windows/Start-AntreaAgent.ps1"
+  cp hack/windows/Stop-AntreaAgent.ps1 "${PUBLISH_DIR}/windows/Stop-AntreaAgent.ps1"
   cp hack/windows/Install-OVS.ps1 "${PUBLISH_DIR}/windows/Install-OVS.ps1"
   cp hack/windows/Clean-AntreaNetwork.ps1 "${PUBLISH_DIR}/windows/Clean-AntreaNetwork.ps1"
 

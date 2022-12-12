@@ -22,7 +22,7 @@ CAYMAN_OPENSSL_HOSTTYPES = {
 }
 
 CSC_PHOTON_BRANCH = "photon3-vmw-updates"
-CSC_PHOTON_CLN = "10085085"
+CSC_PHOTON_CLN = "10662627"
 CSC_PHOTON_BUILDTYPE = 'release'
 CSC_PHOTON_FILES = {
     LINUX_HOSTTYPE: ["publish/docker-image/photon-rootfs.tar.gz",
@@ -37,8 +37,8 @@ CAYMAN_CNI_PLUGINS_FILES = {
         "publish/lin64/cni_plugins/executables/.*"]
 }
 
-CAYMAN_GO_BRANCH = "vmware-go1.17-boringcrypto"
-CAYMAN_GO_CLN = "28faccb7865799238a3690f6f6cd1112d202b933"
+CAYMAN_GO_BRANCH = "vmware-go1.19-boringcrypto"
+CAYMAN_GO_CLN = "4e80abb739129ed17b478d54b0c6b67838b6a28c"
 CAYMAN_GO_BUILDTYPE = "release"
 CAYMAN_GO_FILES = {
     LINUX_HOSTTYPE: [

@@ -53,7 +53,7 @@ mkdir -p "${OUTPUT_DIR}/manifests"
 MANIFESTS_DIR=$(mktemp -d)
 IMG_NAME=antrea/antrea-advanced-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
 IMG_NAME=antrea/flow-aggregator-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest-flow-aggregator.sh --mode release > "${MANIFESTS_DIR}/flow-aggregator.yml"
-IMG_NAME=antrea/antrea-advanced-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --flow-exporter --extra-helm-values-file "${REPO_ROOT}/ci/kind/values-flow-exporter.yml" --mode release > "${MANIFESTS_DIR}"/antrea-flow-visibility-test.yml
+IMG_NAME=antrea/antrea-advanced-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --feature-gates FlowExporter=true --extra-helm-values-file "${REPO_ROOT}/ci/kind/values-flow-exporter.yml" --mode release > "${MANIFESTS_DIR}"/antrea-flow-visibility-test.yml
 cp ${MANIFESTS_DIR}/antrea-advanced.yml "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
 cp ${MANIFESTS_DIR}/antrea-advanced-fips.yml "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml"
 cp ${MANIFESTS_DIR}/flow-aggregator.yml "${OUTPUT_DIR}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
