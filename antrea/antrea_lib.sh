@@ -214,3 +214,21 @@ function build_windows() {
   mv "${PUBLISH_DIR}/windows" "${PUBLISH_DIR}/windows-${antrea_deliverable_kind}"
   rm -rf bin
 }
+
+function prepare_whereabouts_tgz() {
+  # docker volume source cannot be just "."
+  local dest_dir="$(readlink -f $1)"
+  local whereabouts_basename="$(basename "$(ls ${GOBUILD_CAYMAN_WHEREABOUTS_ROOT}/lin64/whereabouts/images/whereabouts-*.tar.gz | head -1)" .tar.gz)"
+  local whereabouts_version="$(echo "${whereabouts_basename}" | awk -F- '{print $2}')"
+
+  docker load -i ${GOBUILD_CAYMAN_WHEREABOUTS_ROOT}/lin64/whereabouts/images/whereabouts-*.tar.gz
+  docker run --rm -u $(id -u):$(id -g) \
+    -v "${dest_dir}:/tmp/copy-whereabouts/" \
+    --entrypoint "" \
+    "vmware.io/whereabouts:${whereabouts_version}" \
+    cp -f /whereabouts /tmp/copy-whereabouts/
+
+  cd ${dest_dir}
+  tar -zcf "whereabouts-${whereabouts_version}.tar.gz" whereabouts
+  rm -f whereabouts
+}

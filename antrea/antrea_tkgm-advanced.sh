@@ -27,7 +27,7 @@ docker build -f Dockerfile.debian --build-arg OVS_VERSION=${OVS_VER} -t antrea/o
 popd
 
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
-cp ${GOBUILD_CAYMAN_WHEREABOUTS_ROOT}/lin64/whereabouts/images/whereabouts-*.tar.gz .
+prepare_whereabouts_tgz .
 echo "====== Building antrea-debian Image ======"
 make debian VERSION=${IMAGE_VERSION}
 

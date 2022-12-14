@@ -27,7 +27,7 @@ popd
 
 echo "====== Building Binaries for Antrea Standard Product ======"
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
-cp ${GOBUILD_CAYMAN_WHEREABOUTS_ROOT}/lin64/whereabouts/images/whereabouts-*.tar.gz .
+prepare_whereabouts_tgz .
 echo "====== Building Debian TKGm standard Images ======"
 make debian VERSION=${IMAGE_VERSION}
 make flow-aggregator-image-debian VERSION=${IMAGE_VERSION}
