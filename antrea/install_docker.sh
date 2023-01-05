@@ -50,7 +50,7 @@ echo "Added yum repos from artifactory."
 
 # Installing docker
 # Newer docker version + containerd version doesn't work in build slave
-yum install -y docker-ce-18.09.5 docker-ce-cli-18.09.5 containerd.io-1.2.5
+yum install -y docker-ce-20.10.9 docker-ce-cli-20.10.9 containerd.io-1.6.9
 #groupadd docker
 /usr/sbin/usermod -aG docker mts
 /usr/sbin/service docker restart
@@ -76,6 +76,7 @@ sysctl net.ipv4.conf.all.forwarding=1
 sysctl net.ipv4.conf.docker0.forwarding=1
 sysctl net.ipv4.conf.default.forwarding=1
 iptables -I FORWARD -j ACCEPT
+ip link set docker0 promisc on
 echo "*********"
 echo "*********"
 echo "*********"
