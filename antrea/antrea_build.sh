@@ -26,4 +26,7 @@ pushd "${REPO_ROOT}"
 source "${PROJECT_DIR}/antrea_${ANTREA_TARGET}.sh"
 popd
 
+DOCKER_STORAGE_DIR="${BUILDROOT}/docker"
+systemctl stop docker
+rm -rf ${DOCKER_STORAGE_DIR}
 echo "****** antrea_build.sh end ******"
