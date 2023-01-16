@@ -104,10 +104,10 @@ pushd "${PUBLISH_DIR}"
 zip --verbose -r "${antrea_ubi_ipsec_deliverables}.zip" "${antrea_ubi_ipsec_deliverables}"
 popd
 
-cp -r "${OUTPUT_DIR}/executables" "${PUBLISH_DIR}"
-
 echo "====== Cleanup Antrea IPsec Build Result ======"
 make clean
 rm -rf "${PUBLISH_DIR}/${antrea_advanced_ipsec_deliverables}"
+rm -rf "${PUBLISH_DIR}/${antrea_ubi_ipsec_deliverables}"
 rm -rf "${OUTPUT_DIR}/images"
-rm -f "${OUTPUT_DIR}/manifests/antrea-ipsec-${BINARY_VERSION}.yml"
+rm -f ${OUTPUT_DIR}/manifests/antrea*.yml
+rm -f ${OUTPUT_DIR}/executables/*-checksums.txt ${OUTPUT_DIR}/executables/*-checksums.txt.asc
