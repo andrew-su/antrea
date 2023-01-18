@@ -4,7 +4,7 @@ set -xe
 # https://confluence.eng.vmware.com/display/OSMUserGuide/VM+%28vApp+Virtual+Machines%29+or+Containers?src=contextnavpagetreemode
 # https://confluence.eng.vmware.com/display/CNA/Cascade+OSSTP
 
-RELEASE_VERSION=1.5.0
+RELEASE_VERSION=1.6.0
 
 echo Scann OS packages for Antrea commercial release $RELEASE_VERSION
 
@@ -26,7 +26,7 @@ deb-src http://build-artifactory.eng.vmware.com/debian-security-remote buster/up
 EOF
 apt update
 # Mannually install if failed
-DEBIAN_FRONTEND="noninteractive" apt install -y --no-install-recommends vim unzip rpm gawk curl wget git || true
+DEBIAN_FRONTEND="noninteractive" apt install -y --no-install-recommends vim ca-certificates unzip rpm gawk curl wget git || true
 
 mkdir -p osstpclients
 cd osstpclients

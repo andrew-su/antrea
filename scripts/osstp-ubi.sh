@@ -4,7 +4,7 @@ set -xe
 # https://confluence.eng.vmware.com/display/OSMUserGuide/VM+%28vApp+Virtual+Machines%29+or+Containers?src=contextnavpagetreemode
 # https://confluence.eng.vmware.com/display/CNA/Cascade+OSSTP
 
-RELEASE_VERSION=1.5.0
+RELEASE_VERSION=1.6.0
 
 echo Scann OS packages for Antrea commercial release $RELEASE_VERSION
 
@@ -58,27 +58,31 @@ baseurl=https://build-artifactory.eng.vmware.com/artifactory/centos-remote/8/Pow
 gpgcheck=0
 enabled=1
 
-[ubi-8-baseos-source]
-name = Red Hat Universal Base Image 8 (Source RPMs) - BaseOS
-baseurl = https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi8/8/x86_64/baseos/source/SRPMS
+[Appstream-source]
+name= Centos 8 stream (Source RPMs) - Appstream-source
+baseurl = http://vault.centos.org/8-stream/AppStream/Source/
 enabled = 1
-gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-gpgcheck = 1
+gpgcheck = 0
 
-[ubi-8-appstream-source]
-name = Red Hat Universal Base Image 8 (Source RPMs) - AppStream
-baseurl = https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi8/8/x86_64/appstream/source/SRPMS
+
+[BaseOS-source]
+name= Centos 8 stream (Source RPMs) - BaseOS-source
+baseurl = http://vault.centos.org/8-stream/BaseOS/Source/
 enabled = 1
-gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-gpgcheck = 1
+gpgcheck = 0
 
-[ubi-8-codeready-builder-source]
-name = Red Hat Universal Base Image 8 (Source RPMs) - CodeReady Builder
-baseurl = https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi8/8/x86_64/codeready-builder/source/SRPMS
+[extras-source]
+name= Centos 8 stream (Source RPMs) - extras-source
+baseurl = http://vault.centos.org/8-stream/extras/Source/
 enabled = 1
-gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-gpgcheck = 1
+gpgcheck = 0
 
+
+[powertools-source]
+name= Centos 8 stream (Source RPMs) - powertools-source
+baseurl = http://vault.centos.org/8-stream/PowerTools/Source/
+enabled = 1
+gpgcheck = 0
 EOF
 curl https://www.centos.org/keys/RPM-GPG-KEY-CentOS-Official -o /etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial
 # if ubi base image is ubi-minimal, there would be no subscription-manager and yum installed
