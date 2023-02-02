@@ -48,6 +48,8 @@ import (
 	"antrea.io/antrea/pkg/apiserver/storage"
 	crdinformers "antrea.io/antrea/pkg/client/informers/externalversions"
 	crdv1a2informers "antrea.io/antrea/pkg/client/informers/externalversions/crd/v1alpha2"
+	"antrea.io/antrea/pkg/cloudprovider"
+	"antrea.io/antrea/pkg/cloudprovider/factory"
 	"antrea.io/antrea/pkg/clusteridentity"
 	"antrea.io/antrea/pkg/controller/certificatesigningrequest"
 	"antrea.io/antrea/pkg/controller/egress"
@@ -232,6 +234,7 @@ func run(o *Options) error {
 	controllerMonitor := monitor.NewControllerMonitor(crdClient, nodeInformer, externalNodeInformer, controllerQuerier, externalNodeEnabled)
 
 	var egressController *egress.EgressController
+	var egressCloudController *egress.EgressCloudController
 	var externalIPPoolController *externalippool.ExternalIPPoolController
 	var externalIPController *serviceexternalip.ServiceExternalIPController
 	if features.DefaultFeatureGate.Enabled(features.Egress) || features.DefaultFeatureGate.Enabled(features.ServiceExternalIP) {
@@ -256,8 +259,22 @@ func run(o *Options) error {
 		csrSigningController = certificatesigningrequest.NewIPsecCSRSigningController(client, csrInformer, csrLister, *o.config.IPsecCSRSignerConfig.SelfSignedCA)
 	}
 
+	var cloudProvider cloudprovider.Interface
+	if o.config.CloudProvider.Name != "" {
+		cloudProvider, err = factory.InitCloudProvider(o.config.CloudProvider.Name)
+		if err != nil {
+			return fmt.Errorf("error initializing cloud provider: %v", err)
+		}
+	}
+
 	if features.DefaultFeatureGate.Enabled(features.Egress) {
 		egressController = egress.NewEgressController(crdClient, groupEntityIndex, egressInformer, externalIPPoolController, egressGroupStore)
+		if o.config.CloudProvider.Name != "" {
+			egressCloudController, err = egress.NewEgressCloudController(client, egressInformer, nodeInformer, cloudProvider)
+			if err != nil {
+				return fmt.Errorf("error initializing Egress cloud controller: %v", err)
+			}
+		}
 	}
 
 	if features.DefaultFeatureGate.Enabled(features.ServiceExternalIP) {
@@ -430,6 +447,9 @@ func run(o *Options) error {
 
 	if features.DefaultFeatureGate.Enabled(features.Egress) {
 		go egressController.Run(stopCh)
+		if o.config.CloudProvider.Name != "" {
+			go egressCloudController.Run(stopCh)
+		}
 	}
 
 	if features.DefaultFeatureGate.Enabled(features.ServiceExternalIP) {

@@ -411,7 +411,7 @@ func (c *EgressController) processPodUpdate(e interface{}) {
 // addEgress processes Egress ADD events.
 func (c *EgressController) addEgress(obj interface{}) {
 	egress := obj.(*crdv1b1.Egress)
-	if egress.Spec.EgressIP == "" {
+	if egress.Spec.EgressIP == "" && len(egress.Spec.EgressIPs) == 0 {
 		return
 	}
 	c.queue.Add(egress.Name)
@@ -1026,7 +1026,11 @@ func (c *EgressController) syncEgress(egressName string) error {
 			scheduleErr = err
 		}
 	} else {
+		// Set EgressIP as desiredEgressIP If user defines the EgressIP, otherwise choose the first item in EgressIPs.
 		desiredEgressIP = egress.Spec.EgressIP
+		if desiredEgressIP == "" && len(egress.Spec.EgressIPs) > 0 {
+			desiredEgressIP = egress.Spec.EgressIPs[0]
+		}
 	}
 
 	eState, exist := c.getEgressState(egressName)
@@ -1395,7 +1399,7 @@ func (c *EgressController) GetEgress(ns, podName string) (string, string, string
 
 // An Egress is schedulable if its Egress IP is allocated from ExternalIPPool.
 func isEgressSchedulable(egress *crdv1b1.Egress) bool {
-	return egress.Spec.EgressIP != "" && egress.Spec.ExternalIPPool != ""
+	return (egress.Spec.EgressIP != "" && egress.Spec.ExternalIPPool != "") || (len(egress.Spec.EgressIPs) > 0 && len(egress.Spec.ExternalIPPools) > 0)
 }
 
 // compareEgressStatus compares two Egress Statuses, ignoring LastTransitionTime and conditions other than IPAssigned, returns true if they are equal.

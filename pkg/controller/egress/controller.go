@@ -36,6 +36,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"antrea.io/antrea/pkg/apis/controlplane"
+	"antrea.io/antrea/pkg/apis/crd/v1beta1"
 	egressv1beta1 "antrea.io/antrea/pkg/apis/crd/v1beta1"
 	"antrea.io/antrea/pkg/apiserver/storage"
 	clientset "antrea.io/antrea/pkg/client/clientset/versioned"
@@ -62,11 +63,8 @@ const (
 	externalIPPoolIndex = "externalIPPool"
 )
 
-// ipAllocation contains the IP and the IP Pool which allocates it.
-type ipAllocation struct {
-	ip     net.IP
-	ipPool string
-}
+// ipAllocation contains a map of IPPool and IP string: <the IP Pool which allocates the IP>:<the IP>.
+type ipAllocation map[string]string
 
 // EgressController is responsible for synchronizing the EgressGroups selected by Egresses.
 type EgressController struct {
@@ -76,7 +74,7 @@ type EgressController struct {
 
 	// ipAllocationMap is a map from Egress name to ipAllocation, which is used to check whether the Egress's IP has
 	// changed and to release the IP after the Egress is removed.
-	ipAllocationMap   map[string]*ipAllocation
+	ipAllocationMap   map[string]ipAllocation
 	ipAllocationMutex sync.RWMutex
 
 	egressInformer egressinformers.EgressInformer
@@ -115,7 +113,7 @@ func NewEgressController(crdClient clientset.Interface,
 		),
 		groupingInterface:       groupingInterface,
 		groupingInterfaceSynced: groupingInterface.HasSynced,
-		ipAllocationMap:         map[string]*ipAllocation{},
+		ipAllocationMap:         make(map[string]ipAllocation),
 		externalIPAllocator:     externalIPAllocator,
 	}
 	// Add handlers for Group events and Egress events.
@@ -174,20 +172,34 @@ func (c *EgressController) Run(stopCh <-chan struct{}) {
 func (c *EgressController) restoreIPAllocations(egresses []*egressv1beta1.Egress) {
 	var previousIPAllocations []externalippool.IPAllocation
 	for _, egress := range egresses {
-		// Ignore Egress that is not associated to ExternalIPPool or doesn't have EgressIP assigned.
-		if egress.Spec.ExternalIPPool == "" || egress.Spec.EgressIP == "" {
-			continue
+		restorePoolIPs := make(map[string]string)
+		if egress.Spec.ExternalIPPool != "" {
+			restorePoolIPs[egress.Spec.ExternalIPPool] = egress.Spec.EgressIP
+		} else {
+			for i, pool := range egress.Spec.ExternalIPPools {
+				if len(egress.Spec.EgressIPs) <= i {
+					break
+				}
+				egressIP := egress.Spec.EgressIPs[i]
+				restorePoolIPs[pool] = egressIP
+			}
 		}
-		ip := net.ParseIP(egress.Spec.EgressIP)
-		allocation := externalippool.IPAllocation{
-			ObjectReference: v1.ObjectReference{
-				Name: egress.Name,
-				Kind: egress.Kind,
-			},
-			IPPoolName: egress.Spec.ExternalIPPool,
-			IP:         ip,
+		for pool, ipStr := range restorePoolIPs {
+			// Ignore Egress that is not associated to ExternalIPPool or doesn't have EgressIP assigned.
+			if ipStr == "" {
+				continue
+			}
+			ip := net.ParseIP(ipStr)
+			allocation := externalippool.IPAllocation{
+				ObjectReference: v1.ObjectReference{
+					Name: egress.Name,
+					Kind: egress.Kind,
+				},
+				IPPoolName: pool,
+				IP:         ip,
+			}
+			previousIPAllocations = append(previousIPAllocations, allocation)
 		}
-		previousIPAllocations = append(previousIPAllocations, allocation)
 	}
 	succeededAllocations := c.externalIPAllocator.RestoreIPAllocations(previousIPAllocations)
 	for _, alloc := range succeededAllocations {
@@ -220,110 +232,139 @@ func (c *EgressController) processNextEgressGroupWorkItem() bool {
 	return true
 }
 
-func (c *EgressController) getIPAllocation(egressName string) (net.IP, string, bool) {
+func (c *EgressController) getIPAllocation(egressName string) ipAllocation {
 	c.ipAllocationMutex.RLock()
 	defer c.ipAllocationMutex.RUnlock()
-	allocation, exists := c.ipAllocationMap[egressName]
-	if !exists {
-		return nil, "", false
-	}
-	return allocation.ip, allocation.ipPool, true
+	return c.ipAllocationMap[egressName]
 }
 
-func (c *EgressController) deleteIPAllocation(egressName string) {
+func (c *EgressController) deleteIPAllocation(egressName, poolName string) {
 	c.ipAllocationMutex.Lock()
 	defer c.ipAllocationMutex.Unlock()
-	delete(c.ipAllocationMap, egressName)
+	delete(c.ipAllocationMap[egressName], poolName)
+	if len(c.ipAllocationMap[egressName]) == 0 {
+		delete(c.ipAllocationMap, egressName)
+	}
 }
 
 func (c *EgressController) setIPAllocation(egressName string, ip net.IP, poolName string) {
 	c.ipAllocationMutex.Lock()
 	defer c.ipAllocationMutex.Unlock()
-	c.ipAllocationMap[egressName] = &ipAllocation{
-		ip:     ip,
-		ipPool: poolName,
+	ipAllocations := c.ipAllocationMap[egressName]
+	if ipAllocations == nil {
+		ipAllocations = make(map[string]string)
+		c.ipAllocationMap[egressName] = ipAllocations
 	}
+	ipAllocations[poolName] = ip.String()
 }
 
-// syncEgressIP is responsible for releasing stale EgressIP and allocating new EgressIP for an Egress if applicable.
-func (c *EgressController) syncEgressIP(egress *egressv1beta1.Egress) (net.IP, *egressv1beta1.Egress, error) {
-	prevIP, prevIPPool, exists := c.getIPAllocation(egress.Name)
-	if exists {
-		// The EgressIP and the ExternalIPPool haven't changed.
-		if prevIP.String() == egress.Spec.EgressIP && prevIPPool == egress.Spec.ExternalIPPool {
-			// If the EgressIP is still valid for the ExternalIPPool, nothing needs to be done.
-			if c.externalIPAllocator.IPPoolHasIP(prevIPPool, prevIP) {
-				return prevIP, egress, nil
+func (c *EgressController) syncEgressIP(egress *egressv1beta1.Egress) (*egressv1beta1.Egress, error) {
+	// specEgressIPs tracks EgressIPs that should be updated to the Egress's spec.
+	specEgressIPs := make(map[string]string)
+	if egress.Spec.ExternalIPPool != "" {
+		specEgressIPs[egress.Spec.ExternalIPPool] = egress.Spec.EgressIP
+	} else {
+		for i, eip := range egress.Spec.ExternalIPPools {
+			if len(egress.Spec.EgressIPs) > i {
+				specEgressIPs[eip] = egress.Spec.EgressIPs[i]
+			} else {
+				specEgressIPs[eip] = ""
+			}
+		}
+	}
+
+	poolsToAllocate := sets.StringKeySet(specEgressIPs)
+	for prevIPPool, prevIP := range c.getIPAllocation(egress.Name) {
+		specEgressIP, exists := specEgressIPs[prevIPPool]
+		if exists && (specEgressIP == "" || specEgressIP == prevIP) {
+			if c.externalIPAllocator.IPPoolHasIP(prevIPPool, net.ParseIP(prevIP)) {
+				poolsToAllocate.Delete(prevIPPool)
+				// Reuse previously allocated IP.
+				specEgressIPs[prevIPPool] = prevIP
+				continue
 			}
 			// The ExternalIPPool may no longer exist, or the IP is not in range.
-			// Reclaim the IP from the Egress API.
-			klog.InfoS("Allocated EgressIP is no longer part of ExternalIPPool, releasing it", "egress", klog.KObj(egress), "ip", egress.Spec.EgressIP, "pool", egress.Spec.ExternalIPPool)
-			if updatedEgress, err := c.updateEgressIP(egress, ""); err != nil {
-				return nil, egress, err
-			} else {
-				egress = updatedEgress
-			}
+			specEgressIPs[prevIPPool] = ""
 		}
-		// Either EgressIP or ExternalIPPool changes, release the previous one first.
-		c.releaseEgressIP(egress.Name, prevIP, prevIPPool)
+		// The ExternalIPPool may no longer exist, or the IP is not in range.
+		// Release the previous allocation if any of the following happens:
+		// 1. The pool is not in the spec of the Egress.
+		// 2. The desired EgressIP is set and doesn't match the previous IP.
+		// 3. The pool no longer exists.
+		// 4. The IP is not in the range of the pool.
+		c.releaseEgressIP(egress.Name, net.ParseIP(prevIP), prevIPPool)
 	}
 
-	// Skip allocating EgressIP if ExternalIPPool is not specified and return whatever user specifies.
-	if egress.Spec.ExternalIPPool == "" {
-		return net.ParseIP(egress.Spec.EgressIP), egress, nil
+	// No need to update the Egress if no pool is set.
+	if egress.Spec.ExternalIPPool == "" && len(egress.Spec.ExternalIPPools) == 0 {
+		return egress, nil
 	}
 
-	if !c.externalIPAllocator.IPPoolExists(egress.Spec.ExternalIPPool) {
-		// The IP pool has been deleted, reclaim the IP from the Egress API.
-		if egress.Spec.EgressIP != "" {
-			if updatedEgress, err := c.updateEgressIP(egress, ""); err != nil {
-				return nil, egress, err
-			} else {
-				egress = updatedEgress
+	succeed := false
+	for eip := range poolsToAllocate {
+		specEgressIP := specEgressIPs[eip]
+		var ip net.IP
+		if specEgressIP != "" {
+			ip = net.ParseIP(specEgressIP)
+			if err := c.externalIPAllocator.UpdateIPAllocation(eip, ip); err != nil {
+				klog.ErrorS(err, "Error when allocating specific IP for Egress From ExternalIPPool", "externalIPPool", eip, "egressIP", specEgressIP, "egress", klog.KObj(egress))
+				if err == externalippool.ErrExternalIPPoolNotFound {
+					// Reclaim the IP from the Egress API.
+					specEgressIPs[eip] = ""
+				}
+				continue
 			}
-		}
-		return nil, egress, fmt.Errorf("ExternalIPPool %s does not exist", egress.Spec.ExternalIPPool)
-	}
-
-	var ip net.IP
-	// User specifies the Egress IP, try to allocate it. If it fails, the datapath may still work, we just don't track
-	// the IP allocation so deleting this Egress won't release the IP to the Pool.
-	// TODO: Use validation webhook to ensure the requested IP matches the pool.
-	if egress.Spec.EgressIP != "" {
-		ip = net.ParseIP(egress.Spec.EgressIP)
-		if err := c.externalIPAllocator.UpdateIPAllocation(egress.Spec.ExternalIPPool, ip); err != nil {
-			return nil, egress, fmt.Errorf("error when allocating IP %v for Egress %s from ExternalIPPool %s: %v", ip, egress.Name, egress.Spec.ExternalIPPool, err)
-		}
-	} else {
-		var err error
-		// User doesn't specify the Egress IP, allocate one.
-		if ip, err = c.externalIPAllocator.AllocateIPFromPool(egress.Spec.ExternalIPPool); err != nil {
-			return nil, egress, err
-		}
-		if updatedEgress, err := c.updateEgressIP(egress, ip.String()); err != nil {
-			if rerr := c.externalIPAllocator.ReleaseIP(egress.Spec.ExternalIPPool, ip); rerr != nil &&
-				rerr != externalippool.ErrExternalIPPoolNotFound {
-				klog.ErrorS(rerr, "Failed to release IP", "ip", ip, "pool", egress.Spec.ExternalIPPool)
-			}
-			return nil, egress, err
 		} else {
-			egress = updatedEgress
+			var err error
+			// User doesn't specify the Egress IP, allocate one.
+			if ip, err = c.externalIPAllocator.AllocateIPFromPool(eip); err != nil {
+				klog.ErrorS(err, "Error when allocating an IP for Egress from ExternalIPPool", "externalIPPool", eip, "egress", klog.KObj(egress))
+				continue
+			}
+			// Claim the IP from the Egress API.
+			specEgressIPs[eip] = ip.String()
 		}
+		c.setIPAllocation(egress.Name, ip, eip)
+		defer func() {
+			if !succeed {
+				c.releaseEgressIP(egress.Name, ip, eip)
+			}
+		}()
 	}
-	c.setIPAllocation(egress.Name, ip, egress.Spec.ExternalIPPool)
-	klog.InfoS("Allocated EgressIP", "egress", egress.Name, "ip", ip, "pool", egress.Spec.ExternalIPPool)
-	return ip, egress, nil
+
+	updatedEgress, err := c.updateEgressIP(egress, specEgressIPs)
+	if err != nil {
+		return egress, err
+	} else {
+		egress = updatedEgress
+	}
+	succeed = true
+	return egress, nil
 }
 
-// updateEgressIP updates the Egress's EgressIP in Kubernetes API.
-func (c *EgressController) updateEgressIP(egress *egressv1beta1.Egress, ip string) (*egressv1beta1.Egress, error) {
+// updateEgressIP updates the Egress's EgressIP/EgressIPs in Kubernetes API.
+func (c *EgressController) updateEgressIP(egress *egressv1beta1.Egress, ips map[string]string) (*v1beta1.Egress, error) {
 	var egressIPPtr *string
-	if len(ip) > 0 {
-		egressIPPtr = &ip
+	var egressIP string
+	var egressIPs []string
+	if egress.Spec.ExternalIPPool != "" {
+		egressIP = ips[egress.Spec.ExternalIPPool]
+		if egressIP != "" {
+			egressIPPtr = &egressIP
+		}
+	} else {
+		for _, eip := range egress.Spec.ExternalIPPools {
+			ip := ips[eip]
+			egressIPs = append(egressIPs, ip)
+		}
+	}
+	if egressIP == egress.Spec.EgressIP && reflect.DeepEqual(egressIPs, egress.Spec.EgressIPs) {
+		return egress, nil
 	}
 	patch := map[string]interface{}{
-		"spec": map[string]*string{
-			"egressIP": egressIPPtr,
+		"spec": map[string]interface{}{
+			"egressIP":  egressIPPtr,
+			"egressIPs": egressIPs,
 		},
 	}
 	patchBytes, _ := json.Marshal(patch)
@@ -351,7 +392,7 @@ func (c *EgressController) releaseEgressIP(egressName string, egressIP net.IP, p
 	} else {
 		klog.InfoS("Released EgressIP", "egress", egressName, "ip", egressIP, "pool", poolName)
 	}
-	c.deleteIPAllocation(egressName)
+	c.deleteIPAllocation(egressName, poolName)
 }
 
 func (c *EgressController) syncEgress(key string) error {
@@ -364,13 +405,13 @@ func (c *EgressController) syncEgress(key string) error {
 	egress, err := c.egressLister.Get(key)
 	if err != nil {
 		// The Egress has been deleted, release its EgressIP if there was one.
-		if prevIP, prevIPPool, exists := c.getIPAllocation(key); exists {
-			c.releaseEgressIP(key, prevIP, prevIPPool)
+		for pool, ip := range c.getIPAllocation(key) {
+			c.releaseEgressIP(key, net.ParseIP(ip), pool)
 		}
 		return nil
 	}
 
-	_, egress, err = c.syncEgressIP(egress)
+	egress, err = c.syncEgressIP(egress)
 	c.updateEgressAllocatedCondition(egress, err)
 	if err != nil {
 		return err

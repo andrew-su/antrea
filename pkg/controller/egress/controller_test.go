@@ -17,8 +17,9 @@ package egress
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"net"
+	"reflect"
 	"testing"
 	"time"
 
@@ -39,13 +40,13 @@ import (
 
 	"antrea.io/antrea/pkg/apis/controlplane"
 	"antrea.io/antrea/pkg/apis/crd/v1beta1"
-	"antrea.io/antrea/pkg/client/clientset/versioned"
 	fakeversioned "antrea.io/antrea/pkg/client/clientset/versioned/fake"
 	crdinformers "antrea.io/antrea/pkg/client/informers/externalversions"
 	"antrea.io/antrea/pkg/controller/egress/store"
 	"antrea.io/antrea/pkg/controller/externalippool"
 	"antrea.io/antrea/pkg/controller/grouping"
 	"antrea.io/antrea/pkg/util/k8s"
+	cgtesting "k8s.io/client-go/testing"
 )
 
 var (
@@ -81,6 +82,13 @@ func newEgress(name, egressIP, externalIPPool string, podSelector, namespaceSele
 			Bandwidth:      bandwidth,
 		},
 	}
+	return egress
+}
+
+func newEgressWithMultiExternalIPPools(name, egressIP, externalIPPool string, egressIPs, externalIPPools []string, podSelector, namespaceSelector *metav1.LabelSelector) *v1beta1.Egress {
+	egress := newEgress(name, egressIP, externalIPPool, podSelector, namespaceSelector, nil)
+	egress.Spec.EgressIPs = egressIPs
+	egress.Spec.ExternalIPPools = externalIPPools
 	return egress
 }
 
@@ -130,7 +138,7 @@ func newPod(namespace, name string, labels map[string]string, nodeName string, i
 type egressController struct {
 	*EgressController
 	client              kubernetes.Interface
-	crdClient           versioned.Interface
+	crdClient           *fakeversioned.Clientset
 	informerFactory     informers.SharedInformerFactory
 	crdInformerFactory  crdinformers.SharedInformerFactory
 	groupingController  *grouping.GroupEntityController
@@ -212,6 +220,7 @@ func TestAddEgress(t *testing.T) {
 		name                 string
 		inputEgress          *v1beta1.Egress
 		expectedEgressIP     string
+		expectedEgressIPs    []string
 		expectedEgressGroups map[string]*controlplane.EgressGroup
 	}{
 		{
@@ -345,6 +354,42 @@ func TestAddEgress(t *testing.T) {
 				node3: nil,
 			},
 		},
+		{
+			name: "Egress with multiple ExternalIPPool",
+			inputEgress: &v1beta1.Egress{
+				ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+				Spec: v1beta1.EgressSpec{
+					AppliedTo: v1beta1.AppliedTo{
+						PodSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app": "foo"},
+						},
+					},
+					EgressIP:        "",
+					ExternalIPPool:  "",
+					EgressIPs:       []string{},
+					ExternalIPPools: []string{eipFoo2.Name, eipFoo1.Name},
+				},
+			},
+			expectedEgressIP:  "",
+			expectedEgressIPs: []string{"2.2.2.10", "1.1.1.1"},
+			expectedEgressGroups: map[string]*controlplane.EgressGroup{
+				node1: {
+					ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+					GroupMembers: []controlplane.GroupMember{
+						{Pod: &controlplane.PodReference{Name: podFoo1.Name, Namespace: podFoo1.Namespace}},
+						{Pod: &controlplane.PodReference{Name: podFoo1InOtherNamespace.Name, Namespace: podFoo1InOtherNamespace.Namespace}},
+						{Pod: &controlplane.PodReference{Name: podNonIP.Name, Namespace: podNonIP.Namespace}},
+					},
+				},
+				node2: {
+					ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+					GroupMembers: []controlplane.GroupMember{
+						{Pod: &controlplane.PodReference{Name: podFoo2.Name, Namespace: podFoo2.Namespace}},
+					},
+				},
+				node3: nil,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -355,6 +400,7 @@ func TestAddEgress(t *testing.T) {
 			fakeObjects = append(fakeObjects, podFoo1, podFoo2, podBar1, podFoo1InOtherNamespace, podUnscheduled, podNonIP, podWithHostNetwork, podSucceeded, podFailed)
 			var fakeCRDObjects []runtime.Object
 			fakeCRDObjects = append(fakeCRDObjects, eipFoo1)
+			fakeCRDObjects = append(fakeCRDObjects, eipFoo2)
 			controller := newController(fakeObjects, fakeCRDObjects)
 			controller.informerFactory.Start(stopCh)
 			controller.crdInformerFactory.Start(stopCh)
@@ -398,6 +444,7 @@ func TestAddEgress(t *testing.T) {
 			gotEgress, err := controller.crdClient.CrdV1beta1().Egresses().Get(context.TODO(), tt.inputEgress.Name, metav1.GetOptions{})
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectedEgressIP, gotEgress.Spec.EgressIP)
+			assert.Equal(t, tt.expectedEgressIPs, gotEgress.Spec.EgressIPs)
 			if gotEgress.Spec.ExternalIPPool != "" && gotEgress.Spec.EgressIP != "" {
 				checkExternalIPPoolUsed(t, controller, gotEgress.Spec.ExternalIPPool, 1)
 			}
@@ -460,6 +507,15 @@ func TestUpdateEgress(t *testing.T) {
 		return egress.Spec.EgressIP
 	}
 
+	gotEgressIPs := func() []string {
+		var err error
+		egress, err = controller.crdClient.CrdV1beta1().Egresses().Get(context.TODO(), egress.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil
+		}
+		return egress.Spec.EgressIPs
+	}
+
 	assert.Equal(t, &watch.Event{
 		Type: watch.Added,
 		Object: &controlplane.EgressGroup{
@@ -518,8 +574,8 @@ func TestUpdateEgress(t *testing.T) {
 	// Delete the IPPool in use. The EgressIP should be released.
 	controller.crdClient.CrdV1beta1().ExternalIPPools().Delete(context.TODO(), eipFoo2.Name, metav1.DeleteOptions{})
 	assert.Eventually(t, func() bool {
-		_, _, exists := controller.getIPAllocation(egress.Name)
-		if exists {
+		allocationMap := controller.getIPAllocation(egress.Name)
+		if allocationMap != nil {
 			return false
 		}
 		ip := getEgressIP()
@@ -532,18 +588,66 @@ func TestUpdateEgress(t *testing.T) {
 	// Recreate the ExternalIPPool. An EgressIP should be allocated.
 	controller.crdClient.CrdV1beta1().ExternalIPPools().Create(context.TODO(), eipFoo2, metav1.CreateOptions{})
 	assert.Eventually(t, func() bool {
-		_, _, exists := controller.getIPAllocation(egress.Name)
-		return exists
+		return controller.getIPAllocation(egress.Name) != nil
 	}, time.Second, 50*time.Millisecond, "IP was not allocated after the ExternalIPPool was created")
 	checkExternalIPPoolUsed(t, controller, eipFoo2.Name, 1)
 
+	// Test the egress with externalIPPools
+	egress.Spec.ExternalIPPools = []string{eipFoo2.Name, eipFoo1.Name}
+	egress.Spec.ExternalIPPool = ""
+	egress.Spec.EgressIP = ""
+	egress.Generation += 1
+	controller.crdClient.CrdV1beta1().Egresses().Update(context.TODO(), egress, metav1.UpdateOptions{})
+	assert.Eventually(t, func() bool {
+		return reflect.DeepEqual([]string{"2.2.2.10", "1.1.1.1"}, gotEgressIPs())
+	}, time.Second, 50*time.Millisecond, "IP was not allocated after the ExternalIPPool was created")
+
+	checkExternalIPPoolUsed(t, controller, eipFoo1.Name, 1)
+	checkExternalIPPoolUsed(t, controller, eipFoo2.Name, 1)
+
+	// Delete the IPPool in use. The EgressIP should be released.
+	controller.crdClient.CrdV1beta1().ExternalIPPools().Delete(context.TODO(), eipFoo2.Name, metav1.DeleteOptions{})
+	require.Eventually(t, func() bool {
+		if controller.getIPAllocation(egress.Name) == nil {
+			return false
+		}
+		ips := gotEgressIPs()
+		expectedEgressIPs := []string{"", "1.1.1.1"}
+		if !reflect.DeepEqual(ips, expectedEgressIPs) {
+			return false
+		}
+		return true
+	}, time.Second, 50*time.Millisecond, "EgressIPs was not deleted after the ExternalIPPool was deleted")
+
+	controller.crdClient.CrdV1beta1().ExternalIPPools().Delete(context.TODO(), eipFoo1.Name, metav1.DeleteOptions{})
+	require.Eventually(t, func() bool {
+		if controller.getIPAllocation(egress.Name) != nil {
+			return false
+		}
+		ips := gotEgressIPs()
+		expectedEgressIPs := []string{"", ""}
+		if !reflect.DeepEqual(ips, expectedEgressIPs) {
+			return false
+		}
+		return true
+	}, time.Second, 50*time.Millisecond, "EgressIPs was not deleted after the ExternalIPPool was deleted")
+
+	// Recreate the ExternalIPPool. An EgressIP should be allocated.
+	controller.crdClient.CrdV1beta1().ExternalIPPools().Create(context.TODO(), eipFoo2, metav1.CreateOptions{})
+	controller.crdClient.CrdV1beta1().ExternalIPPools().Create(context.TODO(), eipFoo1, metav1.CreateOptions{})
+	require.Eventually(t, func() bool {
+		return controller.getIPAllocation(egress.Name) != nil
+	}, time.Second, 50*time.Millisecond, "IP was not allocated after the ExternalIPPool was created")
+	checkExternalIPPoolUsed(t, controller, eipFoo2.Name, 1)
+	checkExternalIPPoolUsed(t, controller, eipFoo1.Name, 1)
+
 	// Delete the Egress. The EgressIP should be released.
 	controller.crdClient.CrdV1beta1().Egresses().Delete(context.TODO(), egress.Name, metav1.DeleteOptions{})
-	assert.Eventually(t, func() bool {
-		_, _, exists := controller.getIPAllocation(egress.Name)
-		return !exists
+	require.Eventually(t, func() bool {
+		return controller.getIPAllocation(egress.Name) == nil
 	}, time.Second, 50*time.Millisecond, "IP allocation was not deleted after the Egress was deleted")
 	checkExternalIPPoolUsed(t, controller, eipFoo2.Name, 0)
+	checkExternalIPPoolUsed(t, controller, eipFoo1.Name, 0)
 }
 
 // TestRecreateExternalIPPoolWithNewRange tests the case where an ExternalIPPool is deleted, then
@@ -657,7 +761,7 @@ func TestSyncEgressIP(t *testing.T) {
 			},
 			expectedEgressIP:           "",
 			expectedExternalIPPoolUsed: 0,
-			expectErr:                  true,
+			expectErr:                  false,
 		},
 		{
 			name:                   "[IPv6]Egress with empty EgressIP and proper ExternalIPPool",
@@ -696,9 +800,9 @@ func TestSyncEgressIP(t *testing.T) {
 					ExternalIPPool: "ipPoolA",
 				},
 			},
-			expectedEgressIP:           "",
+			expectedEgressIP:           "1.1.2.2",
 			expectedExternalIPPoolUsed: 0,
-			expectErr:                  true,
+			expectErr:                  false,
 		},
 		{
 			name: "Egress with updated EgressIP",
@@ -765,9 +869,9 @@ func TestSyncEgressIP(t *testing.T) {
 					ExternalIPPool: "ipPoolA",
 				},
 			},
-			expectedEgressIP:           "",
+			expectedEgressIP:           "1.1.1.2",
 			expectedExternalIPPoolUsed: 1,
-			expectErr:                  true,
+			expectErr:                  false,
 		},
 		{
 			name: "Egress with empty ExternalIPPool",
@@ -806,14 +910,309 @@ func TestSyncEgressIP(t *testing.T) {
 			go controller.externalIPAllocator.Run(stopCh)
 			require.True(t, cache.WaitForCacheSync(stopCh, controller.externalIPAllocator.HasSynced))
 			controller.restoreIPAllocations(tt.existingEgresses)
-			getEgressIP, _, err := controller.syncEgressIP(tt.inputEgress)
+			_, err := controller.syncEgressIP(tt.inputEgress)
 			if tt.expectErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, net.ParseIP(tt.expectedEgressIP), getEgressIP)
+			egress, err := controller.crdClient.CrdV1beta1().Egresses().Get(context.TODO(), tt.inputEgress.Name, metav1.GetOptions{})
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedEgressIP, egress.Spec.EgressIP)
 			checkExternalIPPoolUsed(t, controller, tt.existingExternalIPPool.Name, tt.expectedExternalIPPoolUsed)
+		})
+	}
+}
+
+func TestSyncEgressIPWithMultiplePools(t *testing.T) {
+	tests := []struct {
+		name                        string
+		existingEgresses            []*v1beta1.Egress
+		existingExternalIPPools     []*v1beta1.ExternalIPPool
+		inputEgress                 *v1beta1.Egress
+		patchEgressFail             bool
+		expectedEgressIP            string
+		expectedEgressIPs           []string
+		expectedIPAllocations       map[string]ipAllocation
+		expectedExternalIPPoolUseds []int
+		expectErr                   bool
+	}{
+		{
+			name: "Egress with ExternalIPPools",
+			existingExternalIPPools: []*v1beta1.ExternalIPPool{
+				newExternalIPPool("ipPoolA", "1.1.1.0/24", "", ""),
+				newExternalIPPool("ipPoolB", "2.2.2.0/24", "", ""),
+				newExternalIPPool("ipPoolC", "3.3.3.0/24", "", "")},
+			inputEgress: &v1beta1.Egress{
+				ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+				Spec: v1beta1.EgressSpec{
+					ExternalIPPools: []string{"ipPoolA", "ipPoolB", "ipPoolC"},
+				},
+			},
+			expectedEgressIPs: []string{"1.1.1.1", "2.2.2.1", "3.3.3.1"},
+			expectedIPAllocations: map[string]ipAllocation{
+				"egressA": map[string]string{"ipPoolA": "1.1.1.1", "ipPoolB": "2.2.2.1", "ipPoolC": "3.3.3.1"},
+			},
+			expectedExternalIPPoolUseds: []int{1, 1, 1},
+			expectErr:                   false,
+		},
+		{
+			name: "Egress with invalid ExternalIPPools",
+			existingEgresses: []*v1beta1.Egress{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+					Spec: v1beta1.EgressSpec{
+						ExternalIPPools: []string{"ipPoolA", "ipPoolC"},
+						EgressIPs:       []string{"1.1.1.1", "3.3.3.1"},
+					},
+				},
+			},
+			existingExternalIPPools: []*v1beta1.ExternalIPPool{
+				newExternalIPPool("ipPoolA", "", "1.1.1.1", "1.1.1.1"),
+				newExternalIPPool("ipPoolC", "3.3.3.0/24", "", "")},
+			inputEgress: &v1beta1.Egress{
+				ObjectMeta: metav1.ObjectMeta{Name: "egressB", UID: "uidB"},
+				Spec: v1beta1.EgressSpec{
+					ExternalIPPools: []string{"ipPoolA", "ipPoolB", "ipPoolC"},
+				},
+			},
+			expectedIPAllocations: map[string]ipAllocation{
+				"egressA": map[string]string{"ipPoolA": "1.1.1.1", "ipPoolC": "3.3.3.1"},
+				"egressB": map[string]string{"ipPoolC": "3.3.3.2"},
+			},
+			expectedEgressIPs:           []string{"", "", "3.3.3.2"},
+			expectedExternalIPPoolUseds: []int{1, 2},
+			expectErr:                   false,
+		},
+		{
+			name: "Egress with ExternalIPPool change to ExternalIPPools",
+			existingEgresses: []*v1beta1.Egress{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+					Spec: v1beta1.EgressSpec{
+						ExternalIPPool: "ipPoolA",
+					},
+				},
+			},
+			existingExternalIPPools: []*v1beta1.ExternalIPPool{
+				newExternalIPPool("ipPoolA", "1.1.1.0/24", "", ""),
+				newExternalIPPool("ipPoolB", "2.2.2.0/24", "", "")},
+			inputEgress: &v1beta1.Egress{
+				ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+				Spec: v1beta1.EgressSpec{
+					ExternalIPPools: []string{"ipPoolB", "ipPoolA"},
+				},
+			},
+			expectedIPAllocations: map[string]ipAllocation{
+				"egressA": map[string]string{"ipPoolA": "1.1.1.1", "ipPoolB": "2.2.2.1"},
+			},
+			expectedEgressIPs:           []string{"2.2.2.1", "1.1.1.1"},
+			expectedExternalIPPoolUseds: []int{1, 1},
+			expectErr:                   false,
+		},
+		{
+			name: "Egress with ExternalIPPool and EgressIP change to ExternalIPPools",
+			existingEgresses: []*v1beta1.Egress{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+					Spec: v1beta1.EgressSpec{
+						ExternalIPPool: "ipPoolA",
+						EgressIP:       "1.1.1.10",
+					},
+				},
+			},
+			existingExternalIPPools: []*v1beta1.ExternalIPPool{
+				newExternalIPPool("ipPoolA", "1.1.1.0/24", "", ""),
+				newExternalIPPool("ipPoolB", "2.2.2.0/24", "", ""),
+			},
+			inputEgress: &v1beta1.Egress{
+				ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+				Spec: v1beta1.EgressSpec{
+					ExternalIPPools: []string{"ipPoolB", "ipPoolA"},
+				},
+			},
+			expectedIPAllocations: map[string]ipAllocation{
+				"egressA": map[string]string{"ipPoolA": "1.1.1.10", "ipPoolB": "2.2.2.1"},
+			},
+			expectedEgressIPs:           []string{"2.2.2.1", "1.1.1.10"},
+			expectedExternalIPPoolUseds: []int{1, 1},
+			expectErr:                   false,
+		},
+		{
+			name: "Egress with ExternalIPPool and EgressIP change to ExternalIPPools but fail to update",
+			existingEgresses: []*v1beta1.Egress{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+					Spec: v1beta1.EgressSpec{
+						ExternalIPPool: "ipPoolA",
+						EgressIP:       "1.1.1.10",
+					},
+				},
+			},
+			existingExternalIPPools: []*v1beta1.ExternalIPPool{
+				newExternalIPPool("ipPoolA", "1.1.1.0/24", "", ""),
+				newExternalIPPool("ipPoolB", "2.2.2.0/24", "", ""),
+			},
+			inputEgress: &v1beta1.Egress{
+				ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+				Spec: v1beta1.EgressSpec{
+					EgressIP:        "1.1.1.10",
+					ExternalIPPools: []string{"ipPoolB", "ipPoolA"},
+				},
+			},
+			patchEgressFail: true,
+			expectedIPAllocations: map[string]ipAllocation{
+				"egressA": map[string]string{"ipPoolA": "1.1.1.10"},
+			},
+			expectedEgressIP:            "1.1.1.10",
+			expectedExternalIPPoolUseds: []int{1, 0},
+			expectErr:                   true,
+		},
+		{
+			name: "Egress with ExternalIPPools change to ExternalIPPool",
+			existingEgresses: []*v1beta1.Egress{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+					Spec: v1beta1.EgressSpec{
+						EgressIPs:       []string{"2.2.2.20", "1.1.1.10"},
+						ExternalIPPools: []string{"ipPoolB", "ipPoolA"},
+					},
+				},
+			},
+			existingExternalIPPools: []*v1beta1.ExternalIPPool{
+				newExternalIPPool("ipPoolA", "1.1.1.0/24", "", ""),
+				newExternalIPPool("ipPoolB", "2.2.2.0/24", "", "")},
+			inputEgress: &v1beta1.Egress{
+				ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+				Spec: v1beta1.EgressSpec{
+					ExternalIPPool: "ipPoolA",
+				},
+			},
+			expectedIPAllocations: map[string]ipAllocation{
+				"egressA": map[string]string{"ipPoolA": "1.1.1.10"},
+			},
+			expectedEgressIP:            "1.1.1.10",
+			expectedExternalIPPoolUseds: []int{1, 0},
+			expectErr:                   false,
+		},
+		{
+			name: "Egress with ExternalIPPools change to ExternalIPPool and EgressIP",
+			existingEgresses: []*v1beta1.Egress{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+					Spec: v1beta1.EgressSpec{
+						EgressIPs:       []string{"2.2.2.20", "1.1.1.10"},
+						ExternalIPPools: []string{"ipPoolB", "ipPoolA"},
+					},
+				},
+			},
+			existingExternalIPPools: []*v1beta1.ExternalIPPool{
+				newExternalIPPool("ipPoolA", "1.1.1.0/24", "", ""),
+				newExternalIPPool("ipPoolB", "2.2.2.0/24", "", "")},
+			inputEgress: &v1beta1.Egress{
+				ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+				Spec: v1beta1.EgressSpec{
+					ExternalIPPool: "ipPoolA",
+					EgressIP:       "1.1.1.100",
+				},
+			},
+			expectedIPAllocations: map[string]ipAllocation{
+				"egressA": map[string]string{"ipPoolA": "1.1.1.100"},
+			},
+			expectedEgressIP:            "1.1.1.100",
+			expectedExternalIPPoolUseds: []int{1, 0},
+			expectErr:                   false,
+		},
+		{
+			name: "Egress with ExternalIPPools change to EgressIP",
+			existingEgresses: []*v1beta1.Egress{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+					Spec: v1beta1.EgressSpec{
+						EgressIPs:       []string{"2.2.2.20", "1.1.1.10"},
+						ExternalIPPools: []string{"ipPoolB", "ipPoolA"},
+					},
+				},
+			},
+			existingExternalIPPools: []*v1beta1.ExternalIPPool{
+				newExternalIPPool("ipPoolA", "1.1.1.0/24", "", ""),
+				newExternalIPPool("ipPoolB", "2.2.2.0/24", "", ""),
+			},
+			inputEgress: &v1beta1.Egress{
+				ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+				Spec:       v1beta1.EgressSpec{EgressIP: "5.5.5.5"},
+			},
+			expectedIPAllocations:       map[string]ipAllocation{},
+			expectedEgressIP:            "5.5.5.5",
+			expectedExternalIPPoolUseds: []int{0, 0},
+			expectErr:                   false,
+		},
+		{
+			name: "Insert one ExternalIPPool",
+			existingEgresses: []*v1beta1.Egress{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+					Spec: v1beta1.EgressSpec{
+						EgressIPs:       []string{"2.2.2.20", "1.1.1.10"},
+						ExternalIPPools: []string{"ipPoolB", "ipPoolA"},
+					},
+				},
+			},
+			existingExternalIPPools: []*v1beta1.ExternalIPPool{
+				newExternalIPPool("ipPoolA", "1.1.1.0/24", "", ""),
+				newExternalIPPool("ipPoolB", "2.2.2.0/24", "", ""),
+				newExternalIPPool("ipPoolC", "3.3.3.0/24", "", ""),
+			},
+			inputEgress: &v1beta1.Egress{
+				ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+				Spec: v1beta1.EgressSpec{
+					ExternalIPPools: []string{"ipPoolB", "ipPoolC", "ipPoolA"},
+				},
+			},
+			expectedIPAllocations: map[string]ipAllocation{
+				"egressA": map[string]string{"ipPoolA": "1.1.1.10", "ipPoolB": "2.2.2.20", "ipPoolC": "3.3.3.1"},
+			},
+			expectedEgressIPs:           []string{"2.2.2.20", "3.3.3.1", "1.1.1.10"},
+			expectedExternalIPPoolUseds: []int{1, 1, 1},
+			expectErr:                   false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			stopCh := make(chan struct{})
+			defer close(stopCh)
+			var fakeObjects []runtime.Object
+			fakeObjects = append(fakeObjects, tt.inputEgress)
+			for _, eip := range tt.existingExternalIPPools {
+				fakeObjects = append(fakeObjects, eip)
+			}
+			controller := newController(nil, fakeObjects)
+			if tt.patchEgressFail {
+				controller.crdClient.PrependReactor("patch", "egresses", func(action cgtesting.Action) (handled bool, ret runtime.Object, err error) {
+					return true, nil, errors.New("error patching egress")
+				})
+			}
+			controller.informerFactory.Start(stopCh)
+			controller.crdInformerFactory.Start(stopCh)
+			controller.informerFactory.WaitForCacheSync(stopCh)
+			controller.crdInformerFactory.WaitForCacheSync(stopCh)
+			go controller.externalIPAllocator.Run(stopCh)
+			require.True(t, cache.WaitForCacheSync(stopCh, controller.externalIPAllocator.HasSynced))
+			controller.restoreIPAllocations(tt.existingEgresses)
+			_, err := controller.syncEgressIP(tt.inputEgress)
+			if tt.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			egress, err := controller.crdClient.CrdV1beta1().Egresses().Get(context.TODO(), tt.inputEgress.Name, metav1.GetOptions{})
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedEgressIP, egress.Spec.EgressIP)
+			assert.Equal(t, tt.expectedEgressIPs, egress.Spec.EgressIPs)
+			assert.Equal(t, tt.expectedIPAllocations, controller.ipAllocationMap)
+			for i, pool := range tt.existingExternalIPPools {
+				checkExternalIPPoolUsed(t, controller, pool.Name, tt.expectedExternalIPPoolUseds[i])
+			}
 		})
 	}
 }

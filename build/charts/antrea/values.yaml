@@ -498,3 +498,8 @@ antreaAgentTweaker:
 
 # -- Move all mutable resources in antrea.yml to antrea-resource-init-config ConfigMap.
 enableResourceInit: false
+
+cloudProvider:
+  # -- Cloud provider name. Disable the cloud controller if it is empty.
+  # At the moment, the only supported value is "aws".
+  name: ""

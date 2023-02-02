@@ -4436,6 +4436,11 @@ data:
     enableUsageReporting: false
     # Indicates whether to enable Antrea advanced features or not.
     enterpriseAntrea: true
+
+    cloudProvider:
+      # Cloud provider name. Disable the cloud controller if it is empty.
+      # At the moment, the only supported value is "aws".
+      name:
 ---
 # Source: antrea/templates/resource-init/configmap.yaml
 apiVersion: v1
@@ -5922,7 +5927,7 @@ spec:
         kubectl.kubernetes.io/default-container: antrea-agent
         # Automatically restart Pods with a RollingUpdate if the ConfigMap changes
         # See https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
-        checksum/config: 28403da84af88b0036d3961316b49f91e1cb70bbe5d52130726a33eccb0164ca
+        checksum/config: ca0b5bc8714aa6a7ccf10613d6ece7fce88fcd8cad50e53496a429c2d38da483
         checksum/tweaker-config: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
         # Adding annotations to allow Wavefront Collectors to scrape metrics
         prometheus.io/scheme: "https"
@@ -6194,7 +6199,7 @@ spec:
       annotations:
         # Automatically restart Pod if the ConfigMap changes
         # See https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
-        checksum/config: 28403da84af88b0036d3961316b49f91e1cb70bbe5d52130726a33eccb0164ca
+        checksum/config: ca0b5bc8714aa6a7ccf10613d6ece7fce88fcd8cad50e53496a429c2d38da483
         # Adding annotations to allow Wavefront Collectors to scrape metrics
         prometheus.io/scheme: "https"
         prometheus.io/scrape: "true"

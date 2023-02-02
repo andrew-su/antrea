@@ -18,10 +18,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"reflect"
 
 	admv1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 
 	crdv1beta1 "antrea.io/antrea/pkg/apis/crd/v1beta1"
@@ -48,12 +50,6 @@ func (c *EgressController) ValidateEgress(review *admv1.AdmissionReview) *admv1.
 	}
 
 	shouldAllow := func(oldEgress, newEgress *crdv1beta1.Egress) (bool, string) {
-		if len(newEgress.Spec.EgressIPs) > 0 {
-			return false, "spec.egressIPs is not supported yet"
-		}
-		if len(newEgress.Spec.ExternalIPPools) > 0 {
-			return false, "spec.externalIPPools is not supported yet"
-		}
 		// Validate Egress trafficShaping
 		if newEgress.Spec.Bandwidth != nil {
 			_, err := resource.ParseQuantity(newEgress.Spec.Bandwidth.Rate)
@@ -66,22 +62,62 @@ func (c *EgressController) ValidateEgress(review *admv1.AdmissionReview) *admv1.
 			}
 		}
 		// Allow it if EgressIP and ExternalIPPool don't change.
-		if newEgress.Spec.EgressIP == oldEgress.Spec.EgressIP && newEgress.Spec.ExternalIPPool == oldEgress.Spec.ExternalIPPool {
+		if newEgress.Spec.EgressIP == oldEgress.Spec.EgressIP &&
+			newEgress.Spec.ExternalIPPool == oldEgress.Spec.ExternalIPPool &&
+			reflect.DeepEqual(newEgress.Spec.EgressIPs, oldEgress.Spec.EgressIPs) &&
+			reflect.DeepEqual(newEgress.Spec.ExternalIPPools, oldEgress.Spec.ExternalIPPools) {
 			return true, ""
 		}
-		// Only validate whether the specified Egress IP is in the Pool when they are both set.
-		if newEgress.Spec.EgressIP == "" || newEgress.Spec.ExternalIPPool == "" {
+		checkIPAndPool := func(ipStr, pool string) (bool, string) {
+			ip := net.ParseIP(ipStr)
+			if ip == nil {
+				return false, fmt.Sprintf("IP %s is not valid", ipStr)
+			}
+			if !c.externalIPAllocator.IPPoolExists(pool) {
+				return false, fmt.Sprintf("ExternalIPPool %s does not exist", pool)
+			}
+			if !c.externalIPAllocator.IPPoolHasIP(pool, ip) {
+				return false, fmt.Sprintf("IP %s is not within the IP range of ExternalIPPool %s", ipStr, pool)
+			}
 			return true, ""
 		}
-		ip := net.ParseIP(newEgress.Spec.EgressIP)
-		if ip == nil {
-			return false, fmt.Sprintf("IP %s is not valid", newEgress.Spec.EgressIP)
-		}
-		if !c.externalIPAllocator.IPPoolExists(newEgress.Spec.ExternalIPPool) {
-			return false, fmt.Sprintf("ExternalIPPool %s does not exist", newEgress.Spec.ExternalIPPool)
-		}
-		if !c.externalIPAllocator.IPPoolHasIP(newEgress.Spec.ExternalIPPool, ip) {
-			return false, fmt.Sprintf("IP %s is not within the IP range", newEgress.Spec.EgressIP)
+		singleEgressIP := newEgress.Spec.EgressIP != "" || newEgress.Spec.ExternalIPPool != ""
+		if singleEgressIP {
+			// Only validate whether the specified Egress IP is in the Pool when they are both set.
+			if newEgress.Spec.EgressIP == "" || newEgress.Spec.ExternalIPPool == "" {
+				return true, ""
+			}
+			if allowed, message := checkIPAndPool(newEgress.Spec.EgressIP, newEgress.Spec.ExternalIPPool); !allowed {
+				return false, message
+			}
+		} else {
+			if len(newEgress.Spec.ExternalIPPools) == 0 {
+				return false, fmt.Sprintf("EgressIP, ExternalIPPool, and ExternalIPPools must not be empty at the same time")
+			}
+			if len(newEgress.Spec.EgressIPs) > len(newEgress.Spec.ExternalIPPools) {
+				return false, fmt.Sprintf("The count of EgressIPs %d must not be greater than the count of ExternalIPPools %d", len(newEgress.Spec.EgressIPs), len(newEgress.Spec.ExternalIPPools))
+			}
+			visitedPools := sets.NewString()
+			for i, pool := range newEgress.Spec.ExternalIPPools {
+				if pool == "" {
+					return false, fmt.Sprintf("The items of ExternalIPPools must not be empty")
+				}
+				if visitedPools.Has(pool) {
+					return false, fmt.Sprintf("The items of ExternalIPPools must be unique")
+				}
+				visitedPools.Insert(pool)
+				if len(newEgress.Spec.EgressIPs) <= i {
+					continue
+				}
+				ipStr := newEgress.Spec.EgressIPs[i]
+				// Allow empty IP in EgressIPs as IP allocation may fail for some pools but succeed for other pools.
+				if ipStr == "" {
+					continue
+				}
+				if allowed, message := checkIPAndPool(ipStr, pool); !allowed {
+					return false, message
+				}
+			}
 		}
 		return true, ""
 	}

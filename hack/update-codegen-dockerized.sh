@@ -89,6 +89,8 @@ MOCKGEN_TARGETS=(
   "pkg/antctl AntctlClient ."
   "pkg/controller/networkpolicy EndpointQuerier,PolicyRuleQuerier,NetworkPolicyUsageReporter testing"
   "pkg/clusteridentity ClusterIdentityProvider testing"
+  "pkg/cloudprovider Interface testing"
+  "pkg/cloudprovider/aws EC2Interface ."
   "pkg/controller/querier ControllerQuerier testing"
   "pkg/flowaggregator/exporter Interface testing"
   "pkg/idps/agent/suricata Interface testing"

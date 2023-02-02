@@ -416,41 +416,64 @@ case.
 
 ## Egress on Cloud
 
-High-Availability Egress requires the Egress IPs to be able to float across
-Nodes. When assigning an Egress IP to a Node, Antrea assumes the responsibility
-of advertising the Egress IPs to the Node network via the ARP or NDP protocols.
-However, cloud networks usually apply SpoofGuard which prevents the Nodes from
-using any IP that is not configured for them in the cloud's control plane, or
-even don't support multicast and broadcast. These restrictions lead to
-High-Availability Egress not being as readily available on some clouds as it is
-on on-premise networks, and some custom (i.e., cloud-specific) work is required
-in the cloud's control plane to assign the Egress IP as secondary Node IPs.
-
 ### AWS
 
-In Amazon VPC, ARP packets never hit the network, and traffic with Egress IP as
-source IP or destination IP isn't transmitted arbitrarily unless they are
-explicitly authorized (check [AWS VPC Whitepaper](https://docs.aws.amazon.com/whitepapers/latest/logical-separation/vpc-and-accompanying-features.html)
-for more information). To authorize an Egress IP, it must be configured as the
-secondary IP of the primary network interface of the Egress Node instance. You
-can refer to the [AWS doc](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/MultipleIP.html#assignIP-existing)
-to assign a secondary IP to a network interface.
+AWS VPC doesn't forward ARP broadcasts. The Egress IPs must be configured as
+the secondary IPs of the Node instances to receive the response traffic from
+external. To use Egress on AWS, the cloud controller must be enabled to
+synchronize the Egress IPs with the AWS API, by setting the `cloudProvider.name`
+option to `aws` in the `antrea-config` ConfigMap like the following:
 
-If you are using static Egress and managing the assignment of Egress IPs
-yourself: you should ensure the Egress IP is assigned as one of the IP
-addresses of the primary network interface of the Egress Node instance via
-Amazon EC2 console or AWS CLI.
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: antrea-config
+  namespace: kube-system
+data:
+  antrea-controller.conf: |
+    cloudProvider:
+       name: aws
+```
 
-If you are using High-Availability Egress and let Antrea manage the assignment
-of Egress IPs: at the moment Antrea can only assign the Egress IP to an Egress
-Node at the operating system level (i.e., add the IP to the interface), and you
-still need to ensure the Egress IP is assigned to the Node instance via Amazon
-EC2 console or AWS CLI. To automate it, you can build a Kubernetes Operator
-which watches the Egress API, gets the Egress IP and the Egress Node from the
-status fields, and configures the Egress IP as the secondary IP of the primary
-network interface of the Egress Node instance via the
-[AssignPrivateIpAddresses](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_AssignPrivateIpAddresses.html)
-API.
+Besides, the following permissions must be granted to the antrea-controller for
+accessing the required AWS services:
+
+- ec2:DescribeNetworkInterfaces
+- ec2:AssignPrivateIpAddresses
+- ec2:UnassignPrivateIpAddresses
+- ec2:DescribeInstanceTypes
+
+You can achieve it by configuring the `antrea-controller` service account to
+assume an AWS Identity and Access Management (IAM) role with [the IAM policy](
+https://docs.aws.amazon.com/aws-managed-policy/latest/reference/AmazonEKS_CNI_Policy.html)
+`AmazonEKS_CNI_Policy` attached, following [Creating an IAM OIDC provider for
+your cluster](https://docs.aws.amazon.com/eks/latest/userguide/enable-iam-roles-for-service-accounts.html)
+and [Configuring a Kubernetes service account to assume an IAM role](
+https://docs.aws.amazon.com/eks/latest/userguide/associate-service-account-role.html).
+The following script summarizes the required commands.
+
+```bash
+cluster=<YOUR CLUSTER>
+# Determine whether you have an existing IAM OIDC provider for your cluster.
+# Retrieve your cluster's OIDC provider ID and store it in a variable.
+oidc_id=$(aws eks describe-cluster --name $cluster --query "cluster.identity.oidc.issuer" --output text | cut -d '/' -f 5)
+# Determine whether an IAM OIDC provider with your cluster's ID is already in your account.
+# If output is returned, then you already have an IAM OIDC provider for your cluster and you can skip the next step.
+# If no output is returned, then you must create an IAM OIDC provider for your cluster.
+aws iam list-open-id-connect-providers | grep $oidc_id | cut -d "/" -f4
+# Create an IAM OIDC identity provider for your cluster with the following command.
+eksctl utils associate-iam-oidc-provider --cluster $cluster --approve
+# Create an IAM role and associate it with the "antrea-controller" service account.
+eksctl create iamserviceaccount \
+    --name antrea-controller \
+    --namespace kube-system \
+    --cluster $cluster \
+    --role-name "AmazonEKSVPCCNIRole" \
+    --attach-policy-arn arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy \
+    --override-existing-serviceaccounts \
+    --approve
+```
 
 ## Limitations
 

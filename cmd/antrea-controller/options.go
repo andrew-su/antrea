@@ -23,8 +23,10 @@ import (
 	"github.com/spf13/pflag"
 	"k8s.io/klog/v2"
 	netutils "k8s.io/utils/net"
+	"k8s.io/utils/strings/slices"
 
 	"antrea.io/antrea/pkg/apis"
+	"antrea.io/antrea/pkg/cloudprovider/factory"
 	controllerconfig "antrea.io/antrea/pkg/config/controller"
 	"antrea.io/antrea/pkg/features"
 	"antrea.io/antrea/pkg/util/yaml"
@@ -92,6 +94,20 @@ func (o *Options) validate(args []string) error {
 		klog.InfoS("Multicluster feature gate is disabled. Multicluster.EnableStretchedNetworkPolicy is ignored")
 	}
 
+	if o.config.CloudProvider.Name != "" {
+		err := o.validateCloudProviderOptions()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (o *Options) validateCloudProviderOptions() error {
+	supportedCloudProviders := factory.GetSupportedCloudProviders()
+	if !slices.Contains(supportedCloudProviders, o.config.CloudProvider.Name) {
+		return fmt.Errorf("cloud provider name %s is invalid, currently supported providers are: %v", o.config.CloudProvider.Name, supportedCloudProviders)
+	}
 	return nil
 }
 

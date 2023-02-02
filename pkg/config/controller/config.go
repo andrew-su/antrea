@@ -18,6 +18,12 @@ import (
 	componentbaseconfig "k8s.io/component-base/config"
 )
 
+type CloudProviderConfig struct {
+	// Cloud provider name. Disable the cloud controller if it is empty.
+	// At the moment, the only supported value is "aws".
+	Name string `yaml:"name,omitempty"`
+}
+
 type NodeIPAMConfig struct {
 	// Enable the integrated node IPAM controller within the Antrea controller.
 	// Defaults to false.
@@ -81,6 +87,8 @@ type ControllerConfig struct {
 	// EnterpriseAntrea enables advanced features in Antrea.
 	// Defaults to true.
 	EnterpriseAntrea *bool `yaml:"enterpriseAntrea,omitempty"`
+	// Cloud provider configuration
+	CloudProvider CloudProviderConfig `yaml:"cloudProvider"`
 }
 
 type MulticlusterConfig struct {
