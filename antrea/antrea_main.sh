@@ -21,8 +21,8 @@ fips_make
 echo "====== Building flow-aggregator Image ======"
 FLOW_AGGREGATOR_DELIVERABLES_DIR=$(mktemp -d)
 FLOW_AGGREGATOR_MANIFESTS_DIR=$(mktemp -d)
-make flow-aggregator-image-debian VERSION=${IMAGE_VERSION}
-make flow-aggregator-image-ubi VERSION=${IMAGE_VERSION}
+make flow-aggregator-image-debian VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
+make flow-aggregator-image-ubi VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
 echo "====== Preparing Manifests for flow-aggregator ======"
 IMG_NAME=antrea/flow-aggregator-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest-flow-aggregator.sh --mode release > "${FLOW_AGGREGATOR_MANIFESTS_DIR}/flow-aggregator-${BINARY_VERSION}.yml"
 echo "====== Saving flow-aggregator Image ======"
@@ -40,7 +40,7 @@ popd
 echo "====== Building Debian standard Images ======"
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 prepare_whereabouts_tgz .
-make debian VERSION=${IMAGE_VERSION}
+make debian VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
 
 echo "====== Preparing Antrea Standard Product Deliverables: Standard Manifests ======"
 antrea_std_deliverables="antrea-standard-${ANTREA_VERSION_DIGIT}"
@@ -119,7 +119,7 @@ docker build -f Dockerfile.debian --build-arg OVS_VERSION=${OVS_VER} -t antrea/o
 popd
 
 echo "====== Building Debian Advanced Images ======"
-make debian VERSION=${IMAGE_VERSION}
+make debian VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
 
 echo "====== Preparing Antrea Advanced Product Deliverables: Advanced Manifests ======"
 antrea_adv_deliverables="antrea-advanced-${ANTREA_VERSION_DIGIT}"
@@ -186,7 +186,7 @@ cp ${OVS_DIR}/openvswitch-${OVS_VER}.tar.gz .
 docker build -f Dockerfile.ubi --build-arg OVS_VERSION=${OVS_VER} -t antrea/openvswitch-ubi .
 popd
 echo "====== Building antrea-ubi Images ======"
-make ubi VERSION=${IMAGE_VERSION}
+make ubi VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
 docker tag antrea/antrea-ubi:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-ubi:${IMAGE_VERSION}
 
 echo "====== Saving and Signing UBI Images ======"

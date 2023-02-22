@@ -29,8 +29,8 @@ echo "====== Building Binaries for Antrea Standard Product ======"
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 prepare_whereabouts_tgz .
 echo "====== Building Debian TKGm standard Images ======"
-make debian VERSION=${IMAGE_VERSION}
-make flow-aggregator-image-debian VERSION=${IMAGE_VERSION}
+make debian VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
+make flow-aggregator-image-debian VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
 
 # Create archives for scripts and binaries
 echo "====== Saving TKGm Deliverables ======"

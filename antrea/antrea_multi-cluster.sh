@@ -30,10 +30,10 @@ echo "====== Building antrea-mc-controller Binaries ======"
 fips_make "go build -o bin/antrea-mc-controller antrea.io/antrea/multicluster/cmd/..."
 
 echo "====== Building antrea-mc-controller Debian Image ======"
-make antrea-mc-controller-debian VERSION=${IMAGE_VERSION}
+make antrea-mc-controller-debian VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
 
 echo "====== Building antrea-mc-controller UBI Image ======"
-make antrea-mc-controller-ubi VERSION=${IMAGE_VERSION}
+make antrea-mc-controller-ubi VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
 
 echo "====== Saving and Signing Antrea Multi-cluster Product Images ======"
 for variant in "debian" "ubi"; do

@@ -14,13 +14,13 @@ echo "====== Building Binaries for Antrea IDPS ======"
 fips_make
 
 echo "====== Building IDPS Debian Images ======"
-make idps-image-debian VERSION=${IMAGE_VERSION}
+make idps-image-debian VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
 
 echo "====== Building IDPS UBI Images ======"
-make idps-image-ubi VERSION=${IMAGE_VERSION}
+make idps-image-ubi VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
 
 echo "====== Building Suricata Image ======"
-make suricata-image VERSION=${IMAGE_VERSION}
+make suricata-image VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
 
 echo "====== Prepairing Antrea IDPS Manifests ======"
 MANIFESTS_DIR=$(mktemp -d)

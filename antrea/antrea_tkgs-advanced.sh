@@ -59,7 +59,7 @@ echo "====== Building antrea-photon Image ======"
 cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 prepare_whereabouts_tgz .
-make photon VERSION=${IMAGE_VERSION} RPM_REPO_URL=${REPO_URL}
+make photon VERSION=${IMAGE_VERSION} RPM_REPO_URL=${REPO_URL} BUILD_INFO="${BUILD_NUMBER}"
 docker tag antrea/antrea-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-photon:${IMAGE_VERSION}
 docker tag antrea/antrea-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea:${IMAGE_VERSION}
 rm -f photon-rootfs.tar.gz
@@ -79,7 +79,7 @@ gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=s
 popd
 
 echo "====== Building antrea-ubuntu Image ======"
-make ubuntu VERSION=${IMAGE_VERSION}
+make ubuntu VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
 docker tag antrea/antrea-ubuntu:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-ubuntu:${IMAGE_VERSION}
 docker tag antrea/antrea-ubuntu:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea:${IMAGE_VERSION}
 

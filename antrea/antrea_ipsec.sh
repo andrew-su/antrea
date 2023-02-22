@@ -30,7 +30,7 @@ popd
 echo "====== Building antrea-debian-ipsec Image ======"
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 prepare_whereabouts_tgz .
-make debian-ipsec VERSION=${IMAGE_VERSION}
+make debian-ipsec VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
 
 echo "====== Building openvswitch-ubi Image ======"
 pushd build/images/ovs
@@ -40,7 +40,7 @@ popd
 echo "====== Building antrea-ubi-ipsec Images ======"
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 prepare_whereabouts_tgz .
-make ubi-ipsec VERSION=${IMAGE_VERSION}
+make ubi-ipsec VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
 docker tag antrea/antrea-ubi-ipsec:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-ubi-ipsec:${IMAGE_VERSION}
 
 # Create archives for scripts and binaries
