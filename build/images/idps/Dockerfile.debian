@@ -1,7 +1,9 @@
 FROM harbor-repo.vmware.com/dockerhub-proxy-cache/library/debian:stable-slim
+ARG BUILD_INFO
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
 LABEL description="The Docker image to deploy the IDPS."
+LABEL build-info="${BUILD_INFO}"
 
 RUN echo "deb http://build-artifactory.eng.vmware.com/debian-remote stable main" > /etc/apt/sources.list && \
     echo "deb http://build-artifactory.eng.vmware.com/debian-remote stable-updates main" >> /etc/apt/sources.list && \
@@ -13,3 +15,4 @@ RUN apt-get update && \
 USER root
 
 COPY bin/antrea-idps-* /usr/local/bin/
+RUN echo "${BUILD_INFO}" > /build-info

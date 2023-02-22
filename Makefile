@@ -697,9 +697,9 @@ endif
 suricata-image:
 	@echo "===> Building antreainterworking/suricata Docker image <==="
 ifneq ($(NO_PULL),)
-	docker build -t antreainterworking/suricata:$(DOCKER_IMG_VERSION) -f build/images/suricata/Dockerfile .
+	docker build -t antreainterworking/suricata:$(DOCKER_IMG_VERSION) -f build/images/suricata/Dockerfile $(CAYMAN_DOCKER_BUILD_ARGS) .
 else
-	docker build --pull -t antreainterworking/suricata:$(DOCKER_IMG_VERSION) -f build/images/suricata/Dockerfile .
+	docker build --pull -t antreainterworking/suricata:$(DOCKER_IMG_VERSION) -f build/images/suricata/Dockerfile $(CAYMAN_DOCKER_BUILD_ARGS) .
 endif
 	docker tag antreainterworking/suricata:$(DOCKER_IMG_VERSION) antreainterworking/suricata
 	docker tag antreainterworking/suricata:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/suricata
@@ -721,9 +721,9 @@ endif
 idps-image-debian:
 	@echo "===> Building antrea/idps Debian Docker image <==="
 ifneq ($(NO_PULL),)
-	docker build -t antreainterworking/idps-debian:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile.debian $(DOCKER_BUILD_ARGS) .
+	docker build -t antreainterworking/idps-debian:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile.debian $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
 else
-	docker build --pull -t antreainterworking/idps-debian:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile.debian $(DOCKER_BUILD_ARGS) .
+	docker build --pull -t antreainterworking/idps-debian:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile.debian $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
 endif
 	docker tag antreainterworking/idps-debian:$(DOCKER_IMG_VERSION) antreainterworking/idps-debian
 	docker tag antreainterworking/idps-debian:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/idps-debian
@@ -733,9 +733,9 @@ endif
 idps-image-ubi:
 	@echo "===> Building antrea/idps UBI Docker image <==="
 ifneq ($(NO_PULL),)
-	docker build -t antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile.ubi $(DOCKER_BUILD_ARGS) .
+	docker build -t antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile.ubi $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
 else
-	docker build --pull -t antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile.ubi $(DOCKER_BUILD_ARGS) .
+	docker build --pull -t antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile.ubi $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
 endif
 	docker tag antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION) antreainterworking/idps-ubi
 	docker tag antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/idps-ubi

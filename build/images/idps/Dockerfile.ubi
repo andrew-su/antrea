@@ -1,10 +1,13 @@
 FROM registry.access.redhat.com/ubi8
+ARG BUILD_INFO
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
 LABEL description="The Docker image to deploy the IDPS."
+LABEL build-info="${BUILD_INFO}"
 
 RUN yum clean all -y && yum update -y && yum reinstall yum -y && yum install curl procps -y
 
 USER root
 
 COPY bin/antrea-idps-* /usr/local/bin/
+RUN echo "${BUILD_INFO}" > /build-info
