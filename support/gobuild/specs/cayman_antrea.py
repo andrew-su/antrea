@@ -1,4 +1,4 @@
-LINUX_HOSTTYPE = 'linux-centos72-gc32'
+LINUX_HOSTTYPE = 'linux-centos8'
 
 CAYMAN_BRANCH = 'master'
 CAYMAN_CLN = '71c887b9ee67bd2298b85464ff14401b978ff885'

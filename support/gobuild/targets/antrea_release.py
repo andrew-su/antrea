@@ -26,7 +26,7 @@ class AntreaRelease(helpers.target.Target):
         }]
 
     def GetClusterRequirements(self):
-        return ["linux-centos72-gc32"]
+        return ["linux-centos8"]
 
     def GetStorageInfo(self, hosttype):
         return []
