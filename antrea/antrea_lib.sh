@@ -159,7 +159,7 @@ function build_windows() {
   DownloadDir="${REPO_ROOT}/download"
   rm -rf "${DownloadDir}"
   mkdir -p "${DownloadDir}"
-  CNI_WINDOWS_URL="https://github.com/containernetworking/plugins/releases/download/v0.8.1/cni-plugins-windows-amd64-v0.8.1.tgz"
+  CNI_WINDOWS_URL="https://github.com/containernetworking/plugins/releases/download/v1.1.1/cni-plugins-windows-amd64-v1.1.1.tgz"
   wget -q "${CNI_WINDOWS_URL}" -O "${DownloadDir}/cni-plugins-windows.tgz"
   mkdir -p "${DownloadDir}/cni-plugins-windows"
   tar zxf "${DownloadDir}/cni-plugins-windows.tgz" -C "${DownloadDir}/cni-plugins-windows"

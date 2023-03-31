@@ -1,8 +1,8 @@
 [submodule "antrea/src"]
 	path = antrea/src
 	url = git@gitlab.eng.vmware.com:core-build/mirrors_github_antrea
-	branch = topic/1.9.0+vmware.3-common
+	branch = topic/1.11.0+vmware.1-common
 [submodule "ovs/src"]
 	path = ovs/src
 	url = git@gitlab.eng.vmware.com:core-build/mirrors_github_openvswitch_ovs.git
-	branch = vmware-2.17.0
+	branch = vmware-2.17.5
