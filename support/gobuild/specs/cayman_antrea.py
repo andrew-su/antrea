@@ -56,9 +56,9 @@ NSX_OVS_BUILD_FILES = {
 }
 
 CAYMAN_WHEREABOUTS_BRANCH = "vmware-0.5.4"
-CAYMAN_WHEREABOUTS_CLN = "d69a3940c9c333862328165ef6ba71ef1385932e"
+CAYMAN_WHEREABOUTS_CLN = "f335661e1923ee05e5cdb3f1fca4d5bba8fcf763"
 CAYMAN_WHEREABOUTS_BUILDTYPE = "release"
 CAYMAN_WHEREABOUTS_FILES = {
     LINUX_HOSTTYPE: [
-        "publish/lin64/whereabouts/images/whereabouts-v0.5.4_vmware.1.tar.gz"]
+        "publish/lin64/whereabouts/images/whereabouts-v0.5.4_vmware.2.tar.gz"]
 }
