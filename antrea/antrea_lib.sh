@@ -229,6 +229,6 @@ function prepare_whereabouts_tgz() {
     cp -f /whereabouts /tmp/copy-whereabouts/
 
   cd ${dest_dir}
-  tar -zcf "whereabouts-${whereabouts_version}.tar.gz" whereabouts
+  tar -zcf "whereabouts-${whereabouts_version}.tgz" whereabouts
   rm -f whereabouts
 }

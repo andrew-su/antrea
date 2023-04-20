@@ -44,25 +44,26 @@ trap stop_local_repo Exit
 
 REPO_URL="http://`ip -f inet -o address show scope global | head -n 1| cut -f 7 -d ' ' | cut -f 1 -d '/'`:8080/RPMS"
 
+OVS_BUILD_TAG=$(build/images/build-tag.sh)
+
+echo "====== Buildling OpenvSwitch Photon Image ======"
 pushd build/images/ovs
-echo "====== Buildling openvswitch-photon Image ======"
 cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
 cp ${OVS_DIR}/openvswitch-*.tar.gz .
-docker build -f Dockerfile.photon --build-arg OVS_VERSION=${OVS_VER} --build-arg RPM_REPO_URL=${REPO_URL} --target ovs-rpms -t antrea/openvswitch-rpms-photon .
-docker build -f Dockerfile.photon --build-arg OVS_VERSION=${OVS_VER} --build-arg RPM_REPO_URL=${REPO_URL} --cache-from antrea/openvswitch-rpms-photon -t antrea/openvswitch-photon .
-rm -f photon-rootfs.tar.gz
-echo "====== Building openvswitch-ubuntu Image ======"
-docker build --build-arg OVS_VERSION=${OVS_VER} -t antrea/openvswitch-ubuntu .
+./build.sh --distro photon --rpm-repo-url ${REPO_URL}
+popd
+
+echo "====== Building Photon Base Image ======"
+pushd build/images/base
+cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
+prepare_whereabouts_tgz .
+./build.sh --distro photon --rpm-repo-url ${REPO_URL}
 popd
 
 echo "====== Building antrea-photon Image ======"
-cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
-cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
-prepare_whereabouts_tgz .
 make photon VERSION=${IMAGE_VERSION} RPM_REPO_URL=${REPO_URL} BUILD_INFO="${BUILD_NUMBER}"
 docker tag antrea/antrea-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-photon:${IMAGE_VERSION}
 docker tag antrea/antrea-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea:${IMAGE_VERSION}
-rm -f photon-rootfs.tar.gz
 
 echo "====== Saving and Signing TKGs Images ======"
 # A test photon image
@@ -123,7 +124,7 @@ popd
 # RPMs for building Antrea Photon image for TKG Service
 echo "====== Saving OpenvSwitch RPMs ======"
 mkdir -p "${PUBLISH_DIR}/photon/rpms/"
-docker run -idt --rm --name ovs-rpms antrea/openvswitch-rpms-photon sh
+docker run -idt --rm --name ovs-rpms antrea/openvswitch-photon-rpms:${OVS_BUILD_TAG} sh
 docker cp ovs-rpms:/tmp/ovs-rpms "${PUBLISH_DIR}/photon/rpms/"
 docker stop ovs-rpms
 

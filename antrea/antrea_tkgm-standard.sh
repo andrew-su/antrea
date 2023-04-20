@@ -19,17 +19,23 @@ git status
 echo "====== Building Binaries for TKGm ======"
 fips_make
 
-echo "====== Building openvswitch-debian Image ======"
+echo "====== Building OpenvSwitch Debian Image ======"
 pushd build/images/ovs
 cp ${OVS_DIR}/openvswitch-${OVS_VER}.tar.gz .
-docker build -f Dockerfile.debian --build-arg OVS_VERSION=${OVS_VER} -t antrea/openvswitch-debian:standard .
+./build.sh --distro debian
 popd
 
-echo "====== Building Binaries for Antrea Standard Product ======"
+echo "====== Building Debian Base Image ======"
+pushd build/images/base
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 prepare_whereabouts_tgz .
-echo "====== Building Debian TKGm standard Images ======"
+./build.sh --distro debian
+popd
+
+echo "====== Building antrea-debian Image ======"
 make debian VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
+
+echo "====== Building flow-aggregator-debian Image ======"
 make flow-aggregator-image-debian VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
 
 # Create archives for scripts and binaries

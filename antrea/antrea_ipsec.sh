@@ -3,6 +3,9 @@
 echo "====== Disabling --pull in All Makefile Docker Build Target ======"
 export NO_PULL=1
 
+echo "====== Enable IPSec in Makefile ======"
+export IPSEC=1
+
 echo "====== Archiving OpenvSwitch Source Code ======"
 archive_ovs_source
 
@@ -20,28 +23,40 @@ git status
 echo "====== Building Binaries for Antrea IPsec ======"
 fips_make
 
-echo "====== Building Debian Images ======"
+echo "====== Building OpenvSwitch Debian Image ======"
 pushd build/images/ovs
-cp "${OVS_DIR}/openvswitch-${OVS_VER}.tar.gz" .
-echo "====== Building openvswitch-debian-ipsec Image ======"
-docker build -f Dockerfile.debian --build-arg IPSEC=true --build-arg OVS_VERSION=${OVS_VER} -t antrea/openvswitch-debian:ipsec .
+cp ${OVS_DIR}/openvswitch-${OVS_VER}.tar.gz .
+./build.sh --distro debian --ipsec
+popd
+
+echo "====== Building Debian Base Image ======"
+pushd build/images/base
+cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
+prepare_whereabouts_tgz .
+./build.sh --distro debian --ipsec
 popd
 
 echo "====== Building antrea-debian-ipsec Image ======"
-cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
-prepare_whereabouts_tgz .
-make debian-ipsec VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
+make debian VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
+docker tag antrea/antrea-debian:${IMAGE_VERSION} antrea/antrea-debian-ipsec:${IMAGE_VERSION}
 
-echo "====== Building openvswitch-ubi Image ======"
+echo "====== Building OpenvSwitch UBI Image ======"
 pushd build/images/ovs
 cp ${OVS_DIR}/openvswitch-${OVS_VER}.tar.gz .
-docker build -f Dockerfile.ubi --build-arg IPSEC=true --build-arg OVS_VERSION=${OVS_VER} -t antrea/openvswitch-ubi:ipsec .
+./build.sh --distro ubi --ipsec
 popd
-echo "====== Building antrea-ubi-ipsec Images ======"
+
+echo "====== Building UBI Base Image ======"
+pushd build/images/base
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 prepare_whereabouts_tgz .
-make ubi-ipsec VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
-docker tag antrea/antrea-ubi-ipsec:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-ubi-ipsec:${IMAGE_VERSION}
+./build.sh --distro ubi --ipsec
+popd
+
+echo "====== Building antrea-ubi-ipsec Image ======"
+make ubi VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
+docker tag antrea/antrea-ubi:${IMAGE_VERSION} antrea/antrea-ubi-ipsec:${IMAGE_VERSION}
+docker tag antrea/antrea-ubi:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-ubi-ipsec:${IMAGE_VERSION}
 
 # Create archives for scripts and binaries
 echo "====== Saving Antrea IPsec Deliverables ======"
