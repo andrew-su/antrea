@@ -79,6 +79,20 @@ sha256sum -- * > ${checksum_filename}
 gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=${GPG_KEY_ID} ${GPGSIGNC_OPTS}
 popd
 
+echo "====== Buildling OpenvSwitch Ubuntu Image ======"
+pushd build/images/ovs
+cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
+cp ${OVS_DIR}/openvswitch-*.tar.gz .
+./build.sh --distro ubuntu
+popd
+
+echo "====== Building Ubuntu Base Image ======"
+pushd build/images/base
+cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
+prepare_whereabouts_tgz .
+./build.sh --distro ubuntu
+popd
+
 echo "====== Building antrea-ubuntu Image ======"
 make ubuntu VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
 docker tag antrea/antrea-ubuntu:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-ubuntu:${IMAGE_VERSION}
