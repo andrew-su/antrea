@@ -232,3 +232,45 @@ function prepare_whereabouts_tgz() {
   tar -zcf "whereabouts-${whereabouts_version}.tgz" whereabouts
   rm -f whereabouts
 }
+
+function prepare_local_yum_repo() {
+  echo "====== Preparing local Photon Yum Repo ======"
+  mkdir -p /tmp/photo-iso
+  sudo mount -o loop "${GOBUILD_CSC_PHOTON_ROOT}/csc-photon-3.0.0-x86_64.iso" /tmp/photo-iso
+  pushd "/tmp/photo-iso"
+  run_python -m SimpleHTTPServer 8080 &
+  popd
+  local public_ip_addr=$(ip -f inet -o address show scope global | head -n 1| cut -f 7 -d ' ' | cut -f 1 -d '/')
+  export LOCAL_YUM_REPO_URL="http://${public_ip_addr}:8080/RPMS"
+}
+
+function stop_local_yum_repo() {
+  jobs -l
+  ps aux | grep python
+  pgrep -P $(jobs -p %?SimpleHTTPServer)
+  pkill -SIGTERM -P $(jobs -p %?SimpleHTTPServer)
+  wait %?SimpleHTTPServer || echo wait returns error $? as expected
+  sudo lsof /tmp/photo-iso || true  # If no process is using photon-iso, lsof returns 1
+  sudo umount /tmp/photo-iso
+}
+
+function save_image_and_digest() {
+  local image_name=$1
+  local image_version=$2
+  local output_dir=$3
+  local image_id="$(docker inspect -f '{{.ID}}' "${image_name}:${image_version}")"
+  docker save "${image_name}:${image_version}" | gzip -9 > "${output_dir}/${image_name##*/}-${image_version}.tar.gz"
+  digest_filename="${image_name##*/}-${image_version}-image-digests.txt"
+  echo "${image_name}@${image_id}" > "${output_dir}/${digest_filename}"
+}
+
+function sign_binaries() {
+  local checksum_filename=$2
+  local output_dir=$2
+  local checksum_filename_asc="${checksum_filename}.asc"
+  pushd "${output_dir}"
+  sha256sum -- * > ${checksum_filename}
+  # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
+  gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename_asc}" --hash=sha256 --keyid=${GPG_KEY_ID} ${GPGSIGNC_OPTS}
+  popd
+}
