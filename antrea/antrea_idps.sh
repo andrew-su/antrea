@@ -58,6 +58,10 @@ for variant in "debian" "ubi"; do
   popd
 done
 
+echo "====== Saving Antrea IDPS Scripts ======"
+mkdir -p "${PUBLISH_DIR}/scripts"
+cp hack/deploy_idps.sh "${PUBLISH_DIR}/scripts/"
+
 echo "====== Cleanup Antrea IDPS Product Build Result ======"
 rm -rf "${MANIFESTS_DIR}"
 make clean
