@@ -265,7 +265,7 @@ function save_image_and_digest() {
 }
 
 function sign_binaries() {
-  local checksum_filename=$2
+  local checksum_filename=$1
   local output_dir=$2
   local checksum_filename_asc="${checksum_filename}.asc"
   pushd "${output_dir}"
