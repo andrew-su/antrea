@@ -12,12 +12,14 @@ cat /proc/cpuinfo
 
 # before updating RELEASE_VERSION, need to upload the new ODP file to artifactory for that release,
 # https://build-artifactory.eng.vmware.com/artifactory/nsx-ujo-local/antrea/VMware-Antrea-${RELEASE_VERSION}-ODP.tar.gz
-RELEASE_VERSION=1.6.0
+RELEASE_VERSION=1.7.0
 REPO_ROOT="${PROJECT_DIR}"
 
 cd "${REPO_ROOT}"
 git status
 if [ -n "$(git status --porcelain)" ]; then
+  git config user.email "sandboxbuild@example.com"
+  git config user.name "Sandbox Build"
   git commit -a -m "commit sandbox build changeset"
 fi
 git status
@@ -56,7 +58,8 @@ cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/antrea-standard-*.zip  "${cayman_antrea_pub
 mkdir -p "${cayman_antrea_publish}/advanced-release"
 cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/windows-advanced/antrea-windows-advanced.zip  "${cayman_antrea_publish}/advanced-release"
 cp -rv ${GOBUILD_CAYMAN_ANTREA_ROOT}/antrea-advanced-*.zip  "${cayman_antrea_publish}/advanced-release"
-cp -rv ${GOBUILD_CAYMAN_ANTREA_IPSEC_ROOT}/antrea-advanced-ipsec-*.zip "${cayman_antrea_publish}/advanced-release"
+cp -rv ${GOBUILD_CAYMAN_ANTREA_IPSEC_ROOT}/antrea-debian-ipsec-*.zip "${cayman_antrea_publish}/advanced-release"
+cp -rv ${GOBUILD_CAYMAN_ANTREA_IPSEC_ROOT}/antrea-photon-ipsec-*.zip "${cayman_antrea_publish}/advanced-release"
 mkdir -p "${cayman_antrea_publish}/multi-cluster"
 cp -rv ${GOBUILD_CAYMAN_ANTREA_MULTI_CLUSTER_ROOT}/lin64 "${cayman_antrea_publish}/multi-cluster"
 cp -rf ${GOBUILD_CAYMAN_ANTREA_MULTI_CLUSTER_ROOT}/antrea-multicluster-debian-*.zip "${cayman_antrea_publish}/multi-cluster"
@@ -75,10 +78,10 @@ mkdir -p "${operator_publish}/antrea-interworking"
 cp -rv ${GOBUILD_ANTREA_INTERWORKING_ROOT}/antrea-interworking/images/interworking-ubi-*.tar "${operator_publish}/antrea-interworking"
 cp -rv ${GOBUILD_CAYMAN_ANTREA_OPERATOR_FOR_KUBERNETES_ROOT}/lin64 "${operator_publish}/operator"
 cp -rv ${GOBUILD_CAYMAN_ANTREA_OPERATOR_FOR_KUBERNETES_ROOT}/VERSION "${operator_publish}/operator"
-mkdir -p "${BUILDROOT}/tmp-ipsec-ubi"
-pushd "${BUILDROOT}/tmp-ipsec-ubi"
+mkdir -p "${BUILDROOT}/tmp-ipsec"
+pushd "${BUILDROOT}/tmp-ipsec"
 unzip ${GOBUILD_CAYMAN_ANTREA_IPSEC_ROOT}/antrea-ubi-ipsec-*.zip
 cp antrea-ubi-ipsec-*/antrea-ubi-ipsec-*.tar.gz "${operator_publish}/antrea/images/"
 popd
-rm -rf "${BUILDROOT}/tmp-ipsec-ubi"
+rm -rf "${BUILDROOT}/tmp-ipsec"
 echo "****** antrea_release_build.sh finished ******"

@@ -3,7 +3,7 @@ set -e
 # refer to
 # https://confluence.eng.vmware.com/display/public/OSMUserGuide/OSL+File+Generation
 
-RELEASE_VERSION=1.6.0
+RELEASE_VERSION=1.7.0
 RELEASE_ODP="VMware-Antrea-${RELEASE_VERSION}-ODP"
 
 if [ -z "$1" ]; then
