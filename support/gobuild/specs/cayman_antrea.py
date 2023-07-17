@@ -22,7 +22,7 @@ CAYMAN_OPENSSL_HOSTTYPES = {
 }
 
 CSC_PHOTON_BRANCH = "photon3-vmw-updates"
-CSC_PHOTON_CLN = "11109176"
+CSC_PHOTON_CLN = "11484327"
 CSC_PHOTON_BUILDTYPE = 'release'
 CSC_PHOTON_FILES = {
     LINUX_HOSTTYPE: ["publish/docker-image/photon-rootfs.tar.gz",
@@ -38,7 +38,7 @@ CAYMAN_CNI_PLUGINS_FILES = {
 }
 
 CAYMAN_GO_BRANCH = "vmware-go1.19-boringcrypto"
-CAYMAN_GO_CLN = "707c1a23daa1a541682627635bd831a145a09d6f"
+CAYMAN_GO_CLN = "3fb22bff4762e65da011dfa423644864588d169e"
 CAYMAN_GO_BUILDTYPE = "release"
 CAYMAN_GO_FILES = {
     LINUX_HOSTTYPE: [
@@ -56,9 +56,10 @@ NSX_OVS_BUILD_FILES = {
 }
 
 CAYMAN_WHEREABOUTS_BRANCH = "vmware-0.6.1"
-CAYMAN_WHEREABOUTS_CLN = "9f5709aa90d28343d0fac2290543d8eeb0143c0b"
+CAYMAN_WHEREABOUTS_CLN = "0f015c1203971ff051359f9a23c8e1dff79ee8a3"
 CAYMAN_WHEREABOUTS_BUILDTYPE = "release"
 CAYMAN_WHEREABOUTS_FILES = {
     LINUX_HOSTTYPE: [
-        "publish/lin64/whereabouts/images/whereabouts-v0.6.1_vmware.1.tar.gz"]
+        "publish/lin64/whereabouts/executables/.*",
+        "publish/lin64/whereabouts/images/.*"]
 }
