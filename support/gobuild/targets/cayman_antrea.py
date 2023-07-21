@@ -131,18 +131,25 @@ class CaymanAntrea(_CaymanAntrea):
     """
 
     product_map = {
+        specs.cayman_antrea.LINUX_HOSTTYPE: {
+            'https_observer': {
+                'enabled': True,
+            },
+        },
+    }
+    dist_map = {
         specs.cayman_antrea.LINUX_HOSTTYPE: ['lin64'],
     }
 
     def GetClusterRequirements(self):
-        return CaymanAntrea.product_map.keys()
+        return CaymanAntrea.product_map
 
     def GetBuildProductNames(self):
         return {'name': 'cayman_antrea',
                 'longname': 'cayman_antrea'}
 
     def GetCommands(self, hosttype):
-        products = CaymanAntrea.product_map[hosttype]
+        products = CaymanAntrea.dist_map[hosttype]
         return [self._Command(hosttype=hosttype, product=product, args={"BUILD_PRODUCT":"cayman_antrea"}) for product in products]
 
     def GetComponentPath(self):
@@ -155,18 +162,26 @@ class CaymanAntreaTKGMAdv(_CaymanAntrea):
     """
 
     product_map = {
+        specs.cayman_antrea.LINUX_HOSTTYPE: {
+            'products': ['lin64'],
+            'https_observer': {
+                'enabled': True,
+            },
+        },
+    }
+    dist_map = {
         specs.cayman_antrea.LINUX_HOSTTYPE: ['lin64'],
     }
 
     def GetClusterRequirements(self):
-        return CaymanAntrea.product_map.keys()
+        return CaymanAntrea.product_map
 
     def GetBuildProductNames(self):
         return {'name': 'cayman_antrea_tkgm-advanced',
                 'longname': 'cayman_antrea_tkgm-advanced'}
 
     def GetCommands(self, hosttype):
-        products = CaymanAntrea.product_map[hosttype]
+        products = CaymanAntrea.dist_map[hosttype]
         #hosttype, product
         return [self._Command(hosttype=hosttype, product=product, args={"BUILD_PRODUCT":"cayman_antrea_tkgm-advanced"}) for product in products]
 
@@ -180,18 +195,25 @@ class CaymanAntreaTKGMStd(_CaymanAntrea):
     """
 
     product_map = {
+        specs.cayman_antrea.LINUX_HOSTTYPE: {
+            'https_observer': {
+                'enabled': True,
+            },
+        },
+    }
+    dist_map = {
         specs.cayman_antrea.LINUX_HOSTTYPE: ['lin64'],
     }
 
     def GetClusterRequirements(self):
-        return CaymanAntrea.product_map.keys()
+        return CaymanAntrea.product_map
 
     def GetBuildProductNames(self):
         return {'name': 'cayman_antrea_tkgm-standard',
                 'longname': 'cayman_antrea_tkgm-standard'}
 
     def GetCommands(self, hosttype):
-        products = CaymanAntrea.product_map[hosttype]
+        products = CaymanAntrea.product_map[hosttype]['products']
         return [self._Command(hosttype=hosttype, product=product, args={"BUILD_PRODUCT":"cayman_antrea_tkgm-standard"}) for product in products]
 
     def GetComponentPath(self):
@@ -204,18 +226,25 @@ class CaymanAntreaTKGSAdv(_CaymanAntrea):
     """
 
     product_map = {
+        specs.cayman_antrea.LINUX_HOSTTYPE: {
+            'https_observer': {
+                'enabled': True,
+            },
+        },
+    }
+    dist_map = {
         specs.cayman_antrea.LINUX_HOSTTYPE: ['lin64'],
     }
 
     def GetClusterRequirements(self):
-        return CaymanAntrea.product_map.keys()
+        return CaymanAntrea.product_map
 
     def GetBuildProductNames(self):
         return {'name': 'cayman_antrea_tkgs-advanced',
                 'longname': 'cayman_antrea_tkgs-advanced'}
 
     def GetCommands(self, hosttype):
-        products = CaymanAntrea.product_map[hosttype]
+        products = CaymanAntrea.dist_map[hosttype]
         return [self._Command(hosttype=hosttype, product=product, args={"BUILD_PRODUCT":"cayman_antrea_tkgs-advanced"}) for product in products]
 
     def GetComponentPath(self):
@@ -228,18 +257,25 @@ class CaymanAntreaMultiCluster(_CaymanAntrea):
     """
 
     product_map = {
+        specs.cayman_antrea.LINUX_HOSTTYPE: {
+            'https_observer': {
+                'enabled': True,
+            },
+        },
+    }
+    dist_map = {
         specs.cayman_antrea.LINUX_HOSTTYPE: ['lin64'],
     }
 
     def GetClusterRequirements(self):
-        return CaymanAntrea.product_map.keys()
+        return CaymanAntrea.product_map
 
     def GetBuildProductNames(self):
         return {'name': 'cayman_antrea_multi-cluster',
                 'longname': 'cayman_antrea_multi-cluster'}
 
     def GetCommands(self, hosttype):
-        products = CaymanAntrea.product_map[hosttype]
+        products = CaymanAntrea.dist_map[hosttype]
         return [self._Command(hosttype=hosttype, product=product, args={"BUILD_PRODUCT":"cayman_antrea_multi-cluster"}) for product in products]
 
     def GetComponentPath(self):
@@ -278,18 +314,24 @@ class CaymanAntreaIPsec(_CaymanAntrea):
     """
 
     product_map = {
+        specs.cayman_antrea.LINUX_HOSTTYPE: {
+            'https_observer': {
+                'enabled': True,
+            },
+        },
+    }
+    dist_map = {
         specs.cayman_antrea.LINUX_HOSTTYPE: ['lin64'],
     }
-
     def GetClusterRequirements(self):
-        return CaymanAntrea.product_map.keys()
+        return CaymanAntrea.product_map
 
     def GetBuildProductNames(self):
         return {'name': 'cayman_antrea_ipsec',
                 'longname': 'cayman_antrea_ipsec'}
 
     def GetCommands(self, hosttype):
-        products = CaymanAntrea.product_map[hosttype]
+        products = CaymanAntrea.dist_map[hosttype]
         return [self._Command(hosttype=hosttype, product=product, args={"BUILD_PRODUCT":"cayman_antrea_ipsec"}) for product in products]
 
     def GetComponentPath(self):
@@ -301,18 +343,25 @@ class CaymanAntreaIDPS(_CaymanAntrea):
     """
 
     product_map = {
+        specs.cayman_antrea.LINUX_HOSTTYPE: {
+            'https_observer': {
+                'enabled': True,
+            },
+        },
+    }
+    dist_map = {
         specs.cayman_antrea.LINUX_HOSTTYPE: ['lin64'],
     }
 
     def GetClusterRequirements(self):
-        return CaymanAntrea.product_map.keys()
+        return CaymanAntrea.product_map
 
     def GetBuildProductNames(self):
         return {'name': 'cayman_antrea_idps',
                 'longname': 'cayman_antrea_idps'}
 
     def GetCommands(self, hosttype):
-        products = CaymanAntrea.product_map[hosttype]
+        products = CaymanAntrea.dist_map[hosttype]
         return [self._Command(hosttype=hosttype, product=product, args={"BUILD_PRODUCT":"cayman_antrea_idps"}) for product in products]
 
     def GetComponentPath(self):

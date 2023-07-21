@@ -26,7 +26,13 @@ class AntreaRelease(helpers.target.Target):
         }]
 
     def GetClusterRequirements(self):
-        return ["linux-centos8"]
+        return {
+            specs.cayman_antrea.LINUX_HOSTTYPE: {
+                'https_observer': {
+                    'enabled': True,
+                },
+            },
+        }
 
     def GetStorageInfo(self, hosttype):
         return []
