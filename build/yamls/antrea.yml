@@ -5458,6 +5458,11 @@ spec:
         # Automatically restart Pods with a RollingUpdate if the ConfigMap changes
         # See https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
         checksum/config: 24c9fc07eb9aef6b90e11a5b6775304e56841720c7364ff3716ac67f791c9de5
+        # Adding annotations to allow Wavefront Collectors to scrape metrics
+        prometheus.io/scheme: "https"
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "10350"
       labels:
         app: antrea
         component: antrea-agent
@@ -5700,6 +5705,11 @@ spec:
         # Automatically restart Pod if the ConfigMap changes
         # See https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
         checksum/config: 24c9fc07eb9aef6b90e11a5b6775304e56841720c7364ff3716ac67f791c9de5
+        # Adding annotations to allow Wavefront Collectors to scrape metrics
+        prometheus.io/scheme: "https"
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "10349"
       labels:
         app: antrea
         component: antrea-controller

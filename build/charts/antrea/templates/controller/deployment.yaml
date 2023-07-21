@@ -24,6 +24,11 @@ spec:
         {{- with .Values.controller.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
+        # Adding annotations to allow Wavefront Collectors to scrape metrics
+        prometheus.io/scheme: "https"
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "10349"
       labels:
         app: antrea
         component: antrea-controller

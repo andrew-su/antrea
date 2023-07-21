@@ -26,7 +26,6 @@ require (
 	github.com/gammazero/deque v1.0.0
 	github.com/go-logr/logr v1.4.2
 	github.com/gogo/protobuf v1.3.2
-	github.com/golang/mock v1.6.0
 	github.com/google/btree v1.1.3
 	github.com/google/cadvisor v0.48.1
 	github.com/google/uuid v1.6.0

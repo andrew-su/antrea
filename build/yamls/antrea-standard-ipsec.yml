@@ -5487,6 +5487,11 @@ spec:
         checksum/config: 307308d8bb82ac6a04db064cd975e1817cce1ddcea7f4843501e1054520f6199
         checksum/ipsec-secret: d0eb9c52d0cd4311b6d252a951126bf9bea27ec05590bed8a394f0f792dcb2a4
         checksum/tweaker-config: 2d2c4693a82ee4f18de916ab3a50276d064eb8058a673f7e6b7719b9e5c21190
+        # Adding annotations to allow Wavefront Collectors to scrape metrics
+        prometheus.io/scheme: "https"
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "10350"
       labels:
         app: antrea
         component: antrea-agent
@@ -5798,6 +5803,11 @@ spec:
         # Automatically restart Pod if the ConfigMap changes
         # See https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
         checksum/config: 307308d8bb82ac6a04db064cd975e1817cce1ddcea7f4843501e1054520f6199
+        # Adding annotations to allow Wavefront Collectors to scrape metrics
+        prometheus.io/scheme: "https"
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "10349"
       labels:
         app: antrea
         component: antrea-controller
