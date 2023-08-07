@@ -118,7 +118,7 @@ echo "====== Saving TKGS Manifests ======"
 # Antrea yamls for TKG Service. antrea-ipsec is not supported yet
 # Complicated Yaml customization is done directly in Antrea topic/tkgs branch
 # Here we only replace image version
-for k8s_version in "1.23" "1.24" "1.25" "1.26"; do
+for k8s_version in "1.24" "1.25" "1.26" "1.27"; do
   MANIFESTS_DIR=$(mktemp -d)
   mkdir -p "${PUBLISH_DIR}/add-on/${k8s_version}"
   IMG_NAME=localhost:5000/vmware.io/antrea/antrea IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
