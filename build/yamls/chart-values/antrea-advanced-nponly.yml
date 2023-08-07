@@ -1,0 +1,4 @@
+trafficEncapMode: "networkPolicyOnly"
+antreaAgentTweaker:
+  enable: true
+advanced: true
