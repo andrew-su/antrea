@@ -96,13 +96,11 @@ func (a *enterpriseAntreaPolicyValidator) authorizeTierUserForEdit(tier string, 
 // enterprise features.
 func (a *enterpriseAntreaPolicyValidator) createValidate(curObj interface{}, userInfo authenticationv1.UserInfo) ([]string, string, bool) {
 	var tier string
-	switch curObj.(type) {
+	switch v := curObj.(type) {
 	case *crdv1b1.ClusterNetworkPolicy:
-		curCNP := curObj.(*crdv1b1.ClusterNetworkPolicy)
-		tier = curCNP.Spec.Tier
+		tier = v.Spec.Tier
 	case *crdv1b1.NetworkPolicy:
-		curANP := curObj.(*crdv1b1.NetworkPolicy)
-		tier = curANP.Spec.Tier
+		tier = v.Spec.Tier
 	}
 	return a.authorizeTierUserForEdit(tier, userInfo)
 }
@@ -119,10 +117,10 @@ func (a *enterpriseAntreaPolicyValidator) updateValidate(curObj, oldObj interfac
 		curTier = curCNP.Spec.Tier
 		oldTier = oldCNP.Spec.Tier
 	case *crdv1b1.NetworkPolicy:
-		curANP := curObj.(*crdv1b1.NetworkPolicy)
-		oldANP := oldObj.(*crdv1b1.NetworkPolicy)
-		curTier = curANP.Spec.Tier
-		oldTier = oldANP.Spec.Tier
+		curANNP := curObj.(*crdv1b1.NetworkPolicy)
+		oldANNP := oldObj.(*crdv1b1.NetworkPolicy)
+		curTier = curANNP.Spec.Tier
+		oldTier = oldANNP.Spec.Tier
 	}
 	// Tier is not being updated.
 	if curTier == oldTier {
@@ -145,13 +143,11 @@ func (a *enterpriseAntreaPolicyValidator) updateValidate(curObj, oldObj interfac
 // enterprise features.
 func (a *enterpriseAntreaPolicyValidator) deleteValidate(oldObj interface{}, userInfo authenticationv1.UserInfo) (string, bool) {
 	var tier string
-	switch oldObj.(type) {
+	switch v := oldObj.(type) {
 	case *crdv1b1.ClusterNetworkPolicy:
-		oldCNP := oldObj.(*crdv1b1.ClusterNetworkPolicy)
-		tier = oldCNP.Spec.Tier
+		tier = v.Spec.Tier
 	case *crdv1b1.NetworkPolicy:
-		oldANP := oldObj.(*crdv1b1.NetworkPolicy)
-		tier = oldANP.Spec.Tier
+		tier = v.Spec.Tier
 	}
 	_, reason, allowed := a.authorizeTierUserForEdit(tier, userInfo)
 	return reason, allowed
