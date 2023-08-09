@@ -26,7 +26,9 @@ require (
 	github.com/gammazero/deque v1.0.0
 	github.com/go-logr/logr v1.4.2
 	github.com/gogo/protobuf v1.3.2
+	github.com/golang/mock v1.6.0
 	github.com/google/btree v1.1.3
+	github.com/google/cadvisor v0.48.1
 	github.com/google/uuid v1.6.0
 	github.com/gopacket/gopacket v1.3.2-0.20241202175635-b43272ae1eb8
 	github.com/hashicorp/memberlist v0.5.3
@@ -180,9 +182,11 @@ require (
 	github.com/mdlayher/genetlink v1.0.0 // indirect
 	github.com/mdlayher/netlink v1.7.2 // indirect
 	github.com/mdlayher/socket v0.5.1 // indirect
+	github.com/mistifyio/go-zfs v2.1.2-0.20190413222219-f784269be439+incompatible // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/spdystream v0.4.0 // indirect
+	github.com/moby/sys/mountinfo v0.6.2 // indirect
 	github.com/moby/term v0.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
