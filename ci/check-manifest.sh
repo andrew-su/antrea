@@ -38,6 +38,12 @@ YAMLS=(
     "build/yamls/antrea-standard-fips.yml"
     "build/yamls/antrea-standard-nponly.yml"
     "build/yamls/antrea-standard-ipsec.yml"
+    "build/yamls/antrea-advanced.yml"
+    "build/yamls/antrea-advanced-crds.yml"
+    "build/yamls/antrea-advanced-fips.yml"
+    "build/yamls/antrea-advanced-nponly.yml"
+    "build/yamls/antrea-advanced-ipsec.yml"
+    "build/yamls/antrea-advanced-tkgs.yml"
 )
 
 YAMLS+=($(ls build/yamls/antrea-windows*.yml))
