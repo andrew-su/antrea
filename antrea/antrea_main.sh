@@ -47,10 +47,11 @@ popd
 echo "====== Building Debian standard Images ======"
 make debian VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
 
-echo "====== Preparing Antrea Standard Product Deliverables: Standard Manifests ======"
+echo "====== Preparing Antrea Standard Product Deliverables: Standard Manifests & Scripts ======"
 antrea_std_deliverables="antrea-standard-${ANTREA_VERSION_DIGIT}"
 mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}"
 mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests"
+mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}/scripts"
 echo "${BUILD_NUMBER}" > "${PUBLISH_DIR}/${antrea_std_deliverables}/build_number.txt"
 
 # antrea-ipsec is not used in commecial release
@@ -62,6 +63,7 @@ cp "${MANIFESTS_DIR}/antrea-standard-fips.yml" "${PUBLISH_DIR}/${antrea_std_deli
 cp "${MANIFESTS_DIR}/antrea-standard-nponly.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-nponly-${BINARY_VERSION}.yml"
 cp "${FLOW_AGGREGATOR_MANIFESTS_DIR}/flow-aggregator-${BINARY_VERSION}.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/"
 cp "${MANIFESTS_DIR}/antrea-flow-visibility-test.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-flow-visibility-test-${BINARY_VERSION}.yml"
+cp "${REPO_ROOT}/hack/wavefront-metrics.sh" "${PUBLISH_DIR}/${antrea_std_deliverables}/scripts/"
 
 # Create archives for scripts and binaries
 echo "====== Saving Antrea Standard Product Deliverables ======"
@@ -134,10 +136,11 @@ popd
 echo "====== Building Debian Advanced Images ======"
 make debian VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
 
-echo "====== Preparing Antrea Advanced Product Deliverables: Advanced Manifests ======"
+echo "====== Preparing Antrea Advanced Product Deliverables: Advanced Manifests & Scripts ======"
 antrea_adv_deliverables="antrea-advanced-${ANTREA_VERSION_DIGIT}"
 mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}"
 mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests"
+mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}/scripts"
 echo "${BUILD_NUMBER}" > "${PUBLISH_DIR}/${antrea_adv_deliverables}/build_number.txt"
 # antrea-ipsec is not used in commecial release
 MANIFESTS_DIR=$(mktemp -d)
@@ -148,6 +151,8 @@ cp ${MANIFESTS_DIR}/antrea-advanced-fips.yml "${PUBLISH_DIR}/${antrea_adv_delive
 cp ${MANIFESTS_DIR}/antrea-advanced-nponly.yml "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-nponly-${BINARY_VERSION}.yml"
 cp "${FLOW_AGGREGATOR_MANIFESTS_DIR}/flow-aggregator-${BINARY_VERSION}.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/"
 cp ${MANIFESTS_DIR}/antrea-flow-visibility-test.yml "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-flow-visibility-test-${BINARY_VERSION}.yml"
+cp "${REPO_ROOT}/hack/wavefront-metrics.sh" "${PUBLISH_DIR}/${antrea_adv_deliverables}/scripts/"
+
 
 echo "====== Saving Antrea Advanced Product Deliverables ======"
 OUTPUT_DIR="${BUILDROOT}/advanced-output"

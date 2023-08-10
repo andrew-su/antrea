@@ -89,6 +89,10 @@ rm -rf "${OUTPUT_DIR}/executables"
 mkdir -p "${OUTPUT_DIR}/executables"
 gzip -c "bin/e2e-advanced-ipsec-${ANTREA_VERSION}" > "${OUTPUT_DIR}/executables/e2e-advanced-ipsec-${ANTREA_VERSION}.gz"
 
+echo "=== Saving Antrea IPsec Scripts ==="
+mkdir -p "${OUTPUT_DIR}/scripts"
+cp "${REPO_ROOT}/hack/wavefront-metrics.sh" "${OUTPUT_DIR}/scripts/"
+
 function build_ipsec_zip_for_distro {
     local distro=$1
     local image_name=$2

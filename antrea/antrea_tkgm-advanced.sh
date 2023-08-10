@@ -43,9 +43,12 @@ echo "====== Saving TKGm Deliverables ======"
 # "${BUILDROOT}/output" will be published to lin64/antrea by antrea_defs.py:CaymanAntreaBuilderLin.install
 OUTPUT_DIR="${BUILDROOT}/output"
 
+echo "====== Saving TKGm Scripts ======"
+mkdir -p "${OUTPUT_DIR}/scripts"
+cp "${REPO_ROOT}/hack/wavefront-metrics.sh" "${OUTPUT_DIR}/scripts/"
+
 echo "====== Saving TKGm Manifests ======"
 mkdir -p "${OUTPUT_DIR}/manifests"
-
 # Antrea yamls for TKG
 MANIFESTS_DIR=$(mktemp -d)
 IMG_NAME=antrea/antrea-advanced-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
