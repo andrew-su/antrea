@@ -213,7 +213,7 @@ class CaymanAntreaTKGMStd(_CaymanAntrea):
                 'longname': 'cayman_antrea_tkgm-standard'}
 
     def GetCommands(self, hosttype):
-        products = CaymanAntrea.product_map[hosttype]['products']
+        products = CaymanAntrea.dist_map[hosttype]
         return [self._Command(hosttype=hosttype, product=product, args={"BUILD_PRODUCT":"cayman_antrea_tkgm-standard"}) for product in products]
 
     def GetComponentPath(self):
