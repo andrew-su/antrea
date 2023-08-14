@@ -59,6 +59,7 @@ IMG_NAME=antrea/antrea-standard-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hac
 IMG_NAME=antrea/antrea-standard-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --feature-gates FlowExporter=true --extra-helm-values-file "${REPO_ROOT}/ci/kind/values-flow-exporter.yml" --mode release > "${MANIFESTS_DIR}"/antrea-flow-visibility-test.yml
 cp "${MANIFESTS_DIR}/antrea-standard.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-${BINARY_VERSION}.yml"
 cp "${MANIFESTS_DIR}/antrea-standard-fips.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-fips-${BINARY_VERSION}.yml"
+cp "${MANIFESTS_DIR}/antrea-standard-nponly.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-nponly-${BINARY_VERSION}.yml"
 cp "${FLOW_AGGREGATOR_MANIFESTS_DIR}/flow-aggregator-${BINARY_VERSION}.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/"
 cp "${MANIFESTS_DIR}/antrea-flow-visibility-test.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-flow-visibility-test-${BINARY_VERSION}.yml"
 
@@ -144,6 +145,7 @@ IMG_NAME=antrea/antrea-advanced-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hac
 IMG_NAME=antrea/antrea-advanced-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --feature-gates FlowExporter=true --extra-helm-values-file "${REPO_ROOT}/ci/kind/values-flow-exporter.yml" --mode release > "${MANIFESTS_DIR}"/antrea-flow-visibility-test.yml
 cp ${MANIFESTS_DIR}/antrea-advanced.yml "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-${BINARY_VERSION}.yml"
 cp ${MANIFESTS_DIR}/antrea-advanced-fips.yml "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-fips-${BINARY_VERSION}.yml"
+cp ${MANIFESTS_DIR}/antrea-advanced-nponly.yml "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-nponly-${BINARY_VERSION}.yml"
 cp "${FLOW_AGGREGATOR_MANIFESTS_DIR}/flow-aggregator-${BINARY_VERSION}.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/"
 cp ${MANIFESTS_DIR}/antrea-flow-visibility-test.yml "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-flow-visibility-test-${BINARY_VERSION}.yml"
 
