@@ -273,3 +273,20 @@ function sign_binaries() {
   gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename_asc}" --hash=sha256 --keyid=${GPG_KEY_ID} ${GPGSIGNC_OPTS}
   popd
 }
+
+function generate_flow_visibility_e2e_manifests() {
+  local antrea_repo_root=$1
+  local binary_version=$2
+  local output_dir=$3
+  source "$antrea_repo_root/hack/verify-helm.sh"
+  if [ -z "$HELM" ]; then
+    HELM="$(verify_helm $GOBUILD_HELM_BIN_PATH)"
+  elif ! $HELM version > /dev/null 2>&1; then
+    echoerr "$HELM does not appear to be a valid helm binary"
+    print_help
+    exit 1
+  fi
+  FLOW_VISIBILITY_CHART="$antrea_repo_root/test/e2e/charts/flow-visibility"
+  $HELM template "$FLOW_VISIBILITY_CHART"  > "${output_dir}/flow-visibility-e2e-${binary_version}.yml"
+  $HELM template "$FLOW_VISIBILITY_CHART" --set "secureConnection.enable=true" > "${output_dir}/flow-visibility-tls-e2e-${binary_version}.yml"
+}

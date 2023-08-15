@@ -57,13 +57,15 @@ echo "${BUILD_NUMBER}" > "${PUBLISH_DIR}/${antrea_std_deliverables}/build_number
 # antrea-ipsec is not used in commecial release
 MANIFESTS_DIR=$(mktemp -d)
 IMG_NAME=antrea/antrea-standard-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
-IMG_NAME=antrea/antrea-standard-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --feature-gates FlowExporter=true --extra-helm-values-file "${REPO_ROOT}/ci/kind/values-flow-exporter.yml" --mode release > "${MANIFESTS_DIR}"/antrea-flow-visibility-test.yml
+IMG_NAME=antrea/antrea-standard-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --feature-gates FlowExporter=true --extra-helm-values-file "${REPO_ROOT}/ci/kind/values-flow-exporter.yml" --mode release > "${MANIFESTS_DIR}"/antrea-flow-exporter-enabled.yml
 cp "${MANIFESTS_DIR}/antrea-standard.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-${BINARY_VERSION}.yml"
 cp "${MANIFESTS_DIR}/antrea-standard-fips.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-fips-${BINARY_VERSION}.yml"
 cp "${MANIFESTS_DIR}/antrea-standard-nponly.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-nponly-${BINARY_VERSION}.yml"
 cp "${FLOW_AGGREGATOR_MANIFESTS_DIR}/flow-aggregator-${BINARY_VERSION}.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/"
-cp "${MANIFESTS_DIR}/antrea-flow-visibility-test.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-flow-visibility-test-${BINARY_VERSION}.yml"
+cp "${MANIFESTS_DIR}/antrea-flow-exporter-enabled.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-flow-exporter-enabled-${BINARY_VERSION}.yml"
 cp "${REPO_ROOT}/hack/wavefront-metrics.sh" "${PUBLISH_DIR}/${antrea_std_deliverables}/scripts/"
+
+generate_flow_visibility_e2e_manifests "${REPO_ROOT}" "${BINARY_VERSION}" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests"
 
 # Create archives for scripts and binaries
 echo "====== Saving Antrea Standard Product Deliverables ======"
@@ -145,14 +147,15 @@ echo "${BUILD_NUMBER}" > "${PUBLISH_DIR}/${antrea_adv_deliverables}/build_number
 # antrea-ipsec is not used in commecial release
 MANIFESTS_DIR=$(mktemp -d)
 IMG_NAME=antrea/antrea-advanced-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
-IMG_NAME=antrea/antrea-advanced-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --feature-gates FlowExporter=true --extra-helm-values-file "${REPO_ROOT}/ci/kind/values-flow-exporter.yml" --mode release > "${MANIFESTS_DIR}"/antrea-flow-visibility-test.yml
+IMG_NAME=antrea/antrea-standard-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --feature-gates FlowExporter=true --extra-helm-values-file "${REPO_ROOT}/ci/kind/values-flow-exporter.yml" --mode release > "${MANIFESTS_DIR}"/antrea-flow-exporter-enabled.yml
 cp ${MANIFESTS_DIR}/antrea-advanced.yml "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-${BINARY_VERSION}.yml"
 cp ${MANIFESTS_DIR}/antrea-advanced-fips.yml "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-fips-${BINARY_VERSION}.yml"
 cp ${MANIFESTS_DIR}/antrea-advanced-nponly.yml "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-nponly-${BINARY_VERSION}.yml"
 cp "${FLOW_AGGREGATOR_MANIFESTS_DIR}/flow-aggregator-${BINARY_VERSION}.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/"
-cp ${MANIFESTS_DIR}/antrea-flow-visibility-test.yml "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-flow-visibility-test-${BINARY_VERSION}.yml"
+cp "${MANIFESTS_DIR}/antrea-flow-exporter-enabled.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-flow-exporter-enabled-${BINARY_VERSION}.yml"
 cp "${REPO_ROOT}/hack/wavefront-metrics.sh" "${PUBLISH_DIR}/${antrea_adv_deliverables}/scripts/"
 
+generate_flow_visibility_e2e_manifests "${REPO_ROOT}" "${BINARY_VERSION}" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests"
 
 echo "====== Saving Antrea Advanced Product Deliverables ======"
 OUTPUT_DIR="${BUILDROOT}/advanced-output"
