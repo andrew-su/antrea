@@ -2,7 +2,7 @@
 ---
 - antrea/src:
    - name: antrea
-     version: "v1.11.0"
+     version: "v1.13.0"
      licenses: [Apache-2.0]
      uses: []
      url: https://github.com/antrea-io/antrea
