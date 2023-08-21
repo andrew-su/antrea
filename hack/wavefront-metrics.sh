@@ -166,7 +166,7 @@ data:
        insecure_skip_verify: true
 EOF
 
-    if [[ $(kubectl apply -f "wavefront.yml") ]]; then
+    if [[ $(kubectl apply -f "wavefront.yaml") ]]; then
         echo "=== Wavefront Collectors and Proxy successfully deployed ==="
     else
         echoerr "Something went wrong! Please check your Wavefront URL and try again."
