@@ -44,6 +44,10 @@ function fips_make() {
   chmod -R 0755 bin
 }
 
+function export_dependency_env() {
+  export GOBUILD_KUSTOMIZE_BIN_PATH="${GOBUILD_CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_ROOT}/lin64/linux/amd64/kustomize"
+  export GOBUILD_HELM_BIN_PATH="${GOBUILD_CAYMAN_HELM_ROOT}/lin64/bin/helm"
+}
 
 function update_docker() {
   # Update Docker to a version that supports multi-stage builds
@@ -159,7 +163,7 @@ function build_windows() {
   DownloadDir="${REPO_ROOT}/download"
   rm -rf "${DownloadDir}"
   mkdir -p "${DownloadDir}"
-  CNI_WINDOWS_URL="https://github.com/containernetworking/plugins/releases/download/v1.1.1/cni-plugins-windows-amd64-v1.1.1.tgz"
+  CNI_WINDOWS_URL="https://artifactory.eng.vmware.com/artifactory/nsx-ujo-local/cayman_antrea/cni-plugins-windows-amd64-v1.1.1.tgz"
   wget -q "${CNI_WINDOWS_URL}" -O "${DownloadDir}/cni-plugins-windows.tgz"
   mkdir -p "${DownloadDir}/cni-plugins-windows"
   tar zxf "${DownloadDir}/cni-plugins-windows.tgz" -C "${DownloadDir}/cni-plugins-windows"
@@ -190,7 +194,7 @@ function build_windows() {
 
   cp "${NSXOVS_PATH}" "${DownloadDir}/nsx-ovs.zip"
   wget -q "${VCRedistUrl}" -O "${DownloadDir}/vcredists.zip"
-  docker run --rm --user $(id -u):$(id -g) -v "${REPO_ROOT}":/tmp/windows -w /tmp/windows harbor-repo.vmware.com/dockerhub-proxy-cache/library/busybox /bin/sh -c "unzip -q download/nsx-ovs.zip -d nsx-ovs-temp ; unzip -q download/vcredists.zip -d nsx-ovs-temp"
+  docker run --rm --user $(id -u):$(id -g) -v "${REPO_ROOT}":/tmp/windows -w /tmp/windows nsx-ujo-docker-local.artifactory.eng.vmware.com/interworking/busybox /bin/sh -c "unzip -q download/nsx-ovs.zip -d nsx-ovs-temp ; unzip -q download/vcredists.zip -d nsx-ovs-temp"
   OVSDir="${TempDir}/openvswitch"
   OVSDriverDir="${OVSDir}/driver"
   VCRedistDir="${OVSDir}/redist"

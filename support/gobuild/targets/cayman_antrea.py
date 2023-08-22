@@ -120,6 +120,17 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
                 "change": specs.cayman_antrea.CAYMAN_WHEREABOUTS_CLN,
                 "buildtype": specs.cayman_antrea.CAYMAN_WHEREABOUTS_BUILDTYPE,
                 "files": specs.cayman_antrea.CAYMAN_WHEREABOUTS_FILES},
+            "cayman_helm": {
+                "branch": specs.cayman_antrea.CAYMAN_HELM_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_HELM_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_HELM_BUILDTYPE,
+                "files": specs.cayman_antrea.CAYMAN_HELM_FILES},
+            "cayman_kubernetes-sigs_kustomize": {
+                "branch": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_BUILDTYPE,
+                "files": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_FILES},
+
         }
 
         return comps
@@ -304,6 +315,16 @@ class CaymanAntreaMultiCluster(_CaymanAntrea):
                 "change": specs.cayman_antrea.CAYMAN_OPENSSL_CLN,
                 "buildtype": specs.cayman_antrea.CAYMAN_OPENSSL_BUILDTYPE,
                 "hosttypes": specs.cayman_antrea.CAYMAN_OPENSSL_HOSTTYPES},
+            "cayman_helm": {
+                "branch": specs.cayman_antrea.CAYMAN_HELM_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_HELM_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_HELM_BUILDTYPE,
+                "files": specs.cayman_antrea.CAYMAN_HELM_FILES},
+            "cayman_kubernetes-sigs_kustomize": {
+                "branch": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_BUILDTYPE,
+                "files": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_FILES},
         }
 
         return comps
@@ -390,6 +411,16 @@ class CaymanAntreaIDPS(_CaymanAntrea):
                 "change": specs.cayman_antrea.CAYMAN_OPENSSL_CLN,
                 "buildtype": specs.cayman_antrea.CAYMAN_OPENSSL_BUILDTYPE,
                 "hosttypes": specs.cayman_antrea.CAYMAN_OPENSSL_HOSTTYPES},
+            "cayman_helm": {
+                "branch": specs.cayman_antrea.CAYMAN_HELM_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_HELM_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_HELM_BUILDTYPE,
+                "files": specs.cayman_antrea.CAYMAN_HELM_FILES},
+            "cayman_kubernetes-sigs_kustomize": {
+                "branch": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_BUILDTYPE,
+                "files": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_FILES},
         }
 
         return comps

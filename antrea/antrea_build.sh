@@ -15,11 +15,13 @@ cat /proc/cpuinfo
 source "${PROJECT_DIR}/antrea_var.sh"
 source "${PROJECT_DIR}/antrea_lib.sh"
 
+export_dependency_env
+
 update_docker
 
 docker version
-docker pull harbor-repo.vmware.com/dockerhub-proxy-cache/library/golang:1.19-buster
-docker tag harbor-repo.vmware.com/dockerhub-proxy-cache/library/golang:1.19-buster golang:1.19
+docker pull nsx-ujo-docker-local.artifactory.eng.vmware.com/interworking/golang:1.19-buster
+docker tag nsx-ujo-docker-local.artifactory.eng.vmware.com/interworking/golang:1.19-buster golang:1.19
 
 echo "===== Building Antrea Target ${ANTREA_TARGET} ====="
 pushd "${REPO_ROOT}"

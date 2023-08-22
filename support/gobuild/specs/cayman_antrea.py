@@ -1,4 +1,4 @@
-LINUX_HOSTTYPE = 'linux-centos8'
+LINUX_HOSTTYPE = 'linux-centos8-fw'
 
 CAYMAN_BRANCH = 'master'
 CAYMAN_CLN = '71c887b9ee67bd2298b85464ff14401b978ff885'
@@ -62,4 +62,20 @@ CAYMAN_WHEREABOUTS_FILES = {
     LINUX_HOSTTYPE: [
         "publish/lin64/whereabouts/executables/.*",
         "publish/lin64/whereabouts/images/.*"]
+}
+
+CAYMAN_HELM_BRANCH = "vmware-3.12.3"
+CAYMAN_HELM_CLN = "e77bc98b8823e23edc4268e542efec1cf6bd11b1"
+CAYMAN_HELM_BUILDTYPE = "release"
+CAYMAN_HELM_FILES = {
+    LINUX_HOSTTYPE: [
+        "publish/lin64/.*"]
+}
+
+CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_BRANCH = "vmware-master"
+CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_CLN = "2c005cd97a5f9bce23fcab61f24f4cca1b1d64ec"
+CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_BUILDTYPE = "release"
+CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_FILES = {
+    LINUX_HOSTTYPE: [
+        "publish/lin64/*."]
 }
