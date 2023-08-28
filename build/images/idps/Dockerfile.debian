@@ -1,13 +1,13 @@
-FROM harbor-repo.vmware.com/dockerhub-proxy-cache/library/debian:stable-slim
+FROM nsx-ujo-docker-local.artifactory.eng.vmware.com/interworking/debian:bullseye-slim
 ARG BUILD_INFO
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
 LABEL description="The Docker image to deploy the IDPS."
 LABEL build-info="${BUILD_INFO}"
 
-RUN echo "deb http://build-artifactory.eng.vmware.com/debian-remote stable main" > /etc/apt/sources.list && \
-    echo "deb http://build-artifactory.eng.vmware.com/debian-remote stable-updates main" >> /etc/apt/sources.list && \
-    echo "deb http://build-artifactory.eng.vmware.com/debian-security-remote stable-security main" >> /etc/apt/sources.list
+RUN echo "deb http://build-artifactory.eng.vmware.com/debian-remote bullseye main" > /etc/apt/sources.list && \
+    echo "deb http://build-artifactory.eng.vmware.com/debian-remote bullseye-updates main" >> /etc/apt/sources.list && \
+    echo "deb http://build-artifactory.eng.vmware.com/debian-security-remote bullseye-security main" >> /etc/apt/sources.list
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates
