@@ -4,7 +4,7 @@ set -xe
 # https://confluence.eng.vmware.com/display/OSMUserGuide/VM+%28vApp+Virtual+Machines%29+or+Containers?src=contextnavpagetreemode
 # https://confluence.eng.vmware.com/display/CNA/Cascade+OSSTP
 
-RELEASE_VERSION=1.7.0
+RELEASE_VERSION=1.8.0
 
 echo Scann OS packages for Antrea commercial release $RELEASE_VERSION
 
@@ -96,8 +96,8 @@ yum install -y unzip curl yum-utils || true
 
 mkdir -p osstpclients
 cd osstpclients
-curl -LO https://osm.eng.vmware.com/utilities/osstpclients3.zip
-unzip osstpclients3.zip
+curl -LO https://artifactory.eng.vmware.com/artifactory/osm-client-generic-local/osstpclients3_2023-05-18.zip
+unzip osstpclients3_2023-05-18.zip
 cd bin
 
 ./vm-inventory.sh -s rpm rhel9
