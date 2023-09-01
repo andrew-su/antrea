@@ -38,7 +38,8 @@ type Client struct {
 
 // NewClient returns a cloud provider interface backed by AWS.
 func NewClient() (cloudprovider.Interface, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+	// config.WithEC2IMDSRegion() will set the region from the EC2 IMDS metadata.
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithEC2IMDSRegion())
 	if err != nil {
 		return nil, fmt.Errorf("unable to load AWS configuration: %w", err)
 	}

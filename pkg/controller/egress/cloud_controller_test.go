@@ -41,8 +41,27 @@ const (
 	fakeEgressIP1 = "192.168.1.1"
 	fakeEgressIP2 = "192.168.1.2"
 	fakeEgressIP3 = "192.168.1.3"
-	fakeNode      = "ip-192-168-1-1.us-west-2.compute.internal"
+	fakeNodeName1 = "ip-192-168-1-1.us-west-2.compute.internal"
+	fakeNodeName2 = "ip-192-168-1-2.us-west-2.compute.internal"
 )
+
+var fakeNodeObj1 = &corev1.Node{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: fakeNodeName1,
+	},
+	Spec: corev1.NodeSpec{
+		ProviderID: "aws:///us-west-2a/i-1234567890abcdef0",
+	},
+}
+
+var fakeNodeObj2 = &corev1.Node{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: fakeNodeName2,
+	},
+	Spec: corev1.NodeSpec{
+		ProviderID: "aws:///us-west-2a/i-1234567890abcdef1",
+	},
+}
 
 type fakeEgressCloudController struct {
 	*EgressCloudController
@@ -53,7 +72,7 @@ type fakeEgressCloudController struct {
 	cloudProvider      *cloudprovidertest.MockInterface
 }
 
-func newFakeEgressCloudController(ctrl *gomock.Controller, objects, crdObjects []runtime.Object) *fakeEgressCloudController {
+func newFakeEgressCloudController(ctrl *gomock.Controller, objects, crdObjects []runtime.Object, cloudStates map[string]*cloudState) *fakeEgressCloudController {
 	client := fake.NewSimpleClientset(objects...)
 	crdClient := fakeversioned.NewSimpleClientset(crdObjects...)
 	informerFactory := informers.NewSharedInformerFactory(client, resyncPeriod)
@@ -62,6 +81,9 @@ func newFakeEgressCloudController(ctrl *gomock.Controller, objects, crdObjects [
 	nodeInformer := informerFactory.Core().V1().Nodes()
 	cloudProvider := cloudprovidertest.NewMockInterface(ctrl)
 	egressCloudController, _ := NewEgressCloudController(client, egressInformer, nodeInformer, cloudProvider)
+	if cloudStates != nil {
+		egressCloudController.cloudStates = cloudStates
+	}
 	return &fakeEgressCloudController{
 		EgressCloudController: egressCloudController,
 		client:                client,
@@ -135,7 +157,7 @@ func TestEgressCloudControllerSyncNode(t *testing.T) {
 			defer ctrl.Finish()
 			stopCh := make(chan struct{})
 			defer close(stopCh)
-			c := newFakeEgressCloudController(ctrl, []runtime.Object{tt.node}, nil)
+			c := newFakeEgressCloudController(ctrl, []runtime.Object{tt.node}, nil, nil)
 			c.informerFactory.Start(stopCh)
 			c.crdInformerFactory.Start(stopCh)
 			c.informerFactory.WaitForCacheSync(stopCh)
@@ -197,7 +219,7 @@ func TestNodeEvents(t *testing.T) {
 			defer ctrl.Finish()
 			stopCh := make(chan struct{})
 			defer close(stopCh)
-			c := newFakeEgressCloudController(ctrl, nil, nil)
+			c := newFakeEgressCloudController(ctrl, nil, nil, nil)
 			c.enqueueNode(tt.node)
 			assert.Equal(t, tt.expectedQueueLen, c.nodeQueue.Len())
 		})
@@ -215,7 +237,7 @@ func TestEgressAddEvents(t *testing.T) {
 			egress: &egressv1beta1.Egress{
 				ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
 				Spec:       egressv1beta1.EgressSpec{EgressIP: fakeEgressIP1},
-				Status:     egressv1beta1.EgressStatus{EgressIP: fakeEgressIP1, EgressNode: fakeNode},
+				Status:     egressv1beta1.EgressStatus{EgressIP: fakeEgressIP1, EgressNode: fakeNodeName1},
 			},
 			expectedQueueLen: 1,
 		},
@@ -244,7 +266,7 @@ func TestEgressAddEvents(t *testing.T) {
 			defer ctrl.Finish()
 			stopCh := make(chan struct{})
 			defer close(stopCh)
-			c := newFakeEgressCloudController(ctrl, nil, nil)
+			c := newFakeEgressCloudController(ctrl, nil, nil, nil)
 			c.addEgress(tt.egress)
 			assert.Equal(t, tt.expectedQueueLen, c.egressQueue.Len())
 		})
@@ -263,12 +285,12 @@ func TestEgressUpdateEvents(t *testing.T) {
 			oldEgress: &egressv1beta1.Egress{
 				ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
 				Spec:       egressv1beta1.EgressSpec{EgressIP: fakeEgressIP1},
-				Status:     egressv1beta1.EgressStatus{EgressIP: fakeEgressIP1, EgressNode: fakeNode},
+				Status:     egressv1beta1.EgressStatus{EgressIP: fakeEgressIP1, EgressNode: fakeNodeName1},
 			},
 			curEgress: &egressv1beta1.Egress{
 				ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
 				Spec:       egressv1beta1.EgressSpec{EgressIP: fakeEgressIP2},
-				Status:     egressv1beta1.EgressStatus{EgressIP: fakeEgressIP2, EgressNode: fakeNode},
+				Status:     egressv1beta1.EgressStatus{EgressIP: fakeEgressIP2, EgressNode: fakeNodeName1},
 			},
 			expectedQueueLen: 1,
 		},
@@ -277,12 +299,12 @@ func TestEgressUpdateEvents(t *testing.T) {
 			oldEgress: &egressv1beta1.Egress{
 				ObjectMeta: metav1.ObjectMeta{Name: "egressB", UID: "uidA"},
 				Spec:       egressv1beta1.EgressSpec{EgressIP: fakeEgressIP1},
-				Status:     egressv1beta1.EgressStatus{EgressIP: fakeEgressIP1, EgressNode: fakeNode},
+				Status:     egressv1beta1.EgressStatus{EgressIP: fakeEgressIP1, EgressNode: fakeNodeName1},
 			},
 			curEgress: &egressv1beta1.Egress{
 				ObjectMeta: metav1.ObjectMeta{Name: "egressB", UID: "uidA"},
 				Spec:       egressv1beta1.EgressSpec{EgressIP: fakeEgressIP1},
-				Status:     egressv1beta1.EgressStatus{EgressIP: fakeEgressIP1, EgressNode: fakeNode},
+				Status:     egressv1beta1.EgressStatus{EgressIP: fakeEgressIP1, EgressNode: fakeNodeName1},
 			},
 			expectedQueueLen: 0,
 		},
@@ -291,7 +313,7 @@ func TestEgressUpdateEvents(t *testing.T) {
 			oldEgress: &egressv1beta1.Egress{
 				ObjectMeta: metav1.ObjectMeta{Name: "egressC", UID: "uidA"},
 				Spec:       egressv1beta1.EgressSpec{EgressIP: fakeEgressIP1},
-				Status:     egressv1beta1.EgressStatus{EgressIP: fakeEgressIP1, EgressNode: fakeNode},
+				Status:     egressv1beta1.EgressStatus{EgressIP: fakeEgressIP1, EgressNode: fakeNodeName1},
 			},
 			curEgress: &egressv1beta1.Egress{
 				ObjectMeta: metav1.ObjectMeta{Name: "egressC", UID: "uidA"},
@@ -307,7 +329,7 @@ func TestEgressUpdateEvents(t *testing.T) {
 			defer ctrl.Finish()
 			stopCh := make(chan struct{})
 			defer close(stopCh)
-			c := newFakeEgressCloudController(ctrl, nil, nil)
+			c := newFakeEgressCloudController(ctrl, nil, nil, nil)
 			c.updateEgress(tt.oldEgress, tt.curEgress)
 			assert.Equal(t, tt.expectedQueueLen, c.egressQueue.Len())
 		})
@@ -341,7 +363,7 @@ func TestEgressDeleteEvents(t *testing.T) {
 			defer ctrl.Finish()
 			stopCh := make(chan struct{})
 			defer close(stopCh)
-			c := newFakeEgressCloudController(ctrl, nil, nil)
+			c := newFakeEgressCloudController(ctrl, nil, nil, nil)
 			c.deleteEgress(tt.egress)
 			assert.Equal(t, tt.expectedQueueLen, c.egressQueue.Len())
 		})
@@ -351,39 +373,135 @@ func TestEgressDeleteEvents(t *testing.T) {
 func TestEgressCloudControllerSyncEgress(t *testing.T) {
 	tests := []struct {
 		name                       string
-		egress                     *egressv1beta1.Egress
+		nodes                      []*corev1.Node
+		existingEgresses           []*egressv1beta1.Egress
+		existingCloudStates        map[string]*cloudState
+		egressNameToSync           string
+		expectedCloudStates        map[string]*cloudState
 		expectedCloudProviderCalls func(recorder *cloudprovidertest.MockInterfaceMockRecorder)
 		expectedErr                string
 	}{
 		{
-			name: "regular add Egress",
-			egress: &egressv1beta1.Egress{
-				ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
-				Spec:       egressv1beta1.EgressSpec{EgressIP: fakeEgressIP1},
-				Status:     egressv1beta1.EgressStatus{EgressIP: fakeEgressIP1, EgressNode: fakeNode},
+			name:  "regular add Egress",
+			nodes: []*corev1.Node{fakeNodeObj1},
+			existingEgresses: []*egressv1beta1.Egress{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+					Spec:       egressv1beta1.EgressSpec{EgressIP: fakeEgressIP1},
+					Status:     egressv1beta1.EgressStatus{EgressIP: fakeEgressIP1, EgressNode: fakeNodeName1},
+				},
+			},
+			egressNameToSync: "egressA",
+			expectedCloudStates: map[string]*cloudState{
+				"egressA": {
+					secondPrivateIP: fakeEgressIP1,
+					node:            fakeNodeObj1,
+				},
 			},
 			expectedCloudProviderCalls: func(recorder *cloudprovidertest.MockInterfaceMockRecorder) {
-				recorder.AssignIPToNode(fakeEgressIP1, fakeNode).Return(nil)
+				recorder.AssignIPToNode(fakeEgressIP1, fakeNodeObj1).Return(nil)
 			},
 		},
 		{
-			name: "regular delete Egress",
-			egress: &egressv1beta1.Egress{
-				ObjectMeta: metav1.ObjectMeta{Name: "egressA"},
+			name:  "regular delete Egress",
+			nodes: []*corev1.Node{fakeNodeObj1},
+			existingEgresses: []*egressv1beta1.Egress{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+				},
 			},
+			expectedCloudStates:        map[string]*cloudState{},
+			egressNameToSync:           "egressA",
 			expectedCloudProviderCalls: func(recorder *cloudprovidertest.MockInterfaceMockRecorder) {},
 		},
 		{
-			name: "fail to assign IP",
-			egress: &egressv1beta1.Egress{
-				ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
-				Spec:       egressv1beta1.EgressSpec{EgressIP: fakeEgressIP1},
-				Status:     egressv1beta1.EgressStatus{EgressIP: fakeEgressIP1, EgressNode: fakeNode},
+			name:  "fail to assign IP",
+			nodes: []*corev1.Node{fakeNodeObj1},
+			existingEgresses: []*egressv1beta1.Egress{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+					Spec:       egressv1beta1.EgressSpec{EgressIP: fakeEgressIP1},
+					Status:     egressv1beta1.EgressStatus{EgressIP: fakeEgressIP1, EgressNode: fakeNodeName1},
+				},
 			},
+			expectedCloudStates: map[string]*cloudState{},
+			egressNameToSync:    "egressA",
 			expectedCloudProviderCalls: func(recorder *cloudprovidertest.MockInterfaceMockRecorder) {
-				recorder.AssignIPToNode(fakeEgressIP1, fakeNode).Return(fmt.Errorf("failed to assign IP"))
+				recorder.AssignIPToNode(fakeEgressIP1, fakeNodeObj1).Return(fmt.Errorf("failed to assign IP"))
 			},
 			expectedErr: "failed to assign IP",
+		},
+		{
+			name:  "egress IP changed",
+			nodes: []*corev1.Node{fakeNodeObj1},
+			existingEgresses: []*egressv1beta1.Egress{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+					Spec:       egressv1beta1.EgressSpec{EgressIP: fakeEgressIP2},
+					Status:     egressv1beta1.EgressStatus{EgressIP: fakeEgressIP2, EgressNode: fakeNodeName1},
+				},
+			},
+			existingCloudStates: map[string]*cloudState{
+				"egressA": {
+					secondPrivateIP: fakeEgressIP1,
+					node:            fakeNodeObj1,
+				},
+			},
+			expectedCloudStates: map[string]*cloudState{
+				"egressA": {
+					secondPrivateIP: fakeEgressIP2,
+					node:            fakeNodeObj1,
+				},
+			},
+			egressNameToSync: "egressA",
+			expectedCloudProviderCalls: func(recorder *cloudprovidertest.MockInterfaceMockRecorder) {
+				recorder.AssignIPToNode(fakeEgressIP2, fakeNodeObj1).Return(nil)
+				recorder.UnassignIPToNode(fakeEgressIP1, fakeNodeObj1).Return(nil)
+			},
+		},
+		{
+			name:  "egress Node changed",
+			nodes: []*corev1.Node{fakeNodeObj1, fakeNodeObj2},
+			existingEgresses: []*egressv1beta1.Egress{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "egressA", UID: "uidA"},
+					Spec:       egressv1beta1.EgressSpec{EgressIP: fakeEgressIP1},
+					Status:     egressv1beta1.EgressStatus{EgressIP: fakeEgressIP1, EgressNode: fakeNodeName2},
+				},
+			},
+			existingCloudStates: map[string]*cloudState{
+				"egressA": {
+					secondPrivateIP: fakeEgressIP1,
+					node:            fakeNodeObj1,
+				},
+			},
+			expectedCloudStates: map[string]*cloudState{
+				"egressA": {
+					secondPrivateIP: fakeEgressIP1,
+					node:            fakeNodeObj2,
+				},
+			},
+			egressNameToSync: "egressA",
+			expectedCloudProviderCalls: func(recorder *cloudprovidertest.MockInterfaceMockRecorder) {
+				recorder.AssignIPToNode(fakeEgressIP1, fakeNodeObj2).Return(nil)
+				recorder.UnassignIPToNode(fakeEgressIP1, fakeNodeObj1).Return(nil)
+			},
+		},
+		{
+			name:             "egress and previous assigned Node deleted",
+			nodes:            []*corev1.Node{fakeNodeObj2},
+			existingEgresses: []*egressv1beta1.Egress{},
+			existingCloudStates: map[string]*cloudState{
+				"egressA": {
+					secondPrivateIP: fakeEgressIP1,
+					node:            fakeNodeObj1,
+				},
+			},
+			expectedCloudStates: map[string]*cloudState{},
+			egressNameToSync:    "egressA",
+			expectedCloudProviderCalls: func(recorder *cloudprovidertest.MockInterfaceMockRecorder) {
+				recorder.UnassignIPToNode(fakeEgressIP1, fakeNodeObj1).Return(nil)
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -392,21 +510,28 @@ func TestEgressCloudControllerSyncEgress(t *testing.T) {
 			defer ctrl.Finish()
 			stopCh := make(chan struct{})
 			defer close(stopCh)
-			var fakeObjects []runtime.Object
-			fakeObjects = append(fakeObjects, tt.egress)
-			c := newFakeEgressCloudController(ctrl, nil, fakeObjects)
+			var objects []runtime.Object
+			for _, node := range tt.nodes {
+				objects = append(objects, node)
+			}
+			var crdObjects []runtime.Object
+			for _, egress := range tt.existingEgresses {
+				crdObjects = append(crdObjects, egress)
+			}
+			c := newFakeEgressCloudController(ctrl, objects, crdObjects, tt.existingCloudStates)
 			c.informerFactory.Start(stopCh)
 			c.crdInformerFactory.Start(stopCh)
 			c.informerFactory.WaitForCacheSync(stopCh)
 			c.crdInformerFactory.WaitForCacheSync(stopCh)
 
 			tt.expectedCloudProviderCalls(c.cloudProvider.EXPECT())
-			err := c.syncEgress(tt.egress.Name)
+			err := c.syncEgress(tt.egressNameToSync)
 			if tt.expectedErr != "" {
 				assert.ErrorContains(t, err, tt.expectedErr)
 			} else {
 				assert.NoError(t, err)
 			}
+			assert.Equal(t, tt.expectedCloudStates, c.cloudStates)
 		})
 	}
 }

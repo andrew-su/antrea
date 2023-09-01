@@ -28,12 +28,14 @@ import (
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
+	v1 "k8s.io/api/core/v1"
 )
 
 // MockInterface is a mock of Interface interface.
 type MockInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockInterfaceMockRecorder
+	isgomock struct{}
 }
 
 // MockInterfaceMockRecorder is the mock recorder for MockInterface.
@@ -54,38 +56,38 @@ func (m *MockInterface) EXPECT() *MockInterfaceMockRecorder {
 }
 
 // AssignIPToNode mocks base method.
-func (m *MockInterface) AssignIPToNode(arg0, arg1 string) error {
+func (m *MockInterface) AssignIPToNode(ip string, node *v1.Node) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AssignIPToNode", arg0, arg1)
+	ret := m.ctrl.Call(m, "AssignIPToNode", ip, node)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // AssignIPToNode indicates an expected call of AssignIPToNode.
-func (mr *MockInterfaceMockRecorder) AssignIPToNode(arg0, arg1 any) *gomock.Call {
+func (mr *MockInterfaceMockRecorder) AssignIPToNode(ip, node any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssignIPToNode", reflect.TypeOf((*MockInterface)(nil).AssignIPToNode), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssignIPToNode", reflect.TypeOf((*MockInterface)(nil).AssignIPToNode), ip, node)
 }
 
 // GetIPsByNode mocks base method.
-func (m *MockInterface) GetIPsByNode(arg0 string) ([]string, error) {
+func (m *MockInterface) GetIPsByNode(node *v1.Node) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetIPsByNode", arg0)
+	ret := m.ctrl.Call(m, "GetIPsByNode", node)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetIPsByNode indicates an expected call of GetIPsByNode.
-func (mr *MockInterfaceMockRecorder) GetIPsByNode(arg0 any) *gomock.Call {
+func (mr *MockInterfaceMockRecorder) GetIPsByNode(node any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIPsByNode", reflect.TypeOf((*MockInterface)(nil).GetIPsByNode), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIPsByNode", reflect.TypeOf((*MockInterface)(nil).GetIPsByNode), node)
 }
 
 // GetMaxIPsByInstanceType mocks base method.
-func (m *MockInterface) GetMaxIPsByInstanceType(arg0 string) (int, bool, error) {
+func (m *MockInterface) GetMaxIPsByInstanceType(instanceType string) (int, bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMaxIPsByInstanceType", arg0)
+	ret := m.ctrl.Call(m, "GetMaxIPsByInstanceType", instanceType)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(bool)
 	ret2, _ := ret[2].(error)
@@ -93,21 +95,21 @@ func (m *MockInterface) GetMaxIPsByInstanceType(arg0 string) (int, bool, error) 
 }
 
 // GetMaxIPsByInstanceType indicates an expected call of GetMaxIPsByInstanceType.
-func (mr *MockInterfaceMockRecorder) GetMaxIPsByInstanceType(arg0 any) *gomock.Call {
+func (mr *MockInterfaceMockRecorder) GetMaxIPsByInstanceType(instanceType any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMaxIPsByInstanceType", reflect.TypeOf((*MockInterface)(nil).GetMaxIPsByInstanceType), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMaxIPsByInstanceType", reflect.TypeOf((*MockInterface)(nil).GetMaxIPsByInstanceType), instanceType)
 }
 
 // UnassignIPToNode mocks base method.
-func (m *MockInterface) UnassignIPToNode(arg0, arg1 string) error {
+func (m *MockInterface) UnassignIPToNode(ip string, node *v1.Node) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UnassignIPToNode", arg0, arg1)
+	ret := m.ctrl.Call(m, "UnassignIPToNode", ip, node)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UnassignIPToNode indicates an expected call of UnassignIPToNode.
-func (mr *MockInterfaceMockRecorder) UnassignIPToNode(arg0, arg1 any) *gomock.Call {
+func (mr *MockInterfaceMockRecorder) UnassignIPToNode(ip, node any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnassignIPToNode", reflect.TypeOf((*MockInterface)(nil).UnassignIPToNode), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnassignIPToNode", reflect.TypeOf((*MockInterface)(nil).UnassignIPToNode), ip, node)
 }

@@ -16,13 +16,16 @@ package aws
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
-	"k8s.io/klog/v2"
-
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/aws/smithy-go"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 )
 
 type EC2Interface interface {
@@ -32,38 +35,51 @@ type EC2Interface interface {
 	DescribeInstanceTypes(ctx context.Context, params *ec2.DescribeInstanceTypesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeInstanceTypesOutput, error)
 }
 
+const (
+	errInstanceNotFound         = "InvalidInstanceID.NotFound"
+	errNetworkInterfaceNotFound = "InvalidNetworkInterfaceID.NotFound"
+	errInvalidParameterValue    = "InvalidParameterValue"
+)
+
+// The providerID is in the format of "aws:///zone/instanceID"
+// e.g, "aws:///us-east-1a/i-1234567890abcdef0"
+var awsInstanceIDRegex = regexp.MustCompile("i-[a-z0-9]+$")
+
+func parseInstanceID(providerID string) (string, error) {
+	res := awsInstanceIDRegex.FindString(providerID)
+	if res == "" {
+		return "", fmt.Errorf("invalid AWS providerID %s", providerID)
+	}
+	return res, nil
+}
+
 // getIPsAndInterfaceIDOnCloudNode gets assigned IPs on node and returns the interface ID.
 // Return error if any operation fails.
-func (c *Client) getIPsAndInterfaceIDOnCloudNode(node string) (string, []string, error) {
+func (c *Client) getIPsAndInterfaceIDOnCloudNode(node *corev1.Node) (string, []string, error) {
+	instanceID, err := parseInstanceID(node.Spec.ProviderID)
+	if err != nil {
+		return "", nil, err
+	}
 	var interfaceID string = ""
 	assignedIPs := []string{}
-	privateDNSName := node
 	instanceInput := &ec2.DescribeInstancesInput{
-		Filters: []ec2types.Filter{
-			{
-				Name: aws.String("private-dns-name"),
-				Values: []string{
-					privateDNSName,
-				},
-			},
-		},
+		InstanceIds: []string{instanceID},
 	}
 	instanceResult, err := c.ec2Client.DescribeInstances(context.TODO(), instanceInput)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to complete DescribeInstances API call: %w", err)
 	}
-
 	reservations := instanceResult.Reservations
 	if len(reservations) == 0 {
-		return "", nil, fmt.Errorf("reservation for Node %s not found", node)
+		return "", nil, fmt.Errorf("reservation for Node %s not found", node.Name)
 	} else if len(reservations) > 1 {
-		return "", nil, fmt.Errorf("found %d reservations for Node %s", len(reservations), node)
+		return "", nil, fmt.Errorf("found %d reservations for Node %s", len(reservations), node.Name)
 	}
 	instances := instanceResult.Reservations[0].Instances
 	if len(instances) == 0 {
-		return "", nil, fmt.Errorf("instances for Node %s not found", node)
+		return "", nil, fmt.Errorf("instances for Node %s not found", node.Name)
 	} else if len(instances) > 1 {
-		return "", nil, fmt.Errorf("found %d instances for Node %s", len(instances), node)
+		return "", nil, fmt.Errorf("found %d instances for Node %s", len(instances), node.Name)
 	}
 	instance := instances[0]
 	// Lookup the interface with the same private IP of the instance
@@ -86,12 +102,12 @@ func (c *Client) getIPsAndInterfaceIDOnCloudNode(node string) (string, []string,
 }
 
 // GetIPsOnCloudNode gets assigned IPs on node.
-func (c *Client) GetIPsByNode(node string) ([]string, error) {
+func (c *Client) GetIPsByNode(node *corev1.Node) ([]string, error) {
 	interfaceID, assignedIPs, err := c.getIPsAndInterfaceIDOnCloudNode(node)
 	if err != nil {
 		return nil, err
 	}
-	c.setInterfaceID(node, interfaceID)
+	c.setInterfaceID(node.Name, interfaceID)
 	return assignedIPs, nil
 }
 
@@ -102,23 +118,29 @@ func (c *Client) setInterfaceID(node string, interfaceID string) error {
 	return nil
 }
 
-func (c *Client) getInterfaceID(node string) (string, error) {
+func (c *Client) deleteInterfaceID(node string) {
 	c.nodeMutex.Lock()
 	defer c.nodeMutex.Unlock()
-	interfaceID, exists := c.nodeToInterfaceID[node]
+	delete(c.nodeToInterfaceID, node)
+}
+
+func (c *Client) getInterfaceID(node *corev1.Node) (string, error) {
+	c.nodeMutex.Lock()
+	defer c.nodeMutex.Unlock()
+	interfaceID, exists := c.nodeToInterfaceID[node.Name]
 	if !exists {
 		var err error
 		interfaceID, _, err = c.getIPsAndInterfaceIDOnCloudNode(node)
 		if err != nil {
 			return "", err
 		}
-		c.nodeToInterfaceID[node] = interfaceID
+		c.nodeToInterfaceID[node.Name] = interfaceID
 	}
 	return interfaceID, nil
 }
 
 // AssignIPToCloudNode assigns an IP to AWS interface which is on the target node.
-func (c *Client) AssignIPToNode(ip string, node string) error {
+func (c *Client) AssignIPToNode(ip string, node *corev1.Node) error {
 	interfaceID, err := c.getInterfaceID(node)
 	if err != nil {
 		return err
@@ -130,15 +152,31 @@ func (c *Client) AssignIPToNode(ip string, node string) error {
 	}
 	_, err = c.ec2Client.AssignPrivateIpAddresses(context.TODO(), ipInput)
 	if err != nil {
-		return fmt.Errorf("unable to assign IP %s to interface %s on node %s: %w", ip, interfaceID, node, err)
+		return fmt.Errorf("unable to assign IP %s to interface %s on Node %s: %w", ip, interfaceID, node.Name, err)
 	}
 	return nil
 }
 
+func isAPIErrorCode(err error, code ...string) bool {
+	var sErr smithy.APIError
+	if errors.As(err, &sErr) {
+		for _, c := range code {
+			if sErr.ErrorCode() == c {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // UnassignIPToCloudNode unassigns an IP on AWS interface which is on the target node.
-func (c *Client) UnassignIPToNode(ip string, node string) error {
+func (c *Client) UnassignIPToNode(ip string, node *corev1.Node) error {
 	interfaceID, err := c.getInterfaceID(node)
 	if err != nil {
+		if isAPIErrorCode(err, errInstanceNotFound) {
+			klog.InfoS("Node was not found. Skipping unassigning IP", "node", node.Name)
+			return nil
+		}
 		return err
 	}
 	ipInput := &ec2.UnassignPrivateIpAddressesInput{
@@ -147,7 +185,18 @@ func (c *Client) UnassignIPToNode(ip string, node string) error {
 	}
 	_, err = c.ec2Client.UnassignPrivateIpAddresses(context.TODO(), ipInput)
 	if err != nil {
-		return fmt.Errorf("unable to unassign IP %s to interface %s on node %s: %w", ip, interfaceID, node, err)
+		if isAPIErrorCode(err, errNetworkInterfaceNotFound) {
+			klog.InfoS("Interface was not found. Skipping unassigning IP", "interface", interfaceID, "node", node.Name)
+			c.deleteInterfaceID(node.Name)
+			return nil
+		}
+		// If the IP is not assigned to the interface, the error code is "InvalidParameterValue"
+		// and the error message is "Some of the specified addresses are not assigned to interface eni-1234567890abcdef0"
+		if isAPIErrorCode(err, errInvalidParameterValue) {
+			klog.InfoS("IP was not assigned to interface. Skipping unassigning IP", "interface", interfaceID, "node", node.Name)
+			return nil
+		}
+		return fmt.Errorf("unable to unassign IP %s to interface %s on Node %s: %w", ip, interfaceID, node.Name, err)
 	}
 	return nil
 }

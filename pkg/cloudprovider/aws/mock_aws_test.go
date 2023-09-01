@@ -36,6 +36,7 @@ import (
 type MockEC2Interface struct {
 	ctrl     *gomock.Controller
 	recorder *MockEC2InterfaceMockRecorder
+	isgomock struct{}
 }
 
 // MockEC2InterfaceMockRecorder is the mock recorder for MockEC2Interface.
@@ -56,10 +57,10 @@ func (m *MockEC2Interface) EXPECT() *MockEC2InterfaceMockRecorder {
 }
 
 // AssignPrivateIpAddresses mocks base method.
-func (m *MockEC2Interface) AssignPrivateIpAddresses(arg0 context.Context, arg1 *ec2.AssignPrivateIpAddressesInput, arg2 ...func(*ec2.Options)) (*ec2.AssignPrivateIpAddressesOutput, error) {
+func (m *MockEC2Interface) AssignPrivateIpAddresses(ctx context.Context, params *ec2.AssignPrivateIpAddressesInput, optFns ...func(*ec2.Options)) (*ec2.AssignPrivateIpAddressesOutput, error) {
 	m.ctrl.T.Helper()
-	varargs := []any{arg0, arg1}
-	for _, a := range arg2 {
+	varargs := []any{ctx, params}
+	for _, a := range optFns {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "AssignPrivateIpAddresses", varargs...)
@@ -69,17 +70,17 @@ func (m *MockEC2Interface) AssignPrivateIpAddresses(arg0 context.Context, arg1 *
 }
 
 // AssignPrivateIpAddresses indicates an expected call of AssignPrivateIpAddresses.
-func (mr *MockEC2InterfaceMockRecorder) AssignPrivateIpAddresses(arg0, arg1 any, arg2 ...any) *gomock.Call {
+func (mr *MockEC2InterfaceMockRecorder) AssignPrivateIpAddresses(ctx, params any, optFns ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{arg0, arg1}, arg2...)
+	varargs := append([]any{ctx, params}, optFns...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssignPrivateIpAddresses", reflect.TypeOf((*MockEC2Interface)(nil).AssignPrivateIpAddresses), varargs...)
 }
 
 // DescribeInstanceTypes mocks base method.
-func (m *MockEC2Interface) DescribeInstanceTypes(arg0 context.Context, arg1 *ec2.DescribeInstanceTypesInput, arg2 ...func(*ec2.Options)) (*ec2.DescribeInstanceTypesOutput, error) {
+func (m *MockEC2Interface) DescribeInstanceTypes(ctx context.Context, params *ec2.DescribeInstanceTypesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeInstanceTypesOutput, error) {
 	m.ctrl.T.Helper()
-	varargs := []any{arg0, arg1}
-	for _, a := range arg2 {
+	varargs := []any{ctx, params}
+	for _, a := range optFns {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "DescribeInstanceTypes", varargs...)
@@ -89,17 +90,17 @@ func (m *MockEC2Interface) DescribeInstanceTypes(arg0 context.Context, arg1 *ec2
 }
 
 // DescribeInstanceTypes indicates an expected call of DescribeInstanceTypes.
-func (mr *MockEC2InterfaceMockRecorder) DescribeInstanceTypes(arg0, arg1 any, arg2 ...any) *gomock.Call {
+func (mr *MockEC2InterfaceMockRecorder) DescribeInstanceTypes(ctx, params any, optFns ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{arg0, arg1}, arg2...)
+	varargs := append([]any{ctx, params}, optFns...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeInstanceTypes", reflect.TypeOf((*MockEC2Interface)(nil).DescribeInstanceTypes), varargs...)
 }
 
 // DescribeInstances mocks base method.
-func (m *MockEC2Interface) DescribeInstances(arg0 context.Context, arg1 *ec2.DescribeInstancesInput, arg2 ...func(*ec2.Options)) (*ec2.DescribeInstancesOutput, error) {
+func (m *MockEC2Interface) DescribeInstances(ctx context.Context, params *ec2.DescribeInstancesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeInstancesOutput, error) {
 	m.ctrl.T.Helper()
-	varargs := []any{arg0, arg1}
-	for _, a := range arg2 {
+	varargs := []any{ctx, params}
+	for _, a := range optFns {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "DescribeInstances", varargs...)
@@ -109,17 +110,17 @@ func (m *MockEC2Interface) DescribeInstances(arg0 context.Context, arg1 *ec2.Des
 }
 
 // DescribeInstances indicates an expected call of DescribeInstances.
-func (mr *MockEC2InterfaceMockRecorder) DescribeInstances(arg0, arg1 any, arg2 ...any) *gomock.Call {
+func (mr *MockEC2InterfaceMockRecorder) DescribeInstances(ctx, params any, optFns ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{arg0, arg1}, arg2...)
+	varargs := append([]any{ctx, params}, optFns...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeInstances", reflect.TypeOf((*MockEC2Interface)(nil).DescribeInstances), varargs...)
 }
 
 // UnassignPrivateIpAddresses mocks base method.
-func (m *MockEC2Interface) UnassignPrivateIpAddresses(arg0 context.Context, arg1 *ec2.UnassignPrivateIpAddressesInput, arg2 ...func(*ec2.Options)) (*ec2.UnassignPrivateIpAddressesOutput, error) {
+func (m *MockEC2Interface) UnassignPrivateIpAddresses(ctx context.Context, params *ec2.UnassignPrivateIpAddressesInput, optFns ...func(*ec2.Options)) (*ec2.UnassignPrivateIpAddressesOutput, error) {
 	m.ctrl.T.Helper()
-	varargs := []any{arg0, arg1}
-	for _, a := range arg2 {
+	varargs := []any{ctx, params}
+	for _, a := range optFns {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "UnassignPrivateIpAddresses", varargs...)
@@ -129,8 +130,8 @@ func (m *MockEC2Interface) UnassignPrivateIpAddresses(arg0 context.Context, arg1
 }
 
 // UnassignPrivateIpAddresses indicates an expected call of UnassignPrivateIpAddresses.
-func (mr *MockEC2InterfaceMockRecorder) UnassignPrivateIpAddresses(arg0, arg1 any, arg2 ...any) *gomock.Call {
+func (mr *MockEC2InterfaceMockRecorder) UnassignPrivateIpAddresses(ctx, params any, optFns ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{arg0, arg1}, arg2...)
+	varargs := append([]any{ctx, params}, optFns...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnassignPrivateIpAddresses", reflect.TypeOf((*MockEC2Interface)(nil).UnassignPrivateIpAddresses), varargs...)
 }

@@ -14,15 +14,19 @@
 
 package cloudprovider
 
+import (
+	corev1 "k8s.io/api/core/v1"
+)
+
 type Interface interface {
 	// GetMaxIPsByInstanceType returns maximum IPs that can be assigned to a given instance type.
 	// It doesn't count the primary IP which cannot be assigned/unassigned.
 	GetMaxIPsByInstanceType(instanceType string) (int, bool, error)
 	// GetIPsByNode returns IPs that are assigned to a given Node.
 	// It doesn't include the primary IP.
-	GetIPsByNode(node string) ([]string, error)
+	GetIPsByNode(node *corev1.Node) ([]string, error)
 	// AssignIPToNode assignes an IP to a given Node.
-	AssignIPToNode(ip string, node string) error
+	AssignIPToNode(ip string, node *corev1.Node) error
 	// UnassignIPToNode unassignes an IP to a given Node.
-	UnassignIPToNode(ip string, node string) error
+	UnassignIPToNode(ip string, node *corev1.Node) error
 }

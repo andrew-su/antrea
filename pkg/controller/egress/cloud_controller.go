@@ -53,8 +53,8 @@ const (
 type cloudState struct {
 	// Private IP for Egress on cloud interface.
 	secondPrivateIP string
-	// Node name associated with the Egress IP.
-	nodeName string
+	// The last known Node Object which can be used to unassign the Egress IP.
+	node *corev1.Node
 }
 
 // EgressCloudController is responsible for synchronizing the Egress status on cloud nodes selected by Egresses.
@@ -207,15 +207,15 @@ func (c *EgressCloudController) Run(stopCh <-chan struct{}) {
 // restoreCloudAssignments restores existing cloud IPs of Egresses.
 func (c *EgressCloudController) restoreCloudAssignments() {
 	nodes, _ := c.nodeLister.List(labels.Everything())
-	for _, node := range nodes {
-		nodeName := node.Name
-		currentIPs, err := c.cloudProvider.GetIPsByNode(nodeName)
+	for i := range nodes {
+		node := nodes[i]
+		currentIPs, err := c.cloudProvider.GetIPsByNode(node)
 		if err != nil {
-			klog.ErrorS(err, "Failed to get IPs from cloud Node", "node", nodeName)
+			klog.ErrorS(err, "Failed to get IPs from cloud Node", "node", node.Name)
 			continue
 		}
 		// Restore IPs to cloud nodes
-		egressesOnNode, _ := c.egressInformer.Informer().GetIndexer().ByIndex(egressNodeIndex, nodeName)
+		egressesOnNode, _ := c.egressInformer.Informer().GetIndexer().ByIndex(egressNodeIndex, node.Name)
 		expectIPs := []string{}
 		expectKeys := make(map[string]string)
 		for _, obj := range egressesOnNode {
@@ -230,23 +230,23 @@ func (c *EgressCloudController) restoreCloudAssignments() {
 		ipsToAssign, ipsToUnassign := getIPDiffs(expectIPs, currentIPs)
 		// Unassign unused IPs first, then assign expect IPs.
 		for ipToUnassign := range ipsToUnassign {
-			if err := c.cloudProvider.UnassignIPToNode(ipToUnassign, nodeName); err != nil {
-				klog.ErrorS(err, "Failed to unassign Egress IP to cloud Node", "ip", ipToUnassign, "node", nodeName)
+			if err := c.cloudProvider.UnassignIPToNode(ipToUnassign, node); err != nil {
+				klog.ErrorS(err, "Failed to unassign Egress IP to cloud Node", "ip", ipToUnassign, "node", node.Name)
 			}
 		}
 		for ipToAssign := range ipsToAssign {
-			if err := c.cloudProvider.AssignIPToNode(ipToAssign, nodeName); err != nil {
-				klog.ErrorS(err, "Failed to assign Egress IP to cloud Node", "ip", ipToAssign, "node", nodeName)
+			if err := c.cloudProvider.AssignIPToNode(ipToAssign, node); err != nil {
+				klog.ErrorS(err, "Failed to assign Egress IP to cloud Node", "ip", ipToAssign, "node", node.Name)
 			} else {
-				_ = c.newCloudState(expectKeys[ipToAssign], ipToAssign, nodeName)
+				_ = c.newCloudState(expectKeys[ipToAssign], ipToAssign, node)
 			}
 			// Delete IPs to assign from expectKeys to keep assigned IPs.
 			delete(expectKeys, ipToAssign)
 		}
 		for assignedIP := range expectKeys {
-			_ = c.newCloudState(expectKeys[assignedIP], assignedIP, nodeName)
+			_ = c.newCloudState(expectKeys[assignedIP], assignedIP, node)
 		}
-		klog.V(4).InfoS("Restored Egress IP assignments of Node on cloud", "nodeName", nodeName)
+		klog.V(4).InfoS("Restored Egress IP assignments of Node on cloud", "nodeName", node.Name)
 	}
 	klog.InfoS("Restored Egress IP assignments of Nodes on cloud")
 }
@@ -303,7 +303,7 @@ func (c *EgressCloudController) syncEgress(key string) error {
 	egressNode := egress.Status.EgressNode
 	cState, exist := c.getCloudState(key)
 	if exist {
-		if egressIP == cState.secondPrivateIP && egressNode == cState.nodeName {
+		if egressIP == cState.secondPrivateIP && egressNode == cState.node.Name {
 			klog.V(4).InfoS("CloudState has no update", "ip", egressIP, "nodeName", egressNode)
 			return nil
 		}
@@ -315,20 +315,23 @@ func (c *EgressCloudController) syncEgress(key string) error {
 		// Never assign any IP or create new cloud state for Egress without IP or node status.
 		return nil
 	}
-	if err := c.cloudProvider.AssignIPToNode(egressIP, egressNode); err != nil {
+	node, err := c.nodeLister.Get(egressNode)
+	if err != nil {
+		return fmt.Errorf("failed to get Node %s: %w", egressNode, err)
+	}
+	if err := c.cloudProvider.AssignIPToNode(egressIP, node); err != nil {
 		return fmt.Errorf("failed to assign IP %s to cloud node %s: %w", egressIP, egressNode, err)
 	}
 	klog.InfoS("Assigned Egress IP to cloud Node", "egress", egress.Name, "ip", egressIP, "nodeName", egressNode)
-	cState = c.newCloudState(key, egressIP, egressNode)
-
+	_ = c.newCloudState(key, egressIP, node)
 	return nil
 }
 
 func (c *EgressCloudController) unassignIPWithCloudState(egressName string, state *cloudState) error {
-	if err := c.cloudProvider.UnassignIPToNode(state.secondPrivateIP, state.nodeName); err != nil {
-		return fmt.Errorf("failed to unassign Egress IP %s on cloud node %s: %w", state.secondPrivateIP, state.nodeName, err)
+	if err := c.cloudProvider.UnassignIPToNode(state.secondPrivateIP, state.node); err != nil {
+		return fmt.Errorf("failed to unassign Egress IP %s on cloud node %s: %w", state.secondPrivateIP, state.node.Name, err)
 	}
-	klog.InfoS("Unassigned Egress IP to cloud node", "egress", egressName, "ip", state.secondPrivateIP, "nodeName", state.nodeName)
+	klog.InfoS("Unassigned Egress IP to cloud node", "egress", egressName, "ip", state.secondPrivateIP, "nodeName", state.node.Name)
 	c.deleteCloudState(egressName)
 	return nil
 }
@@ -346,12 +349,12 @@ func (c *EgressCloudController) deleteCloudState(egressName string) {
 	delete(c.cloudStates, egressName)
 }
 
-func (c *EgressCloudController) newCloudState(egressName string, ip string, node string) *cloudState {
+func (c *EgressCloudController) newCloudState(egressName, ip string, node *corev1.Node) *cloudState {
 	c.cloudStatesMutex.Lock()
 	defer c.cloudStatesMutex.Unlock()
 	state := &cloudState{
 		secondPrivateIP: ip,
-		nodeName:        node,
+		node:            node,
 	}
 	c.cloudStates[egressName] = state
 	return state
