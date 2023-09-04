@@ -12,7 +12,7 @@ cat /proc/cpuinfo
 
 # before updating RELEASE_VERSION, need to upload the new ODP file to artifactory for that release,
 # https://build-artifactory.eng.vmware.com/artifactory/nsx-ujo-local/antrea/VMware-Antrea-${RELEASE_VERSION}-ODP.tar.gz
-RELEASE_VERSION=1.7.0
+RELEASE_VERSION=1.8.0
 REPO_ROOT="${PROJECT_DIR}"
 
 cd "${REPO_ROOT}"
@@ -29,7 +29,7 @@ mkdir -p "${PUBLISH_DIR}/"
 gunzip open_source_licenses.txt.gz
 mv open_source_licenses.txt "${PUBLISH_DIR}/"
 pushd "${PUBLISH_DIR}/"
-curl https://build-artifactory.eng.vmware.com/artifactory/nsx-ujo-local/antrea/VMware-Antrea-${RELEASE_VERSION}-ODP.tar.gz > VMware-Antrea-${RELEASE_VERSION}-ODP.tar.gz
+curl https://build-artifactory.eng.vmware.com/artifactory/nsx-ujo-local/antrea/VMware-Antrea-${RELEASE_VERSION}-ODP-fix.tar.gz > VMware-Antrea-${RELEASE_VERSION}-ODP.tar.gz
 popd
 
 echo "====== Copying antrea-interworking Product Deliverables ======"
