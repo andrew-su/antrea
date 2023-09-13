@@ -55,7 +55,7 @@ echo "Added yum repos from artifactory."
 # Installing docker
 # Newer docker version + containerd version doesn't work in build slave
 yum install -y https://artifactory.eng.vmware.com/artifactory/download.docker.com/linux/centos/7/x86_64/stable/Packages/containerd.io-1.6.9-3.1.el7.x86_64.rpm
-yum install -y docker-ce-20.10.9 docker-ce-cli-20.10.9
+yum install -y docker-ce-20.10.9 docker-ce-cli-20.10.9 docker-ce-rootless-extras-20.10.9
 #groupadd docker
 /usr/sbin/usermod -aG docker mts
 /usr/sbin/service docker restart
