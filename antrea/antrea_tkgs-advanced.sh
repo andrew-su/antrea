@@ -56,6 +56,8 @@ popd
 echo "====== Building Photon Base Image ======"
 pushd build/images/base
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
+cp ${GOBUILD_CAYMAN_SURICATA_ROOT}/lin64/suricata/packages/rpms/suricata-${SURICATA_VERSION}*.rpm .
+cp ${GOBUILD_CAYMAN_SURICATA_ROOT}/lin64/suricata/packages/rpms/libnet-1*.rpm .
 prepare_whereabouts_tgz .
 ./build.sh --distro photon --rpm-repo-url ${REPO_URL}
 popd
@@ -89,6 +91,7 @@ popd
 echo "====== Building Ubuntu Base Image ======"
 pushd build/images/base
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
+cp ${GOBUILD_CAYMAN_SURICATA_ROOT}/lin64/suricata/packages/debs/suricata_${SURICATA_VERSION}*.deb .
 prepare_whereabouts_tgz .
 ./build.sh --distro ubuntu
 popd

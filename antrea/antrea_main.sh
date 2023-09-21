@@ -40,6 +40,7 @@ popd
 echo "====== Building Debian Base Image ======"
 pushd build/images/base
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
+cp ${GOBUILD_CAYMAN_SURICATA_ROOT}/lin64/suricata/packages/debs/suricata_${SURICATA_VERSION}*.deb .
 prepare_whereabouts_tgz .
 ./build.sh --distro debian
 popd
@@ -131,6 +132,7 @@ popd
 echo "====== Building Debian Base Image ======"
 pushd build/images/base
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
+cp ${GOBUILD_CAYMAN_SURICATA_ROOT}/lin64/suricata/packages/debs/suricata_${SURICATA_VERSION}*.deb .
 prepare_whereabouts_tgz .
 ./build.sh --distro debian
 popd
@@ -211,6 +213,7 @@ popd
 echo "====== Building UBI Base Image ======"
 pushd build/images/base
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
+cp ${GOBUILD_CAYMAN_SURICATA_ROOT}/lin64/suricata/packages/rpms/suricata-${SURICATA_VERSION}*.rpm .
 prepare_whereabouts_tgz .
 ./build.sh --distro ubi
 popd

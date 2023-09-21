@@ -8,6 +8,8 @@ if [ -z $OVS_VER ]; then
 fi
 OVS_DIR="$(readlink -e ${PROJECT_DIR}/../ovs/src)"
 
+SURICATA_VERSION="$(cat src/build/images/deps/suricata-version)"
+
 pushd "${REPO_ROOT}"
 COMMON_COMMIT=$(git log -1 --pretty=format:%H)
 popd
@@ -16,6 +18,9 @@ ANTREA_DOMAIN="antrea.io/antrea"
 
 # This is for "make ubuntu" to use commercial release Dockerfile instead of open-source Dockerfile
 export OSS_UBUNTU_BUILD=n
+
+# Buildkit is required to skip unused stages in Dockerfile
+export DOCKER_BUILDKIT=1
 
 # BRANCH_NAME can be
 # vmware-master # In this case ANTREA_TARGET=main
