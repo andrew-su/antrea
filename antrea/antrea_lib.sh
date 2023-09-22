@@ -279,12 +279,11 @@ function generate_flow_visibility_e2e_manifests() {
   local binary_version=$2
   local output_dir=$3
   source "$antrea_repo_root/hack/verify-helm.sh"
-  if [ -z "$HELM" ]; then
+  if [ -z "${HELM-}" ]; then
     HELM="$(verify_helm $GOBUILD_HELM_BIN_PATH)"
   elif ! $HELM version > /dev/null 2>&1; then
-    echoerr "$HELM does not appear to be a valid helm binary"
-    print_help
-    exit 1
+    echo "$HELM does not appear to be a valid helm binary"
+    return 1
   fi
   FLOW_VISIBILITY_CHART="$antrea_repo_root/test/e2e/charts/flow-visibility"
   $HELM template "$FLOW_VISIBILITY_CHART"  > "${output_dir}/flow-visibility-e2e-${binary_version}.yml"
