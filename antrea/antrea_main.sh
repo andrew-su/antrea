@@ -52,6 +52,8 @@ antrea_std_deliverables="antrea-standard-${ANTREA_VERSION_DIGIT}"
 mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}"
 mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests"
 mkdir -p "${PUBLISH_DIR}/${antrea_std_deliverables}/scripts"
+mkdir -p "${OUTPUT_DIR}/scripts"
+mkdir -p "${OUTPUT_DIR}/scripts/capv-templates"
 echo "${BUILD_NUMBER}" > "${PUBLISH_DIR}/${antrea_std_deliverables}/build_number.txt"
 
 # antrea-ipsec is not used in commecial release
@@ -64,6 +66,10 @@ cp "${MANIFESTS_DIR}/antrea-standard-nponly.yml" "${PUBLISH_DIR}/${antrea_std_de
 cp "${FLOW_AGGREGATOR_MANIFESTS_DIR}/flow-aggregator-${BINARY_VERSION}.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/"
 cp "${MANIFESTS_DIR}/antrea-flow-exporter-enabled.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-flow-exporter-enabled-${BINARY_VERSION}.yml"
 cp "${REPO_ROOT}/hack/wavefront-metrics.sh" "${PUBLISH_DIR}/${antrea_std_deliverables}/scripts/"
+cp "${REPO_ROOT}/ci/jenkins/test-vmc.sh" "${PUBLISH_DIR}/${antrea_std_deliverables}/scripts/"
+cp -r "${REPO_ROOT}/ci/cluster-api/vsphere/templates/" "${OUTPUT_DIR}/scripts/capv-templates/"
+tar -zcf ${OUTPUT_DIR}/scripts/capv-templates.tar.gz -C ${OUTPUT_DIR}/scripts/ capv-templates
+rm -rf "${OUTPUT_DIR}/scripts/capv-templates"
 
 generate_flow_visibility_e2e_manifests "${REPO_ROOT}" "${BINARY_VERSION}" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests"
 
@@ -143,6 +149,8 @@ antrea_adv_deliverables="antrea-advanced-${ANTREA_VERSION_DIGIT}"
 mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}"
 mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests"
 mkdir -p "${PUBLISH_DIR}/${antrea_adv_deliverables}/scripts"
+mkdir -p "${OUTPUT_DIR}/scripts"
+mkdir -p "${OUTPUT_DIR}/scripts/capv-templates"
 echo "${BUILD_NUMBER}" > "${PUBLISH_DIR}/${antrea_adv_deliverables}/build_number.txt"
 # antrea-ipsec is not used in commecial release
 MANIFESTS_DIR=$(mktemp -d)
@@ -154,6 +162,10 @@ cp ${MANIFESTS_DIR}/antrea-advanced-nponly.yml "${PUBLISH_DIR}/${antrea_adv_deli
 cp "${FLOW_AGGREGATOR_MANIFESTS_DIR}/flow-aggregator-${BINARY_VERSION}.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/"
 cp "${MANIFESTS_DIR}/antrea-flow-exporter-enabled.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-flow-exporter-enabled-${BINARY_VERSION}.yml"
 cp "${REPO_ROOT}/hack/wavefront-metrics.sh" "${PUBLISH_DIR}/${antrea_adv_deliverables}/scripts/"
+cp "${REPO_ROOT}/ci/jenkins/test-vmc.sh" "${PUBLISH_DIR}/${antrea_adv_deliverables}/scripts/"
+cp -r "${REPO_ROOT}/ci/cluster-api/vsphere/templates/" "${OUTPUT_DIR}/scripts/capv-templates/"
+tar -zcf ${OUTPUT_DIR}/scripts/capv-templates.tar.gz -C ${OUTPUT_DIR}/scripts/ capv-templates
+rm -rf "${OUTPUT_DIR}/scripts/capv-templates"
 
 generate_flow_visibility_e2e_manifests "${REPO_ROOT}" "${BINARY_VERSION}" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests"
 

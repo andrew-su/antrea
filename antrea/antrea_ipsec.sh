@@ -92,7 +92,12 @@ gzip -c "bin/e2e-advanced-ipsec-${ANTREA_VERSION}" > "${OUTPUT_DIR}/executables/
 
 echo "=== Saving Antrea IPsec Scripts ==="
 mkdir -p "${OUTPUT_DIR}/scripts"
+mkdir -p "${OUTPUT_DIR}/scripts/capv-templates"
 cp "${REPO_ROOT}/hack/wavefront-metrics.sh" "${OUTPUT_DIR}/scripts/"
+cp "${REPO_ROOT}/ci/jenkins/test-vmc.sh" "${OUTPUT_DIR}/scripts/"
+cp -r "${REPO_ROOT}/ci/cluster-api/vsphere/templates/" "${OUTPUT_DIR}/scripts/capv-templates/"
+tar -zcf ${OUTPUT_DIR}/scripts/capv-templates.tar.gz -C ${OUTPUT_DIR}/scripts/ capv-templates
+rm -rf "${OUTPUT_DIR}/scripts/capv-templates"
 
 function build_ipsec_zip_for_distro {
     local distro=$1
