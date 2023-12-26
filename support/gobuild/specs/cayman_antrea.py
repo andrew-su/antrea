@@ -44,7 +44,8 @@ CAYMAN_GO_FILES = {
     LINUX_HOSTTYPE: [
         "publish/lin64/bin/.*",
         "publish/lin64/src/.*",
-        "publish/lin64/pkg/.*"]
+        "publish/lin64/pkg/.*",
+        "publish/lin64/go.env"]
 }
 
 NSX_OVS_BUILD_BRANCH = "nsx-keeper"

@@ -39,6 +39,7 @@ function fips_make() {
 		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/src:/usr/local/go/src \
 		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/pkg:/usr/local/go/pkg \
 		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/bin:/usr/local/go/bin \
+		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/go.env:/usr/local/go/go.env \
 		-v ${REPO_ROOT}:/usr/src/${ANTREA_DOMAIN} \
 		golang:1.19 /bin/bash -c "${cmd}"
   chmod -R 0755 bin
