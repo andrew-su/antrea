@@ -55,15 +55,6 @@ NSX_OVS_BUILD_FILES = {
         "publish/windows_x64/.*"]
 }
 
-CAYMAN_WHEREABOUTS_BRANCH = "vmware-0.6.1"
-CAYMAN_WHEREABOUTS_CLN = "0f015c1203971ff051359f9a23c8e1dff79ee8a3"
-CAYMAN_WHEREABOUTS_BUILDTYPE = "release"
-CAYMAN_WHEREABOUTS_FILES = {
-    LINUX_HOSTTYPE: [
-        "publish/lin64/whereabouts/executables/.*",
-        "publish/lin64/whereabouts/images/.*"]
-}
-
 CAYMAN_HELM_BRANCH = "vmware-3.12.3"
 CAYMAN_HELM_CLN = "e77bc98b8823e23edc4268e542efec1cf6bd11b1"
 CAYMAN_HELM_BUILDTYPE = "release"
