@@ -25,6 +25,8 @@ function fips_make() {
   # We add -buildvcs=false in GOFLAGS to disable this go build behavior.
   if [ $# -eq 0 ]; then
     cmd="mkdir -p bin; go env -w CC='x86_64-linux-gnu-gcc' GOFLAGS='-buildvcs=false' GOOS=linux; go build -o bin -ldflags ' -X ${ANTREA_DOMAIN}/pkg/version.Version=${ANTREA_VER} -X ${ANTREA_DOMAIN}/pkg/version.GitSHA=${GIT_SHA} -X ${ANTREA_DOMAIN}/pkg/version.GitTreeState=clean -X ${ANTREA_DOMAIN}/pkg/version.ReleaseStatus=unreleased' ${ANTREA_DOMAIN}/cmd/..."
+  elif [ "$1" = "windows-bin" ]; then
+    cmd="mkdir -p bin; go env -w GOFLAGS='-buildvcs=false' GOOS=windows; go build -o bin -ldflags ' -X ${ANTREA_DOMAIN}/pkg/version.Version=${ANTREA_VER} -X ${ANTREA_DOMAIN}/pkg/version.GitSHA=${GIT_SHA} -X ${ANTREA_DOMAIN}/pkg/version.GitTreeState=clean -X ${ANTREA_DOMAIN}/pkg/version.ReleaseStatus=unreleased' ${ANTREA_DOMAIN}/cmd/antrea-cni ${ANTREA_DOMAIN}/cmd/antrea-agent ${ANTREA_DOMAIN}/cmd/antctl"
   else
     cmd="mkdir -p bin; go env -w CC='x86_64-linux-gnu-gcc' GOFLAGS='-buildvcs=false' GOOS=linux; $1"
   fi
@@ -156,7 +158,7 @@ function build_windows() {
   # antrea/src is a gitsubmodule, the .git file under is a text file containing a path to parent .git/modules/antrea/src.
   # We don't map parent .git/modules/antrea/src to Golang container, so go build fails to get VCS information from .git.
   # We add -buildvcs=false in GOFLAGS to disable this go build behavior.
-  make docker-windows-bin GOFLAGS="-buildvcs=false"
+  fips_make windows-bin
   cp bin/antrea-agent.exe "${PUBLISH_DIR}/windows/bin/antrea-agent.exe"
   cp bin/antrea-cni.exe "${PUBLISH_DIR}/windows/bin/antrea-cni.exe"
   cp bin/antctl.exe "${PUBLISH_DIR}/windows/bin/antctl.exe"
