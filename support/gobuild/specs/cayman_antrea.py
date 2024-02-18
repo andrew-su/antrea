@@ -7,26 +7,26 @@ CAYMAN_HOSTTYPES = {
     LINUX_HOSTTYPE: 'linux',
 }
 
-CAYMAN_PYTHON_BRANCH = "vmware-master"
-CAYMAN_PYTHON_CLN = "9dec3e3ec2bb443b7dddcde8f936b0d69e946692"
+CAYMAN_PYTHON_BRANCH = "vmware-python-3.11-openssl-3.0"
+CAYMAN_PYTHON_CLN = "41dbc9b06fb1251d6484c883c8a0d53360adb139"
 CAYMAN_PYTHON_BUILDTYPE = "release"
 CAYMAN_PYTHON_HOSTTYPES = {
     LINUX_HOSTTYPE: "linux64"
 }
 
-CAYMAN_OPENSSL_BRANCH = "vmware-master"
-CAYMAN_OPENSSL_CLN = "4bef6fc6dc831a68256eb3051eae39071f1080c3"
+CAYMAN_OPENSSL_BRANCH = "3.0-latest"
+CAYMAN_OPENSSL_CLN = "844976217bcfe9f4616483cc87cc205f6ebc676f"
 CAYMAN_OPENSSL_BUILDTYPE = "release"
 CAYMAN_OPENSSL_HOSTTYPES = {
-    LINUX_HOSTTYPE: "linux64",
+    LINUX_HOSTTYPE: "linux-centos8",
 }
 
-CSC_PHOTON_BRANCH = "photon3-vmw-updates"
-CSC_PHOTON_CLN = "11621485"
+CSC_PHOTON_BRANCH = "photon5-vmw-updates"
+CSC_PHOTON_CLN = "12700404"
 CSC_PHOTON_BUILDTYPE = 'release'
 CSC_PHOTON_FILES = {
     LINUX_HOSTTYPE: ["publish/docker-image/photon-rootfs.tar.gz",
-                     "publish/csc-photon-3.0.0-x86_64.iso"]
+                     "publish/csc-photon-5.0.0-x86_64.iso"]
 }
 
 CAYMAN_CNI_PLUGINS_BRANCH = "492178787165801993-v1.3.0+vmware.3-fips.1-cni_plugins"

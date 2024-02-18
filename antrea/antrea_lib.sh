@@ -61,7 +61,7 @@ function update_docker() {
 
 
 function run_python {
-  PYTHON="${GOBUILD_CAYMAN_PYTHON_ROOT}/lin64/bin/python"
+  PYTHON="${GOBUILD_CAYMAN_PYTHON_ROOT}/lin64+gcc6/bin/python3"
   "${PYTHON}" "$@"
 }
 
@@ -238,9 +238,9 @@ function prepare_whereabouts_tgz() {
 function prepare_local_yum_repo() {
   echo "====== Preparing local Photon Yum Repo ======"
   mkdir -p /tmp/photo-iso
-  sudo mount -o loop "${GOBUILD_CSC_PHOTON_ROOT}/csc-photon-3.0.0-x86_64.iso" /tmp/photo-iso
+  sudo mount -o loop "${GOBUILD_CSC_PHOTON_ROOT}/csc-photon-5.0.0-x86_64.iso" /tmp/photo-iso
   pushd "/tmp/photo-iso"
-  run_python -m SimpleHTTPServer 8080 &
+  run_python -m http.server 8080 &
   popd
   local public_ip_addr=$(ip -f inet -o address show scope global | head -n 1| cut -f 7 -d ' ' | cut -f 1 -d '/')
   export LOCAL_YUM_REPO_URL="http://${public_ip_addr}:8080/RPMS"
@@ -249,9 +249,9 @@ function prepare_local_yum_repo() {
 function stop_local_yum_repo() {
   jobs -l
   ps aux | grep python
-  pgrep -P $(jobs -p %?SimpleHTTPServer)
-  pkill -SIGTERM -P $(jobs -p %?SimpleHTTPServer)
-  wait %?SimpleHTTPServer || echo wait returns error $? as expected
+  pgrep -P $(jobs -p %?http.server)
+  pkill -SIGTERM -P $(jobs -p %?http.server)
+  wait %?http.server || echo wait returns error $? as expected
   sudo lsof /tmp/photo-iso || true  # If no process is using photon-iso, lsof returns 1
   sudo umount /tmp/photo-iso
 }

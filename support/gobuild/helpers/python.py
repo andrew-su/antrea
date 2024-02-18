@@ -89,12 +89,12 @@ class CaymanPythonHelper(PythonHelper):
 
     def _Environment(self, hosttype):
         env['PATH'] = os.pathsep.join([
-            "%(gobuild_component_cayman_python_root)/lin64/bin",
-            "%(gobuild_component_cayman_openssl_root)/lin64/bin",
+            "%(gobuild_component_cayman_python_root)/lin64+gcc6/bin",
+            "%(gobuild_component_cayman_openssl_root)/lin64+gcc6/bin",
         ])
         env['LD_LIBRARY_PATH'] = os.pathsep.join([
-            "%(gobuild_component_cayman_python_root)/lin64/lib",
-            "%(gobuild_component_cayman_openssl_root)/lin64/lib64",
+            "%(gobuild_component_cayman_python_root)/lin64+gcc6/lib",
+            "%(gobuild_component_cayman_openssl_root)/lin64+gcc6/lib64",
         ])
         return env
     """
@@ -127,7 +127,7 @@ class CaymanPythonHelper(PythonHelper):
             arguments[root_key] = root_value
 
         cmd = [
-            os.path.join("%(gobuild_component_cayman_python_root)/lin64/bin", 'python'),
+            os.path.join("%(gobuild_component_cayman_python_root)/lin64+gcc6/bin", 'python'),
             os.path.join('%(buildroot)', script),
         ]
 

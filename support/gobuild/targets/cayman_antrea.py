@@ -29,8 +29,8 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
         env = helpers.env.SafeEnvironment(hosttype)
 
         paths = [
-            "%(gobuild_component_cayman_python_root)/lin64/bin",
-            "%(gobuild_component_cayman_openssl_root)/lin64/bin",
+            "%(gobuild_component_cayman_python_root)/lin64+gcc6/bin",
+            "%(gobuild_component_cayman_openssl_root)/lin64+gcc6/usr/bin",
         ]
 
         tcroot = os.environ.get('TCROOT', '/build/toolchain')
@@ -44,8 +44,8 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
         paths.append(env['PATH'])
         env['PATH'] = os.pathsep.join(paths)
         env['LD_LIBRARY_PATH'] = os.pathsep.join([
-            "%(gobuild_component_cayman_python_root)/lin64/lib",
-            "%(gobuild_component_cayman_openssl_root)/lin64/lib64",
+            "%(gobuild_component_cayman_python_root)/lin64+gcc6/lib",
+            "%(gobuild_component_cayman_openssl_root)/lin64+gcc6/usr/lib64",
         ])
 
         return env
