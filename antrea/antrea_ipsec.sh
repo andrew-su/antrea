@@ -36,9 +36,10 @@ cp ${GOBUILD_CAYMAN_SURICATA_ROOT}/lin64/suricata/packages/debs/suricata_${SURIC
 ./build.sh --distro debian --ipsec
 popd
 
-echo "====== Building antrea-debian-ipsec Image ======"
+echo "====== Building antrea-agent-debian-ipsec & antrea-controller-debian-ipsec Images ======"
 make debian VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
-docker tag antrea/antrea-debian:${IMAGE_VERSION} antrea/antrea-debian-ipsec:${IMAGE_VERSION}
+docker tag antrea/antrea-agent-debian:${IMAGE_VERSION} antrea/antrea-agent-debian-ipsec:${IMAGE_VERSION}
+docker tag antrea/antrea-controller-debian:${IMAGE_VERSION} antrea/antrea-controller-debian-ipsec:${IMAGE_VERSION}
 
 echo "====== Building OpenvSwitch UBI Image ======"
 pushd build/images/ovs
@@ -53,10 +54,12 @@ cp ${GOBUILD_CAYMAN_SURICATA_ROOT}/lin64/suricata/packages/rpms/suricata-${SURIC
 ./build.sh --distro ubi --ipsec
 popd
 
-echo "====== Building antrea-ubi-ipsec Image ======"
+echo "====== Building antrea-agent-ubi-ipsec & antrea-controller-ubi-ipsec Images ======"
 make ubi VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
-docker tag antrea/antrea-ubi:${IMAGE_VERSION} antrea/antrea-ubi-ipsec:${IMAGE_VERSION}
-docker tag antrea/antrea-ubi:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-ubi-ipsec:${IMAGE_VERSION}
+docker tag antrea/antrea-agent-ubi:${IMAGE_VERSION} antrea/antrea-agent-ubi-ipsec:${IMAGE_VERSION}
+docker tag antrea/antrea-controller-ubi:${IMAGE_VERSION} antrea/antrea-controller-ubi-ipsec:${IMAGE_VERSION}
+docker tag antrea/antrea-agent-ubi:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-agent-ubi-ipsec:${IMAGE_VERSION}
+docker tag antrea/antrea-controller-ubi:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-controller-ubi-ipsec:${IMAGE_VERSION}
 
 prepare_local_yum_repo
 trap stop_local_yum_repo Exit
@@ -76,9 +79,10 @@ cp ${GOBUILD_CAYMAN_SURICATA_ROOT}/lin64/suricata/packages/rpms/libnet-1*.rpm .
 ./build.sh --distro photon --rpm-repo-url ${LOCAL_YUM_REPO_URL} --ipsec
 popd
 
-echo "====== Building antrea-photon Image ======"
+echo "====== Building antrea-agent-photon-ipsec & antrea-controller-photon-ipsec Images ======"
 make photon VERSION=${IMAGE_VERSION} RPM_REPO_URL=${LOCAL_YUM_REPO_URL} BUILD_INFO="${BUILD_NUMBER}"
-docker tag antrea/antrea-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-photon-ipsec:${IMAGE_VERSION}
+docker tag antrea/antrea-agent-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-agent-photon-ipsec:${IMAGE_VERSION}
+docker tag antrea/antrea-controller-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-controller-photon-ipsec:${IMAGE_VERSION}
 
 # Create archives for scripts and binaries
 echo "====== Saving Antrea IPsec Deliverables ======"
@@ -101,16 +105,18 @@ rm -rf "${OUTPUT_DIR}/scripts/capv-templates"
 
 function build_ipsec_zip_for_distro {
     local distro=$1
-    local image_name=$2
+    local agent_image_name=$2
+    local controller_image_name=$3
     echo "====== Building Antrea ${distro^} IPsec Deliverables ======"
     local antrea_ipsec_deliverables_dir="antrea-${distro}-ipsec-${ANTREA_VERSION_DIGIT}"
     mkdir -p "${PUBLISH_DIR}/${antrea_ipsec_deliverables_dir}"
     pushd "${PUBLISH_DIR}/${antrea_ipsec_deliverables_dir}"
     echo "${BUILD_NUMBER}" > build_number.txt
     MANIFESTS_DIR=$(mktemp -d)
-    IMG_NAME=${image_name} IMG_TAG=${IMAGE_VERSION} "${REPO_ROOT}/hack/generate-standard-manifests.sh" --mode release --out "${MANIFESTS_DIR}"
+    AGENT_IMG_NAME=${agent_image_name} CONTROLLER_IMG_NAME=${controller_image_name} IMG_TAG=${IMAGE_VERSION} "${REPO_ROOT}/hack/generate-standard-manifests.sh" --mode release --out "${MANIFESTS_DIR}"
     cp "${MANIFESTS_DIR}/antrea-advanced-ipsec.yml" "antrea-${distro}-ipsec-${BINARY_VERSION}.yml"
-    save_image_and_digest ${image_name} ${IMAGE_VERSION} .
+    save_image_and_digest ${agent_image_name} ${IMAGE_VERSION} .
+    save_image_and_digest ${controller_image_name} ${IMAGE_VERSION} .
     sign_binaries antrea-${distro}-ipsec-${BINARY_VERSION}-checksums.txt .
     pushd "${PUBLISH_DIR}"
     zip --verbose -r "${antrea_ipsec_deliverables_dir}.zip" "${antrea_ipsec_deliverables_dir}"
@@ -120,9 +126,9 @@ function build_ipsec_zip_for_distro {
     rm -r "${MANIFESTS_DIR}"
 }
 
-build_ipsec_zip_for_distro "debian" "antrea/antrea-debian-ipsec"
-build_ipsec_zip_for_distro "ubi" "localhost:5000/vmware.io/antrea/antrea-ubi-ipsec"
-build_ipsec_zip_for_distro "photon" "localhost:5000/vmware.io/antrea/antrea-photon-ipsec"
+build_ipsec_zip_for_distro "debian" "antrea/antrea-agent-debian-ipsec" "antrea/antrea-controller-debian-ipsec"
+build_ipsec_zip_for_distro "ubi" "localhost:5000/vmware.io/antrea/antrea-agent-ubi-ipsec" "localhost:5000/vmware.io/antrea/antrea-controller-ubi-ipsec"
+build_ipsec_zip_for_distro "photon" "localhost:5000/vmware.io/antrea/antrea-agent-photon-ipsec" "localhost:5000/vmware.io/antrea/antrea-controller-photon-ipsec"
 
 echo "====== Cleanup Antrea IPsec Build Result ======"
 make clean

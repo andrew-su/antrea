@@ -58,8 +58,10 @@ echo "${BUILD_NUMBER}" > "${PUBLISH_DIR}/${antrea_std_deliverables}/build_number
 
 # antrea-ipsec is not used in commecial release
 MANIFESTS_DIR=$(mktemp -d)
-IMG_NAME=antrea/antrea-standard-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
-IMG_NAME=antrea/antrea-standard-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --feature-gates FlowExporter=true --extra-helm-values-file "${REPO_ROOT}/ci/kind/values-flow-exporter.yml" --mode release > "${MANIFESTS_DIR}"/antrea-flow-exporter-enabled.yml
+agent_img_name=antrea/antrea-standard-agent-debian
+controller_img_name=antrea/antrea-standard-controller-debian
+AGENT_IMG_NAME=$agent_img_name CONTROLLER_IMG_NAME=$controller_img_name IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
+AGENT_IMG_NAME=$agent_img_name CONTROLLER_IMG_NAME=$controller_img_name IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --feature-gates FlowExporter=true --extra-helm-values-file "${REPO_ROOT}/ci/kind/values-flow-exporter.yml" --mode release > "${MANIFESTS_DIR}"/antrea-flow-exporter-enabled.yml
 cp "${MANIFESTS_DIR}/antrea-standard.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-${BINARY_VERSION}.yml"
 cp "${MANIFESTS_DIR}/antrea-standard-fips.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-fips-${BINARY_VERSION}.yml"
 cp "${MANIFESTS_DIR}/antrea-standard-nponly.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-nponly-${BINARY_VERSION}.yml"
@@ -78,15 +80,20 @@ echo "====== Saving Antrea Standard Product Deliverables ======"
 OUTPUT_DIR="${BUILDROOT}/standard-output"
 
 echo "====== Saving and Signing Antrea Standard Product Images ======"
-image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-debian:${IMAGE_VERSION}")"
-digest_filename="antrea-standard-debian-${IMAGE_VERSION}-image-digests.txt"
+agent_image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-agent-debian:${IMAGE_VERSION}")"
+controller_image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-controller-debian:${IMAGE_VERSION}")"
+agent_digest_filename="antrea-standard-agent-debian-${IMAGE_VERSION}-image-digests.txt"
+controller_digest_filename="antrea-standard-controller-debian-${IMAGE_VERSION}-image-digests.txt"
 checksum_filename="antrea-standard-debian-${IMAGE_VERSION}-image-checksums.txt"
 mkdir -p "${OUTPUT_DIR}/images"
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
 # Just publish Antrea images.
-docker tag antrea/antrea-debian:${IMAGE_VERSION} antrea/antrea-standard-debian:${IMAGE_VERSION}
-docker save antrea/antrea-standard-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-standard-debian-${IMAGE_VERSION}.tar.gz"
-echo "antrea/antrea-standard-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
+docker tag antrea/antrea-agent-debian:${IMAGE_VERSION} $agent_img_name:${IMAGE_VERSION}
+docker tag antrea/antrea-controller-debian:${IMAGE_VERSION} $controller_img_name:${IMAGE_VERSION}
+docker save $agent_img_name:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-standard-agent-debian-${IMAGE_VERSION}.tar.gz"
+docker save $controller_img_name:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-standard-controller-debian-${IMAGE_VERSION}.tar.gz"
+echo "antrea/antrea-standard-agent-debian@${agent_image_id}" > "${OUTPUT_DIR}/images/${agent_digest_filename}"
+echo "antrea/antrea-standard-controller-debian@${controller_image_id}" > "${OUTPUT_DIR}/images/${controller_digest_filename}"
 
 # Saving flow-aggregator image
 cp -rf "${FLOW_AGGREGATOR_DELIVERABLES_DIR}/." "${OUTPUT_DIR}/images/"
@@ -154,8 +161,10 @@ mkdir -p "${OUTPUT_DIR}/scripts/capv-templates"
 echo "${BUILD_NUMBER}" > "${PUBLISH_DIR}/${antrea_adv_deliverables}/build_number.txt"
 # antrea-ipsec is not used in commecial release
 MANIFESTS_DIR=$(mktemp -d)
-IMG_NAME=antrea/antrea-advanced-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
-IMG_NAME=antrea/antrea-standard-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --feature-gates FlowExporter=true --extra-helm-values-file "${REPO_ROOT}/ci/kind/values-flow-exporter.yml" --mode release > "${MANIFESTS_DIR}"/antrea-flow-exporter-enabled.yml
+agent_img_name=antrea/antrea-advanced-agent-debian
+controller_img_name=antrea/antrea-advanced-controller-debian
+AGENT_IMG_NAME=$agent_img_name CONTROLLER_IMG_NAME=$controller_img_name IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
+AGENT_IMG_NAME=$agent_img_name CONTROLLER_IMG_NAME=$controller_img_name IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --feature-gates FlowExporter=true --extra-helm-values-file "${REPO_ROOT}/ci/kind/values-flow-exporter.yml" --mode release > "${MANIFESTS_DIR}"/antrea-flow-exporter-enabled.yml
 cp ${MANIFESTS_DIR}/antrea-advanced.yml "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-${BINARY_VERSION}.yml"
 cp ${MANIFESTS_DIR}/antrea-advanced-fips.yml "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-fips-${BINARY_VERSION}.yml"
 cp ${MANIFESTS_DIR}/antrea-advanced-nponly.yml "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-nponly-${BINARY_VERSION}.yml"
@@ -173,15 +182,20 @@ echo "====== Saving Antrea Advanced Product Deliverables ======"
 OUTPUT_DIR="${BUILDROOT}/advanced-output"
 
 echo "====== Saving and Signing Antrea Advanced Product Images ======"
-image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-debian:${IMAGE_VERSION}")"
-digest_filename="antrea-advanced-debian-${IMAGE_VERSION}-image-digests.txt"
+agent_image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-agent-debian:${IMAGE_VERSION}")"
+controller_image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-controller-debian:${IMAGE_VERSION}")"
+agent_digest_filename="antrea-advanced-agent-debian-${IMAGE_VERSION}-image-digests.txt"
+controller_digest_filename="antrea-advanced-controller-debian-${IMAGE_VERSION}-image-digests.txt"
 checksum_filename="antrea-advanced-debian-${IMAGE_VERSION}-image-checksums.txt"
 mkdir -p "${OUTPUT_DIR}/images"
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
 # Just publish Antrea images.
-docker tag antrea/antrea-debian:${IMAGE_VERSION} antrea/antrea-advanced-debian:${IMAGE_VERSION}
-docker save antrea/antrea-advanced-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-advanced-debian-${IMAGE_VERSION}.tar.gz"
-echo "antrea/antrea-advanced-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
+docker tag antrea/antrea-agent-debian:${IMAGE_VERSION} $agent_img_name:${IMAGE_VERSION}
+docker tag antrea/antrea-controller-debian:${IMAGE_VERSION} $controller_img_name:${IMAGE_VERSION}
+docker save $agent_img_name:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-advanced-agent-debian-${IMAGE_VERSION}.tar.gz"
+docker save $controller_img_name:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-advanced-controller-debian-${IMAGE_VERSION}.tar.gz"
+echo "antrea/antrea-advanced-agent-debian@${agent_image_id}" > "${OUTPUT_DIR}/images/${agent_digest_filename}"
+echo "antrea/antrea-advanced-controller-debian@${controller_image_id}" > "${OUTPUT_DIR}/images/${controller_digest_filename}"
 
 # Saving flow-aggregator image
 cp -rf "${FLOW_AGGREGATOR_DELIVERABLES_DIR}/." "${OUTPUT_DIR}/images/"
@@ -227,17 +241,22 @@ cp ${GOBUILD_CAYMAN_SURICATA_ROOT}/lin64/suricata/packages/rpms/suricata-${SURIC
 ./build.sh --distro ubi
 popd
 
-echo "====== Building antrea-ubi Images ======"
+echo "====== Building antrea-agent-ubi & antrea-controller-ubi Images ======"
 make ubi VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
-docker tag antrea/antrea-ubi:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-ubi:${IMAGE_VERSION}
+docker tag antrea/antrea-agent-ubi:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-agent-ubi:${IMAGE_VERSION}
+docker tag antrea/antrea-controller-ubi:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-controller-ubi:${IMAGE_VERSION}
 
 echo "====== Saving and Signing UBI Images ======"
-image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-ubi:${IMAGE_VERSION}")"
-digest_filename="antrea-ubi-${IMAGE_VERSION}-image-digests.txt"
+agent_image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-agent-ubi:${IMAGE_VERSION}")"
+controller_image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-controller-ubi:${IMAGE_VERSION}")"
+agent_digest_filename="antrea-agent-ubi-${IMAGE_VERSION}-image-digests.txt"
+controller_digest_filename="antrea-controller-ubi-${IMAGE_VERSION}-image-digests.txt"
 checksum_filename="antrea-ubi-${IMAGE_VERSION}-image-checksums.txt"
 mkdir -p "${PUBLISH_DIR}/ubi/images/"
-docker save localhost:5000/vmware.io/antrea/antrea-ubi:${IMAGE_VERSION} | gzip -9 > "${PUBLISH_DIR}/ubi/images/antrea-ubi-${IMAGE_VERSION}.tar.gz"
-echo "localhost:5000/vmware.io/antrea/antrea-ubi@${image_id}" > "${PUBLISH_DIR}/ubi/images/${digest_filename}"
+docker save localhost:5000/vmware.io/antrea/antrea-agent-ubi:${IMAGE_VERSION} | gzip -9 > "${PUBLISH_DIR}/ubi/images/antrea-agent-ubi-${IMAGE_VERSION}.tar.gz"
+docker save localhost:5000/vmware.io/antrea/antrea-controller-ubi:${IMAGE_VERSION} | gzip -9 > "${PUBLISH_DIR}/ubi/images/antrea-controller-ubi-${IMAGE_VERSION}.tar.gz"
+echo "localhost:5000/vmware.io/antrea/antrea-agent-ubi@${agent_image_id}" > "${PUBLISH_DIR}/ubi/images/${agent_digest_filename}"
+echo "localhost:5000/vmware.io/antrea/antrea-controller-ubi@${controller_image_id}" > "${PUBLISH_DIR}/ubi/images/${controller_digest_filename}"
 
 flow_aggregator_ubi_image_id="$(docker inspect -f '{{.ID}}' "antrea/flow-aggregator-ubi:${IMAGE_VERSION}")"
 flow_aggregator_ubi_digest_filename="flow-aggregator-ubi-${IMAGE_VERSION}-image-digests.txt"

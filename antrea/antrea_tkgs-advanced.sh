@@ -61,19 +61,23 @@ cp ${GOBUILD_CAYMAN_SURICATA_ROOT}/lin64/suricata/packages/rpms/libnet-1*.rpm .
 ./build.sh --distro photon --rpm-repo-url ${REPO_URL}
 popd
 
-echo "====== Building antrea-photon Image ======"
+echo "====== Building antrea-agent-photon & antrea-controller-photon Images ======"
 make photon VERSION=${IMAGE_VERSION} RPM_REPO_URL=${REPO_URL} BUILD_INFO="${BUILD_NUMBER}"
-docker tag antrea/antrea-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-photon:${IMAGE_VERSION}
-docker tag antrea/antrea-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea:${IMAGE_VERSION}
+docker tag antrea/antrea-agent-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-agent-photon:${IMAGE_VERSION}
+docker tag antrea/antrea-controller-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-controller-photon:${IMAGE_VERSION}
 
 echo "====== Saving and Signing TKGs Images ======"
 # A test photon image
-image_id="$(docker inspect -f '{{.ID}}' "localhost:5000/vmware.io/antrea/antrea-photon:${IMAGE_VERSION}")"
-digest_filename="antrea-photon-${IMAGE_VERSION}-image-digests.txt"
+agent_image_id="$(docker inspect -f '{{.ID}}' "localhost:5000/vmware.io/antrea/antrea-agent-photon:${IMAGE_VERSION}")"
+controller_image_id="$(docker inspect -f '{{.ID}}' "localhost:5000/vmware.io/antrea/antrea-controller-photon:${IMAGE_VERSION}")"
+agent_digest_filename="antrea-agent-photon-${IMAGE_VERSION}-image-digests.txt"
+controller_digest_filename="antrea-controller-photon-${IMAGE_VERSION}-image-digests.txt"
 checksum_filename="antrea-photon-${IMAGE_VERSION}-image-checksums.txt"
 mkdir -p "${PUBLISH_DIR}/photon/images"
-docker save localhost:5000/vmware.io/antrea/antrea-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea:${IMAGE_VERSION} | gzip -9 > "${PUBLISH_DIR}/photon/images/antrea-photon-${IMAGE_VERSION}.tar.gz"
-echo "localhost:5000/vmware.io/antrea/antrea-photon@${image_id}" > "${PUBLISH_DIR}/photon/images/${digest_filename}"
+docker save localhost:5000/vmware.io/antrea/antrea-agent-photon:${IMAGE_VERSION} | gzip -9 > "${PUBLISH_DIR}/photon/images/antrea-agent-photon-${IMAGE_VERSION}.tar.gz"
+docker save localhost:5000/vmware.io/antrea/antrea-controller-photon:${IMAGE_VERSION} | gzip -9 > "${PUBLISH_DIR}/photon/images/antrea-controller-photon-${IMAGE_VERSION}.tar.gz"
+echo "localhost:5000/vmware.io/antrea/antrea-agent-photon@${agent_image_id}" > "${PUBLISH_DIR}/photon/images/${agent_digest_filename}"
+echo "localhost:5000/vmware.io/antrea/antrea-controller-photon@${controller_image_id}" > "${PUBLISH_DIR}/photon/images/${controller_digest_filename}"
 pushd "${PUBLISH_DIR}/photon/images"
 sha256sum -- * > ${checksum_filename}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
@@ -94,21 +98,25 @@ cp ${GOBUILD_CAYMAN_SURICATA_ROOT}/lin64/suricata/packages/debs/suricata_${SURIC
 ./build.sh --distro ubuntu
 popd
 
-echo "====== Building antrea-ubuntu Image ======"
+echo "====== Building antrea-agent-ubuntu & antrea-controller-ubuntu Images ======"
 make ubuntu VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
-docker tag antrea/antrea-ubuntu:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-ubuntu:${IMAGE_VERSION}
-docker tag antrea/antrea-ubuntu:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea:${IMAGE_VERSION}
+docker tag antrea/antrea-agent-ubuntu:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-agent-ubuntu:${IMAGE_VERSION}
+docker tag antrea/antrea-controller-ubuntu:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-controller-ubuntu:${IMAGE_VERSION}
 
 echo "====== Saving and Signing Ubuntu Images ======"
 OUTPUT_DIR="${BUILDROOT}/output"
-image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-ubuntu:${IMAGE_VERSION}")"
-digest_filename="antrea-ubuntu-${IMAGE_VERSION}-image-digests.txt"
+agent_image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-agent-ubuntu:${IMAGE_VERSION}")"
+controller_image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-controller-ubuntu:${IMAGE_VERSION}")"
+agent_digest_filename="antrea-agent-ubuntu-${IMAGE_VERSION}-image-digests.txt"
+controller_digest_filename="antrea-controller-ubuntu-${IMAGE_VERSION}-image-digests.txt"
 checksum_filename="antrea-ubuntu-${IMAGE_VERSION}-image-checksums.txt"
 mkdir -p "${OUTPUT_DIR}/images"
 #openvswitch-ubuntu only for antrea-ubuntu build reference, so no need to publish openvswitch
 mkdir -p "${PUBLISH_DIR}/ubuntu/images/"
-docker save localhost:5000/vmware.io/antrea/antrea-ubuntu:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea:${IMAGE_VERSION}| gzip -9 > "${PUBLISH_DIR}/ubuntu/images/antrea-ubuntu-${IMAGE_VERSION}.tar.gz"
-echo "localhost:5000/vmware.io/antrea/antrea-ubuntu@${image_id}" > "${PUBLISH_DIR}/ubuntu/images/${digest_filename}"
+docker save localhost:5000/vmware.io/antrea/antrea-agent-ubuntu:${IMAGE_VERSION} | gzip -9 > "${PUBLISH_DIR}/ubuntu/images/antrea-agent-ubuntu-${IMAGE_VERSION}.tar.gz"
+docker save localhost:5000/vmware.io/antrea/antrea-controller-ubuntu:${IMAGE_VERSION} | gzip -9 > "${PUBLISH_DIR}/ubuntu/images/antrea-controller-ubuntu-${IMAGE_VERSION}.tar.gz"
+echo "localhost:5000/vmware.io/antrea/antrea-agent-ubuntu@${agent_image_id}" > "${PUBLISH_DIR}/ubuntu/images/${agent_digest_filename}"
+echo "localhost:5000/vmware.io/antrea/antrea-controller-ubuntu@${controller_image_id}" > "${PUBLISH_DIR}/ubuntu/images/${controller_digest_filename}"
 pushd "${PUBLISH_DIR}/ubuntu/images"
 sha256sum -- * > ${checksum_filename}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
@@ -128,10 +136,10 @@ echo "====== Saving TKGS Manifests ======"
 # Antrea yamls for TKG Service. antrea-ipsec is not supported yet
 # Complicated Yaml customization is done directly in Antrea topic/tkgs branch
 # Here we only replace image version
-for k8s_version in "1.24" "1.25" "1.26" "1.27"; do
+for k8s_version in "1.26" "1.27" "1.28" "1.29"; do
   MANIFESTS_DIR=$(mktemp -d)
   mkdir -p "${PUBLISH_DIR}/add-on/${k8s_version}"
-  IMG_NAME=localhost:5000/vmware.io/antrea/antrea IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
+  AGENT_IMG_NAME=localhost:5000/vmware.io/antrea/antrea-agent-ubuntu CONTROLLER_IMG_NAME=localhost:5000/vmware.io/antrea/antrea-controller-ubuntu IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
   cp ${MANIFESTS_DIR}/antrea-advanced-tkgs.yml ${PUBLISH_DIR}/add-on/${k8s_version}/antrea.yaml
 done
 

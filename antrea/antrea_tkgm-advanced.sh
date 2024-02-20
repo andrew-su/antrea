@@ -32,7 +32,7 @@ cp ${GOBUILD_CAYMAN_SURICATA_ROOT}/lin64/suricata/packages/debs/suricata_${SURIC
 ./build.sh --distro debian
 popd
 
-echo "====== Building antrea-debian Image ======"
+echo "====== Building antrea-agent-debian & antrea-controller-debian Images ======"
 make debian VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
 
 echo "====== Building flow-aggregator-debian Image ======"
@@ -56,9 +56,11 @@ echo "====== Saving TKGm Manifests ======"
 mkdir -p "${OUTPUT_DIR}/manifests"
 # Antrea yamls for TKG
 MANIFESTS_DIR=$(mktemp -d)
-IMG_NAME=antrea/antrea-advanced-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
+agent_img_name=antrea/antrea-advanced-agent-debian
+controller_img_name=antrea/antrea-advanced-controller-debian
+AGENT_IMG_NAME=$agent_img_name CONTROLLER_IMG_NAME=$controller_img_name IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
 IMG_NAME=antrea/flow-aggregator-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest-flow-aggregator.sh --mode release > "${MANIFESTS_DIR}/flow-aggregator.yml"
-IMG_NAME=antrea/antrea-advanced-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --feature-gates FlowExporter=true --extra-helm-values-file "${REPO_ROOT}/ci/kind/values-flow-exporter.yml" --mode release > "${MANIFESTS_DIR}"/antrea-flow-exporter-enabled.yml
+AGENT_IMG_NAME=$agent_img_name CONTROLLER_IMG_NAME=$controller_img_name IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --feature-gates FlowExporter=true --extra-helm-values-file "${REPO_ROOT}/ci/kind/values-flow-exporter.yml" --mode release > "${MANIFESTS_DIR}"/antrea-flow-exporter-enabled.yml
 cp ${MANIFESTS_DIR}/antrea-advanced.yml "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
 cp ${MANIFESTS_DIR}/antrea-advanced-fips.yml "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml"
 cp ${MANIFESTS_DIR}/flow-aggregator.yml "${OUTPUT_DIR}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
@@ -71,13 +73,18 @@ echo "====== Saving and Signing TKGm Images ======"
 mkdir -p "${OUTPUT_DIR}/images"
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
 # Just publish Antrea images.
-docker tag antrea/antrea-debian:${IMAGE_VERSION} antrea/antrea-advanced-debian:${IMAGE_VERSION}
-docker save antrea/antrea-advanced-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-advanced-debian-${IMAGE_VERSION}.tar.gz"
+docker tag antrea/antrea-agent-debian:${IMAGE_VERSION} $agent_img_name:${IMAGE_VERSION}
+docker tag antrea/antrea-controller-debian:${IMAGE_VERSION} $controller_img_name:${IMAGE_VERSION}
+docker save $agent_img_name:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-advanced-agent-debian-${IMAGE_VERSION}.tar.gz"
+docker save $controller_img_name:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-advanced-controller-debian-${IMAGE_VERSION}.tar.gz"
 docker save antrea/flow-aggregator-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/flow-aggregator-debian-${IMAGE_VERSION}.tar.gz"
-image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-advanced-debian:${IMAGE_VERSION}")"
-digest_filename="antrea-advanced-debian-${IMAGE_VERSION}-image-digests.txt"
+agent_image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-advanced-agent-debian:${IMAGE_VERSION}")"
+controller_image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-advanced-controller-debian:${IMAGE_VERSION}")"
+agent_digest_filename="antrea-advanced-agent-debian-${IMAGE_VERSION}-image-digests.txt"
+controller_digest_filename="antrea-advanced-controller-debian-${IMAGE_VERSION}-image-digests.txt"
 checksum_filename="antrea-advanced-debian-${IMAGE_VERSION}-image-checksums.txt"
-echo "antrea/antrea-advanced-debian@${image_id}" > "${OUTPUT_DIR}/images/${digest_filename}"
+echo "antrea/antrea-advanced-agent-debian@${agent_image_id}" > "${OUTPUT_DIR}/images/${agent_digest_filename}"
+echo "antrea/antrea-advanced-controller-debian@${controller_image_id}" > "${OUTPUT_DIR}/images/${controller_digest_filename}"
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${checksum_filename}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
