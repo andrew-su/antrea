@@ -11,7 +11,7 @@ COPY . /antrea
 
 RUN make antrea-idps-agent antrea-idps-controller
 
-FROM harbor-repo.vmware.com/dockerhub-proxy-cache/library/debian:stable-slim
+FROM nsx-ujo-docker-local.artifactory.eng.vmware.com/antrea/debian:12.5
 
 RUN apt update && apt install curl ca-certificates -y
 
