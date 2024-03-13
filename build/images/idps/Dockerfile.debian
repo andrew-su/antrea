@@ -10,6 +10,7 @@ RUN echo "deb http://build-artifactory.eng.vmware.com/debian-remote bullseye mai
     echo "deb http://build-artifactory.eng.vmware.com/debian-security-remote bullseye-security main" >> /etc/apt/sources.list
 
 RUN apt-get update && \
+    apt -y upgrade && \
     apt-get install -y --no-install-recommends curl ca-certificates
 
 USER root
