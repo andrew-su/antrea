@@ -33,8 +33,8 @@ func DefaultCAConfig() *certificate.CAConfig {
 		CAConfigMapName:   IDPSCAConfigMapName,
 		SelfSignedCertDir: "/var/run/antrea/idps/idps-controller-self-signed",
 		CertReadyTimeout:  2 * time.Minute,
-		MaxRotateDuration: time.Hour * (24 * 365),
 		ServiceName:       IDPSServiceName,
 		PairName:          "antrea-idps-controller",
+		MinValidDuration:  time.Hour * 24 * 90, // Rotate the certificate 90 days in advance.
 	}
 }
