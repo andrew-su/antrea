@@ -35,7 +35,9 @@ type enterpriseAntreaPolicyValidator antreaPolicyValidator
 func (a *enterpriseAntreaPolicyValidator) authorizeTierUserForEdit(tier string, userInfo authenticationv1.UserInfo) ([]string, string, bool) {
 	clusterAdmin := false
 	for _, g := range userInfo.Groups {
-		if g == "system:masters" {
+		// "system:masters" is the built-in super-powers / break-glass Group that can bypass RBAC.
+		// "kubeadm:cluster-admins" is the default group of admin client since kubeadm 1.29.
+		if g == "system:masters" || g == "kubeadm:cluster-admins" {
 			clusterAdmin = true
 			break
 		}
