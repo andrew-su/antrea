@@ -26,7 +26,7 @@ spec:
       containers:
       - args:
         - -c
-        - "antrea-resource-init -f /etc/antrea/init-resources.yaml && sleep infinity"
+        - "antrea-resource-init -f /etc/antrea/init-resources.yaml && while sleep 365d; do :; done"
         command:
         - sh
         image: {{ include "antreaAgentImage" . | quote }}
