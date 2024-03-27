@@ -4,7 +4,7 @@ set -xe
 # https://confluence.eng.vmware.com/display/OSMUserGuide/VM+%28vApp+Virtual+Machines%29+or+Containers?src=contextnavpagetreemode
 # https://confluence.eng.vmware.com/display/CNA/Cascade+OSSTP
 
-RELEASE_VERSION=1.8.0
+RELEASE_VERSION=1.9.0
 
 echo Scann OS packages for Antrea commercial release $RELEASE_VERSION
 
@@ -52,7 +52,7 @@ EOF
 
 tdnf makecache
 # Mannually install if failed
-tdnf install -y gawk unzip curl || true
+tdnf install -y gawk unzip curl rpm|| true
 
 mkdir -p osstpclients
 cd osstpclients

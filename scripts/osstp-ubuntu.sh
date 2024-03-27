@@ -4,7 +4,7 @@ set -xe
 # https://confluence.eng.vmware.com/display/OSMUserGuide/VM+%28vApp+Virtual+Machines%29+or+Containers?src=contextnavpagetreemode
 # https://confluence.eng.vmware.com/display/CNA/Cascade+OSSTP
 
-RELEASE_VERSION=1.8.0
+RELEASE_VERSION=1.9.0
 
 echo Scann OS packages for Antrea commercial release $RELEASE_VERSION
 
@@ -19,10 +19,14 @@ fi
 echo ============================================================
 echo Make sure run inside container created from the docker image
 echo ============================================================
+rm -rf /etc/apt/sources.list /etc/apt/sources.list.d/source.list
 cat > /etc/apt/sources.list.d/source.list <<EOF
 deb-src http://build-artifactory.eng.vmware.com/ubuntu-remote jammy main restricted universe
 deb-src http://build-artifactory.eng.vmware.com/ubuntu-remote jammy-security main restricted
 deb-src http://build-artifactory.eng.vmware.com/ubuntu-remote jammy-updates main restricted
+deb http://build-artifactory.eng.vmware.com/ubuntu-remote jammy main restricted universe
+deb http://build-artifactory.eng.vmware.com/ubuntu-remote jammy-security main restricted
+deb http://build-artifactory.eng.vmware.com/ubuntu-remote jammy-updates main restricted
 
 EOF
 apt update

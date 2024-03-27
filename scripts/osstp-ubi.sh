@@ -4,7 +4,7 @@ set -xe
 # https://confluence.eng.vmware.com/display/OSMUserGuide/VM+%28vApp+Virtual+Machines%29+or+Containers?src=contextnavpagetreemode
 # https://confluence.eng.vmware.com/display/CNA/Cascade+OSSTP
 
-RELEASE_VERSION=1.8.0
+RELEASE_VERSION=1.9.0
 
 echo Scann OS packages for Antrea commercial release $RELEASE_VERSION
 
@@ -35,52 +35,40 @@ echo Example: docker run -idt --rm --name operator -u root --entrypoint bash loc
 rm -rf /etc/yum.repos.d/*
 cat > /etc/yum.repos.d/CentOS.repo <<EOF
 [AppStream]
-name=CentOS-8- AppStream
-baseurl=https://build-artifactory.eng.vmware.com/artifactory/centos-remote/8/AppStream/x86_64/os/
+name=CentOS-9 - AppStream
+baseurl=https://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/
 gpgcheck=0
 enabled=1
 
 [BaseOS]
-name=CentOS-8- Base
-baseurl=https://build-artifactory.eng.vmware.com/artifactory/centos-remote/8/BaseOS/x86_64/os/
+name=CentOS-9 - Base
+baseurl=https://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/
 gpgcheck=0
 enabled=1
 
-[extras]
-name=CentOS-8- Extras
-baseurl=https://build-artifactory.eng.vmware.com/artifactory/centos-remote/8/extras/x86_64/os/
+[crb]
+name=CentOS Linux 9 - CRB
+baseurl=https://mirror.stream.centos.org/9-stream/CRB/x86_64/os/
 gpgcheck=0
 enabled=1
 
-[powertools]
-name=CentOS Linux 8- PowerTools
-baseurl=https://build-artifactory.eng.vmware.com/artifactory/centos-remote/8/PowerTools/x86_64/os/
-gpgcheck=0
-enabled=1
 
 [Appstream-source]
-name= Centos 8 stream (Source RPMs) - Appstream-source
-baseurl = http://vault.centos.org/8-stream/AppStream/Source/
+name= Centos 9 stream (Source RPMs) - Appstream-source
+baseurl = https://mirror.stream.centos.org/9-stream/AppStream/source/tree/
 enabled = 1
 gpgcheck = 0
 
 
 [BaseOS-source]
-name= Centos 8 stream (Source RPMs) - BaseOS-source
-baseurl = http://vault.centos.org/8-stream/BaseOS/Source/
+name= Centos 9 stream (Source RPMs) - BaseOS-source
+baseurl = https://mirror.stream.centos.org/9-stream/BaseOS/source/tree/
 enabled = 1
 gpgcheck = 0
 
-[extras-source]
-name= Centos 8 stream (Source RPMs) - extras-source
-baseurl = http://vault.centos.org/8-stream/extras/Source/
-enabled = 1
-gpgcheck = 0
-
-
-[powertools-source]
-name= Centos 8 stream (Source RPMs) - powertools-source
-baseurl = http://vault.centos.org/8-stream/PowerTools/Source/
+[crb]
+name= Centos 9 stream (Source RPMs) - CRB-source
+baseurl = https://mirror.stream.centos.org/9-stream/CRB/source/tree/
 enabled = 1
 gpgcheck = 0
 EOF
@@ -92,7 +80,7 @@ yum clean all -y
 yum makecache
 
 # Mannually install if failed
-yum install -y unzip curl yum-utils || true
+yum install -y unzip yum-utils || true
 
 mkdir -p osstpclients
 cd osstpclients
