@@ -96,6 +96,7 @@ COPY --from=suricata-rpms-source /tmp/suricata-rpms /tmp/suricata-rpms
 
 RUN tdnf remove -y toybox && \
     tdnf install -y \
+      wget \
       coreutils \
       iproute2 \
       ipset \

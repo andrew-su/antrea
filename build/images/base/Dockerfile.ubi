@@ -29,7 +29,7 @@ COPY suricata*.rpm /tmp/
 
 USER root
 
-RUN yum install ipset jq -y && \
+RUN yum install wget ipset jq -y && \
     # ethtool is for commercial release Antrea to toggle Geneve checksum offload.
     yum install ethtool -y && \
     yum install -y https://packages.vcfd.broadcom.net/artifactory/nsx-ujo-local/antrea/epel/epel-release-latest-9.noarch.rpm && \
