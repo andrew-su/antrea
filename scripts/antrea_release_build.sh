@@ -81,7 +81,7 @@ cp -rv ${GOBUILD_CAYMAN_ANTREA_OPERATOR_FOR_KUBERNETES_ROOT}/VERSION "${operator
 mkdir -p "${BUILDROOT}/tmp-ipsec"
 pushd "${BUILDROOT}/tmp-ipsec"
 unzip ${GOBUILD_CAYMAN_ANTREA_IPSEC_ROOT}/antrea-ubi-ipsec-*.zip
-cp antrea-ubi-ipsec-*/antrea-ubi-ipsec-*.tar.gz "${operator_publish}/antrea/images/"
+cp antrea-ubi-ipsec-*/antrea-agent-ubi-ipsec-*.tar.gz antrea-ubi-ipsec-*/antrea-controller-ubi-ipsec-*.tar.gz "${operator_publish}/antrea/images/"
 popd
 rm -rf "${BUILDROOT}/tmp-ipsec"
 echo "****** antrea_release_build.sh finished ******"
