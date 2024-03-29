@@ -9,8 +9,9 @@ HARBOR_REPO="${HARBOR}/antreainterworking"
 
 if [[ $# -ne 2 ]]; then
     echo "Usage: $0 antrea-release-build 'harbor_user'"
+    echo "  antrea-release-build: antrea-release official build. Build can be found in https://buildweb.eng.vmware.com/ob/?product=antrea-release ."
+    echo "  harbor_user: projects.registry.vmware.com user name (without \"@vmware.com\")"
     echo "Example: $0 ob-xxxx 'dummyUser'"
-    echo "antrea-release-build can be found in https://buildweb.eng.vmware.com/ob/?product=antrea-release"
     exit 1
 fi
 
@@ -56,12 +57,16 @@ antrea_bin_version="${antrea_bin_version/_/+}"
 #### Antrea UBI
 base_os=ubi
 echo === Downloading Antrea $base_os Image ===
-wget "http://build-squid.eng.vmware.com/build/mts/release/bora-${build_number}/publish/openshift/antrea/images/antrea-${base_os}-${antrea_version}.tar.gz" -O "antrea-${base_os}.tar.gz"
-docker load -i "antrea-${base_os}.tar.gz" && rm -f "antrea-${base_os}.tar.gz"
-docker tag "localhost:5000/vmware.io/antrea/antrea-${base_os}:${antrea_version}" "${HARBOR_REPO}/antrea-${base_os}:${antrea_version}"
-echo === Pushing "${HARBOR_REPO}/antrea-${base_os}:${antrea_version}" ===
-docker push "${HARBOR_REPO}/antrea-${base_os}:${antrea_version}"
-echo "${HARBOR_REPO}/antrea-${base_os}:${antrea_version}" >> publish_images.txt
+for component in "controller" "agent"; do
+  wget "http://build-squid.eng.vmware.com/build/mts/release/bora-${build_number}/publish/openshift/antrea/images/antrea-${component}-${base_os}-${antrea_version}.tar.gz" \
+    -O "antrea-${component}-${base_os}.tar.gz"
+  docker load -i "antrea-${component}-${base_os}.tar.gz" && rm -f "antrea-${component}-${base_os}.tar.gz"
+  docker tag "localhost:5000/vmware.io/antrea/antrea-${component}-${base_os}:${antrea_version}" \
+    "${HARBOR_REPO}/antrea-${component}-${base_os}:${antrea_version}"
+  echo === Pushing "${HARBOR_REPO}/antrea-${component}-${base_os}:${antrea_version}" ===
+  docker push "${HARBOR_REPO}/antrea-${component}-${base_os}:${antrea_version}"
+  echo "${HARBOR_REPO}/antrea-${component}-${base_os}:${antrea_version}" >> publish_images.txt
+done
 
 #### Flow-aggregator UBI
 base_os=ubi
@@ -82,7 +87,7 @@ for flavor in standard advanced ; do
   unzip "${zip_file}" && rm -f "${zip_file}"
   zip_dir="${zip_file%.zip}"
   pushd "${zip_dir}/images"
-  for img in "antrea-${flavor}-debian" "flow-aggregator-debian" ; do
+  for img in "antrea-${flavor}-controller-debian" "antrea-${flavor}-agent-debian" "flow-aggregator-debian" ; do
     # flow-aggregator image is the same for Antrea standard and advaced. We just need to update it once.
     if [ "$flavor" = "standard" -a "${img}" = "flow-aggregator-debian" ]; then continue; fi
     docker load -i "${img}-${antrea_version}.tar.gz"
