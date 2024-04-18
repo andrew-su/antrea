@@ -172,6 +172,7 @@ cp "${FLOW_AGGREGATOR_MANIFESTS_DIR}/flow-aggregator-${BINARY_VERSION}.yml" "${P
 cp "${MANIFESTS_DIR}/antrea-flow-exporter-enabled.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-flow-exporter-enabled-${BINARY_VERSION}.yml"
 cp "${REPO_ROOT}/hack/wavefront-metrics.sh" "${PUBLISH_DIR}/${antrea_adv_deliverables}/scripts/"
 cp "${REPO_ROOT}/ci/jenkins/test-vmc.sh" "${PUBLISH_DIR}/${antrea_adv_deliverables}/scripts/"
+cp "${REPO_ROOT}/ci/test-conformance-eks.sh" "${PUBLISH_DIR}/${antrea_adv_deliverables}/scripts/"
 cp -r "${REPO_ROOT}/ci/cluster-api/vsphere/templates/" "${OUTPUT_DIR}/scripts/capv-templates/"
 tar -zcf ${OUTPUT_DIR}/scripts/capv-templates.tar.gz -C ${OUTPUT_DIR}/scripts/ capv-templates
 rm -rf "${OUTPUT_DIR}/scripts/capv-templates"
