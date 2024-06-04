@@ -56,6 +56,7 @@ NSX_OVS_BUILD_FILES = {
         "publish/windows_x64/.*"]
 }
 
+# helm without the kubeVersion<=1.20 limitation
 CAYMAN_HELM_BRANCH = "vmware-3.12.3-antrea"
 CAYMAN_HELM_CLN = "bcc709d6441aa2fbd3b9abaa9f8e56a68a96f3b0"
 CAYMAN_HELM_BUILDTYPE = "release"
@@ -78,4 +79,12 @@ CAYMAN_SURICATA_BUILDTYPE = "release"
 CAYMAN_SURICATA_FILES = {
     LINUX_HOSTTYPE: [
         "publish/lin64/.*"]
+}
+
+CAYMAN_MSVC_REDISTS_BRANCH = "vc140-redists-latest"
+CAYMAN_MSVC_REDISTS_CLN = "b73a5666f16de7000dee91f701ffcd8efbbd035c"
+CAYMAN_MSVC_REDISTS_BUILDTYPE = "release"
+CAYMAN_MSVC_REDISTS_FILES = {
+    LINUX_HOSTTYPE: [
+        "publish/win/.*"]
 }

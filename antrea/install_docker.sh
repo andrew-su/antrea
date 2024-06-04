@@ -52,6 +52,9 @@ add_to_yum centos-remote/8/AppStream/x86_64/os/
 
 echo "Added yum repos from artifactory."
 
+# Installing jq
+yum install -y jq
+
 # Installing docker
 # Newer docker version + containerd version doesn't work in build slave
 yum install -y https://artifactory.eng.vmware.com/artifactory/download.docker.com/linux/centos/7/x86_64/stable/Packages/containerd.io-1.6.9-3.1.el7.x86_64.rpm

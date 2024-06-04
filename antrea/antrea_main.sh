@@ -294,9 +294,11 @@ echo "====== Windows build ======"
 echo "====== Building Antrea Standard Windows Deliverables ======"
 git reset --hard origin/topic/${ANTREA_VERSION_DIGIT}-common
 check_manifests
-build_windows "standard" "signed"
+build_windows "standard" "signed" "${IMAGE_VERSION}"
+generate_windows_manifests "standard" "${IMAGE_VERSION}" "${BINARY_VERSION}"
 
 echo "====== Building Antrea Advanced Windows Deliverables ======"
 git reset --hard origin/topic/${ANTREA_VERSION_DIGIT}-features
 check_manifests
-build_windows "advanced" "signed"
+build_windows "advanced" "signed" "${IMAGE_VERSION}"
+generate_windows_manifests "advanced" "${IMAGE_VERSION}" "${BINARY_VERSION}"

@@ -104,5 +104,6 @@ gpgsignc textsign -i ${BINARY_CHECKSUM_FILENAME} -o "${BINARY_CHECKSUM_FILENAME}
 popd
 
 echo "====== Building Antrea Advanced Windows Deliverables ======"
-build_windows "advanced" "signed"
+build_windows "advanced" "signed" "${IMAGE_VERSION}"
+generate_windows_manifests "advanced" "${IMAGE_VERSION}" "${BINARY_VERSION}"
 rm ${PUBLISH_DIR}/antrea-windows-*.zip

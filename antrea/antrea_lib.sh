@@ -148,11 +148,12 @@ function publish_version_files(){
 
 function build_windows() {
   antrea_deliverable_kind=$1
+  image_version=$3
   rm -rf "${PUBLISH_DIR}/windows"
   mkdir -p "${PUBLISH_DIR}/windows"
   mkdir -p "${PUBLISH_DIR}/windows/etc"
-  cp build/yamls/windows/base/conf/antrea-agent.conf "${PUBLISH_DIR}/windows/etc/antrea-agent.conf"
-  cp build/yamls/windows/base/conf/antrea-cni.conflist "${PUBLISH_DIR}/windows/etc/antrea-cni.conflist"
+  cp build/charts/antrea-windows/conf/antrea-agent.conf "${PUBLISH_DIR}/windows/etc/antrea-agent.conf"
+  cp build/charts/antrea-windows/conf/antrea-cni.conflist "${PUBLISH_DIR}/windows/etc/antrea-cni.conflist"
 
   mkdir -p "${PUBLISH_DIR}/windows/bin"
   # antrea/src is a gitsubmodule, the .git file under is a text file containing a path to parent .git/modules/antrea/src.
@@ -190,22 +191,24 @@ function build_windows() {
     find_pattern="openvswitch*-win64-unsigned.zip "
   fi
   NSXOVS_PATH=$(find "${GOBUILD_NSX_OVS_BUILD_ROOT}/windows_x64" -name ${find_pattern})
-  VCRedistUrl="http://build-artifactory.eng.vmware.com/artifactory/nsbu-windows-local/vcredists.zip"
   TempDir="${REPO_ROOT}/nsx-ovs-temp"
   rm -rf "${TempDir}"
   mkdir -p "${TempDir}"
 
   cp "${NSXOVS_PATH}" "${DownloadDir}/nsx-ovs.zip"
-  wget -q "${VCRedistUrl}" -O "${DownloadDir}/vcredists.zip"
-  docker run --rm --user $(id -u):$(id -g) -v "${REPO_ROOT}":/tmp/windows -w /tmp/windows nsx-ujo-docker-local.artifactory.eng.vmware.com/interworking/busybox /bin/sh -c "unzip -q download/nsx-ovs.zip -d nsx-ovs-temp ; unzip -q download/vcredists.zip -d nsx-ovs-temp"
+  docker run --rm --user $(id -u):$(id -g) -v "${REPO_ROOT}":/tmp/windows -w /tmp/windows nsx-ujo-docker-local.artifactory.eng.vmware.com/interworking/busybox /bin/sh -c "unzip -q download/nsx-ovs.zip -d nsx-ovs-temp"
   OVSDir="${TempDir}/openvswitch"
   OVSDriverDir="${OVSDir}/driver"
-  VCRedistDir="${OVSDir}/redist"
   cp -r "${TempDir}/include" "${OVSDir}"
   cp -r "${TempDir}/lib" "${OVSDir}"
   cp -r "${TempDir}/scripts" "${OVSDir}"
-  cp -r "${TempDir}/vcredist2017" "${VCRedistDir}"
   cp -r "${TempDir}/ovsext/win10_x64" "${OVSDriverDir}"
+
+  # Copy VC redistributable file
+  MSVC_REDISTS_PATH=${GOBUILD_CAYMAN_MSVC_REDISTS_ROOT}/win/exe/1033
+  VCRedistDir="${OVSDir}/redist"
+  rm -rf "${VCRedistDir}" && mkdir -p ${VCRedistDir}
+  cp ${MSVC_REDISTS_PATH}/vcredist_x64.exe "${VCRedistDir}/"
 
   pushd "${TempDir}"
   zip --verbose -r "${PUBLISH_DIR}/windows/ovs-win64.zip" openvswitch
@@ -219,7 +222,78 @@ function build_windows() {
   popd
   cp "${PUBLISH_DIR}/${antrea_windows_deliverables}.zip" "${PUBLISH_DIR}/windows/${antrea_windows_deliverables_tkg}.zip"
   mv "${PUBLISH_DIR}/windows" "${PUBLISH_DIR}/windows-${antrea_deliverable_kind}"
+
+  # Prepare Windows images
+  if [ -n "$image_version" ]; then
+    build_and_sign_windows_image "${antrea_deliverable_kind}" "${image_version}" "${OVSDir}"
+    # Publish scripts
+    publish_windows_scripts "${antrea_deliverable_kind}"
+  fi
+
   rm -rf bin "${DownloadDir}" "${TempDir}"
+}
+
+function prepare_windows_image_files() {
+  antrea_deliverable_kind=$1
+  container_files_path=$2
+  ovs_dir=$3
+
+  cp -r ${ovs_dir} ${container_files_path}/openvswitch
+  antrea_dir=${container_files_path}/antrea
+  container_bin_dir=${antrea_dir}/bin
+  mkdir -p ${container_bin_dir}
+  container_cni_dir=${antrea_dir}/cni
+  mkdir -p ${container_cni_dir}
+  windows_publish_dir="${PUBLISH_DIR}/windows-${antrea_deliverable_kind}"
+  windows_bins="${windows_publish_dir}/bin"
+  cp "${windows_bins}/antctl.exe" "${container_bin_dir}/antctl.exe"
+  cp "${windows_bins}/antrea-agent.exe" "${container_bin_dir}/antrea-agent.exe"
+  cp "${windows_bins}/antrea-cni.exe" "${container_cni_dir}/antrea.exe"
+  cp "${windows_bins}/host-local.exe" "${container_cni_dir}/host-local.exe"
+  cp hack/windows/Install-OVS.ps1 "${antrea_dir}/Install-OVS.ps1"
+}
+
+function build_and_sign_windows_image() {
+  antrea_deliverable_kind=$1
+  image_version=$2
+  ovs_dir=$3
+
+  container_files_path="windows_container_files"
+  rm -rf ${container_files_path} && mkdir -p ${container_files_path}
+  prepare_windows_image_files "${antrea_deliverable_kind}" "${container_files_path}" "${ovs_dir}"
+
+  image_dir="${PUBLISH_DIR}/windows-${antrea_deliverable_kind}/images"
+  rm -rf "${image_dir}" && mkdir -p "${image_dir}"
+  ${REPO_ROOT}/build/images/build-windows.sh --dockerfile build/images/Dockerfile.build.windows.tkg --local-dir ${container_files_path} --agent-tag ${image_version}
+  image_id=$(tar -xOf antrea-windows.tar manifest.json | jq -r '.[0].Config' | sed "s/^blobs\///; s/\//:/g")
+  gzip -9 -f antrea-windows.tar
+  mv antrea-windows.tar.gz "${image_dir}/antrea-${antrea_deliverable_kind}-windows-${image_version}.tar.gz"
+  image_digest_filename="antrea-${antrea_deliverable_kind}-windows-${image_version}-image-digests.txt"
+  echo "antrea-${antrea_deliverable_kind}-windows@${image_id}" > "${image_dir}/${image_digest_filename}"
+  checksum_filename="antrea-${antrea_deliverable_kind}-windows-${image_version}-image-checksums.txt"
+  pushd "${image_dir}"
+  sha256sum -- * > ${checksum_filename}
+  gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=${GPG_KEY_ID} ${GPGSIGNC_OPTS}
+  popd
+  rm -rf ${container_files_path}
+}
+
+function publish_windows_scripts() {
+  antrea_deliverable_kind=$1
+  scripts_dir="${PUBLISH_DIR}/windows-${antrea_deliverable_kind}/scripts"
+  rm -rf "${scripts_dir}" && mkdir -p "${scripts_dir}"
+  cp hack/windows/Clean-AntreaNetwork.ps1 "${scripts_dir}/Clean-AntreaNetwork.ps1"
+  # Updates "container" as the default OVSRunMode in Clean-AntreaNetwork.ps1.
+  sed -i 's|$OVSRunMode = "service"|$OVSRunMode = "container"|g' "${scripts_dir}/Clean-AntreaNetwork.ps1"
+}
+
+function generate_windows_manifests() {
+    antrea_deliverable_kind=$1
+    image_version=$2
+    binary_version=$3
+    manifests_dir="${PUBLISH_DIR}/windows-${antrea_deliverable_kind}/manifests"
+    rm -rf "${manifests_dir}" && mkdir -p "${manifests_dir}"
+    IMG_NAME=antrea/antrea-windows IMG_TAG=${image_version} ${REPO_ROOT}/hack/generate-manifest-windows.sh --include-ovs --mode release > "${manifests_dir}/antrea-windows-${binary_version}.yml"
 }
 
 function prepare_whereabouts_tgz() {

@@ -129,6 +129,11 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
                 "change": specs.cayman_antrea.CAYMAN_SURICATA_CLN,
                 "buildtype": specs.cayman_antrea.CAYMAN_SURICATA_BUILDTYPE,
                 "files": specs.cayman_antrea.CAYMAN_SURICATA_FILES},
+            "cayman_msvc_redists": {
+                "branch": specs.cayman_antrea.CAYMAN_MSVC_REDISTS_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_MSVC_REDISTS_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_MSVC_REDISTS_BUILDTYPE,
+                "files": specs.cayman_antrea.CAYMAN_MSVC_REDISTS_FILES},
         }
 
         return comps
