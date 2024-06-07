@@ -35,6 +35,8 @@ import (
 	"k8s.io/client-go/util/retry"
 
 	crdv1beta1 "antrea.io/antrea/pkg/apis/crd/v1beta1"
+	tanzucrd "antrea.io/antrea/pkg/apis/tanzucrd/v1alpha1"
+	crdclientset "antrea.io/antrea/pkg/client/clientset/versioned"
 	"antrea.io/antrea/test/e2e/utils"
 )
 
@@ -905,21 +907,37 @@ func (k *KubernetesUtils) CleanGroups(namespace string) error {
 	return k.crdClient.CrdV1beta1().Groups(namespace).DeleteCollection(context.TODO(), metav1.DeleteOptions{}, metav1.ListOptions{})
 }
 
-// CreateOrUpdateACNP is a convenience function for updating/creating AntreaClusterNetworkPolicies.
+// CreateOrUpdateACNPAsNonAdmin creates/updates AntreaClusterNetworkPolicies using non-admin client.
+func (data *TestData) CreateOrUpdateACNPAsNonAdmin(cnp *crdv1beta1.ClusterNetworkPolicy) (*crdv1beta1.ClusterNetworkPolicy, error) {
+	return data.createOrUpdateACNPAsUser(cnp, false)
+}
+
+// createOrUpdateACNP creates/updates AntreaClusterNetworkPolicies using admin client.
 func (data *TestData) CreateOrUpdateACNP(cnp *crdv1beta1.ClusterNetworkPolicy) (*crdv1beta1.ClusterNetworkPolicy, error) {
+	return data.createOrUpdateACNPAsUser(cnp, true)
+}
+
+// CreateOrUpdateACNP is a convenience function for updating/creating AntreaClusterNetworkPolicies.
+func (data *TestData) createOrUpdateACNPAsUser(cnp *crdv1beta1.ClusterNetworkPolicy, userAdmin bool) (*crdv1beta1.ClusterNetworkPolicy, error) {
 	log.Infof("Creating/updating ClusterNetworkPolicy %s", cnp.Name)
-	cnpReturned, err := data.crdClient.CrdV1beta1().ClusterNetworkPolicies().Get(context.TODO(), cnp.Name, metav1.GetOptions{})
+	var client crdclientset.Interface
+	if userAdmin {
+		client = data.crdClient
+	} else {
+		client = data.nonAdminCrdClient
+	}
+	cnpReturned, err := client.CrdV1beta1().ClusterNetworkPolicies().Get(context.TODO(), cnp.Name, metav1.GetOptions{})
 	if err != nil {
-		log.Debugf("Creating ClusterNetworkPolicy %s", cnp.Name)
-		cnp, err = data.crdClient.CrdV1beta1().ClusterNetworkPolicies().Create(context.TODO(), cnp, metav1.CreateOptions{})
+		log.Infof("Creating ClusterNetworkPolicy %s", cnp.Name)
+		cnp, err = client.CrdV1beta1().ClusterNetworkPolicies().Create(context.TODO(), cnp, metav1.CreateOptions{})
 		if err != nil {
-			log.Debugf("Unable to create ClusterNetworkPolicy: %s", err)
+			log.Infof("Unable to create ClusterNetworkPolicy: %s", err)
 		}
 		return cnp, err
 	} else if cnpReturned.Name != "" {
 		log.Debugf("ClusterNetworkPolicy with name %s already exists, updating", cnp.Name)
 		cnpReturned.Spec = cnp.Spec
-		cnp, err = data.crdClient.CrdV1beta1().ClusterNetworkPolicies().Update(context.TODO(), cnpReturned, metav1.UpdateOptions{})
+		cnp, err = client.CrdV1beta1().ClusterNetworkPolicies().Update(context.TODO(), cnpReturned, metav1.UpdateOptions{})
 		return cnp, err
 	}
 	return nil, fmt.Errorf("error occurred in creating/updating ClusterNetworkPolicy %s", cnp.Name)
@@ -930,10 +948,32 @@ func (data *TestData) GetACNP(name string) (*crdv1beta1.ClusterNetworkPolicy, er
 	return data.crdClient.CrdV1beta1().ClusterNetworkPolicies().Get(context.TODO(), name, metav1.GetOptions{})
 }
 
-// DeleteACNP is a convenience function for deleting ACNP by name.
+func (data *TestData) DeleteACNPAsNonAdmin(name string) error {
+	return data.deleteACNPAsUser(name, false)
+}
+
 func (data *TestData) DeleteACNP(name string) error {
 	log.Infof("Deleting AntreaClusterNetworkPolicies %s", name)
-	return data.crdClient.CrdV1beta1().ClusterNetworkPolicies().Delete(context.TODO(), name, metav1.DeleteOptions{})
+	return data.deleteACNPAsUser(name, true)
+}
+
+// DeleteACNP is a convenience function for deleting an Antrea ClusterNetworkPolicy with specific user.
+func (data *TestData) deleteACNPAsUser(name string, userAdmin bool) error {
+	var client crdclientset.Interface
+	if userAdmin {
+		client = data.crdClient
+	} else {
+		client = data.nonAdminCrdClient
+	}
+	_, err := client.CrdV1beta1().ClusterNetworkPolicies().Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("unable to get ACNP %s: %w", name, err)
+	}
+	log.Infof("deleting ACNP %s", name)
+	if err = client.CrdV1beta1().ClusterNetworkPolicies().Delete(context.TODO(), name, metav1.DeleteOptions{}); err != nil {
+		return fmt.Errorf("unable to delete ACNP %s: %w", name, err)
+	}
+	return nil
 }
 
 // CleanACNPs is a convenience function for deleting all Antrea ClusterNetworkPolicies in the cluster.
@@ -941,13 +981,19 @@ func (data *TestData) CleanACNPs() error {
 	return data.crdClient.CrdV1beta1().ClusterNetworkPolicies().DeleteCollection(context.TODO(), metav1.DeleteOptions{}, metav1.ListOptions{})
 }
 
-// CreateOrUpdateANNP is a convenience function for updating/creating Antrea NetworkPolicies.
-func (data *TestData) CreateOrUpdateANNP(annp *crdv1beta1.NetworkPolicy) (*crdv1beta1.NetworkPolicy, error) {
+// createOrUpdateANNPAsUser is a convenience function for updating/creating Antrea NetworkPolicies with specific user.
+func (data *TestData) createOrUpdateANNPAsUser(annp *crdv1beta1.NetworkPolicy, userAdmin bool) (*crdv1beta1.NetworkPolicy, error) {
 	log.Infof("Creating/updating Antrea NetworkPolicy %s/%s", annp.Namespace, annp.Name)
-	npReturned, err := data.crdClient.CrdV1beta1().NetworkPolicies(annp.Namespace).Get(context.TODO(), annp.Name, metav1.GetOptions{})
+	var client crdclientset.Interface
+	if userAdmin {
+		client = data.crdClient
+	} else {
+		client = data.nonAdminCrdClient
+	}
+	npReturned, err := client.CrdV1beta1().NetworkPolicies(annp.Namespace).Get(context.TODO(), annp.Name, metav1.GetOptions{})
 	if err != nil {
 		log.Debugf("Creating Antrea NetworkPolicy %s", annp.Name)
-		annp, err = data.crdClient.CrdV1beta1().NetworkPolicies(annp.Namespace).Create(context.TODO(), annp, metav1.CreateOptions{})
+		annp, err = client.CrdV1beta1().NetworkPolicies(annp.Namespace).Create(context.TODO(), annp, metav1.CreateOptions{})
 		if err != nil {
 			log.Debugf("Unable to create Antrea NetworkPolicy: %s", err)
 		}
@@ -955,10 +1001,19 @@ func (data *TestData) CreateOrUpdateANNP(annp *crdv1beta1.NetworkPolicy) (*crdv1
 	} else if npReturned.Name != "" {
 		log.Debugf("Antrea NetworkPolicy with name %s already exists, updating", annp.Name)
 		npReturned.Spec = annp.Spec
-		annp, err = data.crdClient.CrdV1beta1().NetworkPolicies(annp.Namespace).Update(context.TODO(), npReturned, metav1.UpdateOptions{})
+		annp, err = client.CrdV1beta1().NetworkPolicies(annp.Namespace).Update(context.TODO(), npReturned, metav1.UpdateOptions{})
 		return annp, err
 	}
 	return nil, fmt.Errorf("error occurred in creating/updating Antrea NetworkPolicy %s", annp.Name)
+
+}
+
+func (data *TestData) CreateOrUpdateANNPAsNonAdmin(anp *crdv1beta1.NetworkPolicy) (*crdv1beta1.NetworkPolicy, error) {
+	return data.createOrUpdateANNPAsUser(anp, false)
+}
+
+func (data *TestData) CreateOrUpdateANNP(anp *crdv1beta1.NetworkPolicy) (*crdv1beta1.NetworkPolicy, error) {
+	return data.createOrUpdateANNPAsUser(anp, true)
 }
 
 // GetANNP is a convenience function for getting AntreaNetworkPolicies.
@@ -966,10 +1021,32 @@ func (data *TestData) GetANNP(namespace, name string) (*crdv1beta1.NetworkPolicy
 	return data.crdClient.CrdV1beta1().NetworkPolicies(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
-// DeleteANNP is a convenience function for deleting ANNP by name and Namespace.
+func (data *TestData) DeleteANNPAsNonAdmin(ns, name string) error {
+	return data.deleteANNPAsUser(ns, name, false)
+}
+
 func (data *TestData) DeleteANNP(ns, name string) error {
 	log.Infof("Deleting Antrea NetworkPolicy '%s/%s'", ns, name)
-	return data.crdClient.CrdV1beta1().NetworkPolicies(ns).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	return data.deleteANNPAsUser(ns, name, true)
+}
+
+// deleteANPAsUser is a convenience function for deleting an Antrea NetworkPolicy with specific user.
+func (data *TestData) deleteANNPAsUser(ns, name string, userAdmin bool) error {
+	var client crdclientset.Interface
+	if userAdmin {
+		client = data.crdClient
+	} else {
+		client = data.nonAdminCrdClient
+	}
+	_, err := client.CrdV1beta1().NetworkPolicies(ns).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("unable to get ANP %s/%s: %w", ns, name, err)
+	}
+	log.Infof("deleting ANP %s/%s", ns, name)
+	if err = client.CrdV1beta1().NetworkPolicies(ns).Delete(context.TODO(), name, metav1.DeleteOptions{}); err != nil {
+		return fmt.Errorf("unable to delete ANP %s/%s: %w", ns, name, err)
+	}
+	return nil
 }
 
 // CleanANNPs is a convenience function for deleting all Antrea NetworkPolicies in provided namespaces.
@@ -996,6 +1073,26 @@ func (data *TestData) WaitForANNPCreationAndRealization(t *testing.T, namespace 
 	return nil
 }
 
+// CreateOrUpdateTierEntitlement is a convenience function for updating/creating TierEntitlement.
+func (k *KubernetesUtils) CreateOrUpdateTierEntitlement(te *tanzucrd.TierEntitlement) (*tanzucrd.TierEntitlement, error) {
+	log.Infof("creating/updating TierEntitlement %s", te.Name)
+	teReturned, err := k.tanzuCrdv1a1Client.TierEntitlements().Get(context.TODO(), te.Name, metav1.GetOptions{})
+	if err != nil {
+		log.Debugf("creating TierEntitlement %s", te.Name)
+		te, err = k.tanzuCrdv1a1Client.TierEntitlements().Create(context.TODO(), te, metav1.CreateOptions{})
+		if err != nil {
+			log.Debugf("unable to create TierEntitlement: %s", err)
+		}
+		return te, err
+	} else if teReturned.Name != "" {
+		log.Debugf("TierEntitlement with name %s already exists, updating", te.Name)
+		teReturned.Spec = te.Spec
+		te, err = k.tanzuCrdv1a1Client.TierEntitlements().Update(context.TODO(), teReturned, metav1.UpdateOptions{})
+		return te, err
+	}
+	return nil, fmt.Errorf("error occurred in creating/updating TierEntitlement %s", te.Name)
+}
+
 func (data *TestData) WaitForACNPCreationAndRealization(t *testing.T, name string, timeout time.Duration) error {
 	t.Logf("Waiting for ACNP '%s' to be created and realized", name)
 	if err := wait.PollUntilContextTimeout(context.TODO(), 100*time.Millisecond, timeout, false, func(ctx context.Context) (bool, error) {
@@ -1006,6 +1103,58 @@ func (data *TestData) WaitForACNPCreationAndRealization(t *testing.T, name strin
 		return acnp.Status.ObservedGeneration == acnp.Generation && acnp.Status.Phase == crdv1beta1.NetworkPolicyRealized, nil
 	}); err != nil {
 		return fmt.Errorf("error when waiting for ACNP '%s' to be realized: %v", name, err)
+	}
+	return nil
+}
+
+// CreateOrUpdateTierEntitlementBinding is a convenience function for updating/creating TierEntitlementBinding.
+func (k *KubernetesUtils) CreateOrUpdateTierEntitlementBinding(teb *tanzucrd.TierEntitlementBinding) (*tanzucrd.TierEntitlementBinding, error) {
+	log.Infof("creating/updating TierEntitlementBinding %s", teb.Name)
+	tebReturned, err := k.tanzuCrdv1a1Client.TierEntitlementBindings().Get(context.TODO(), teb.Name, metav1.GetOptions{})
+	if err != nil {
+		log.Debugf("creating TierEntitlementBinding %s", teb.Name)
+		teb, err = k.tanzuCrdv1a1Client.TierEntitlementBindings().Create(context.TODO(), teb, metav1.CreateOptions{})
+		if err != nil {
+			log.Debugf("unable to create TierEntitlementBinding: %s", err)
+		}
+		return teb, err
+	} else if tebReturned.Name != "" {
+		log.Debugf("TierEntitlementBinding with name %s already exists, updating", teb.Name)
+		tebReturned.Spec = teb.Spec
+		teb, err = k.tanzuCrdv1a1Client.TierEntitlementBindings().Update(context.TODO(), tebReturned, metav1.UpdateOptions{})
+		return teb, err
+	}
+	return nil, fmt.Errorf("error occurred in creating/updating TierEntitlementBinding %s", teb.Name)
+}
+
+// CleanTEs is a convenience function for deleting TierEntitlements before startup of any new test.
+func (k *KubernetesUtils) CleanTEs() error {
+	l, err := k.tanzuCrdv1a1Client.TierEntitlements().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("unable to list TierEntitlements: %w", err)
+	}
+	for _, te := range l.Items {
+		log.Infof("deleting TierEntitlement %s", te.Name)
+		err = k.tanzuCrdv1a1Client.TierEntitlements().Delete(context.TODO(), te.Name, metav1.DeleteOptions{})
+		if err != nil {
+			return fmt.Errorf("unable to delete TierEntitlement %s: %w", te.Name, err)
+		}
+	}
+	return nil
+}
+
+// CleanTEBs is a convenience function for deleting TierEntitlementBindings before startup of any new test.
+func (k *KubernetesUtils) CleanTEBs() error {
+	l, err := k.tanzuCrdv1a1Client.TierEntitlementBindings().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("unable to list TierEntitlementBindings: %w", err)
+	}
+	for _, teb := range l.Items {
+		log.Infof("deleting TierEntitlementBinding %s", teb.Name)
+		err = k.tanzuCrdv1a1Client.TierEntitlementBindings().Delete(context.TODO(), teb.Name, metav1.DeleteOptions{})
+		if err != nil {
+			return fmt.Errorf("unable to delete TierEntitlementBinding %s: %w", teb.Name, err)
+		}
 	}
 	return nil
 }

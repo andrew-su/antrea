@@ -26,6 +26,7 @@ import (
 	crdv1beta1 "antrea.io/antrea/pkg/client/clientset/versioned/typed/crd/v1beta1"
 	statsv1alpha1 "antrea.io/antrea/pkg/client/clientset/versioned/typed/stats/v1alpha1"
 	systemv1beta1 "antrea.io/antrea/pkg/client/clientset/versioned/typed/system/v1beta1"
+	tanzucrdv1alpha1 "antrea.io/antrea/pkg/client/clientset/versioned/typed/tanzucrd/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -39,6 +40,7 @@ type Interface interface {
 	CrdV1beta1() crdv1beta1.CrdV1beta1Interface
 	StatsV1alpha1() statsv1alpha1.StatsV1alpha1Interface
 	SystemV1beta1() systemv1beta1.SystemV1beta1Interface
+	TanzuCrdV1alpha1() tanzucrdv1alpha1.TanzuCrdV1alpha1Interface
 }
 
 // Clientset contains the clients for groups.
@@ -50,6 +52,7 @@ type Clientset struct {
 	crdV1beta1          *crdv1beta1.CrdV1beta1Client
 	statsV1alpha1       *statsv1alpha1.StatsV1alpha1Client
 	systemV1beta1       *systemv1beta1.SystemV1beta1Client
+	tanzuCrdV1alpha1    *tanzucrdv1alpha1.TanzuCrdV1alpha1Client
 }
 
 // ControlplaneV1beta2 retrieves the ControlplaneV1beta2Client
@@ -80,6 +83,11 @@ func (c *Clientset) StatsV1alpha1() statsv1alpha1.StatsV1alpha1Interface {
 // SystemV1beta1 retrieves the SystemV1beta1Client
 func (c *Clientset) SystemV1beta1() systemv1beta1.SystemV1beta1Interface {
 	return c.systemV1beta1
+}
+
+// TanzuCrdV1alpha1 retrieves the TanzuCrdV1alpha1Client
+func (c *Clientset) TanzuCrdV1alpha1() tanzucrdv1alpha1.TanzuCrdV1alpha1Interface {
+	return c.tanzuCrdV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -150,6 +158,10 @@ func NewForConfigAndClient(c *rest.Config, httpClient *http.Client) (*Clientset,
 	if err != nil {
 		return nil, err
 	}
+	cs.tanzuCrdV1alpha1, err = tanzucrdv1alpha1.NewForConfigAndClient(&configShallowCopy, httpClient)
+	if err != nil {
+		return nil, err
+	}
 
 	cs.DiscoveryClient, err = discovery.NewDiscoveryClientForConfigAndClient(&configShallowCopy, httpClient)
 	if err != nil {
@@ -177,6 +189,7 @@ func New(c rest.Interface) *Clientset {
 	cs.crdV1beta1 = crdv1beta1.New(c)
 	cs.statsV1alpha1 = statsv1alpha1.New(c)
 	cs.systemV1beta1 = systemv1beta1.New(c)
+	cs.tanzuCrdV1alpha1 = tanzucrdv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

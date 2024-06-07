@@ -310,3 +310,14 @@ rules:
       - get
       - list
       - watch
+{{- if .Values.advanced}}
+  - apiGroups:
+      - crd.antrea.tanzu.vmware.com
+    resources:
+      - tierentitlements
+      - tierentitlementbindings
+    verbs:
+      - get
+      - watch
+      - list
+{{- end}}

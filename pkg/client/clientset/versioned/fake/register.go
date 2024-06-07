@@ -23,6 +23,7 @@ import (
 	crdv1beta1 "antrea.io/antrea/pkg/apis/crd/v1beta1"
 	statsv1alpha1 "antrea.io/antrea/pkg/apis/stats/v1alpha1"
 	systemv1beta1 "antrea.io/antrea/pkg/apis/system/v1beta1"
+	tanzucrdv1alpha1 "antrea.io/antrea/pkg/apis/tanzucrd/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -40,6 +41,7 @@ var localSchemeBuilder = runtime.SchemeBuilder{
 	crdv1beta1.AddToScheme,
 	statsv1alpha1.AddToScheme,
 	systemv1beta1.AddToScheme,
+	tanzucrdv1alpha1.AddToScheme,
 }
 
 // AddToScheme adds all types of this clientset into the given scheme. This allows composition

@@ -30,6 +30,8 @@ import (
 	fakestatsv1alpha1 "antrea.io/antrea/pkg/client/clientset/versioned/typed/stats/v1alpha1/fake"
 	systemv1beta1 "antrea.io/antrea/pkg/client/clientset/versioned/typed/system/v1beta1"
 	fakesystemv1beta1 "antrea.io/antrea/pkg/client/clientset/versioned/typed/system/v1beta1/fake"
+	tanzucrdv1alpha1 "antrea.io/antrea/pkg/client/clientset/versioned/typed/tanzucrd/v1alpha1"
+	faketanzucrdv1alpha1 "antrea.io/antrea/pkg/client/clientset/versioned/typed/tanzucrd/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -119,4 +121,9 @@ func (c *Clientset) StatsV1alpha1() statsv1alpha1.StatsV1alpha1Interface {
 // SystemV1beta1 retrieves the SystemV1beta1Client
 func (c *Clientset) SystemV1beta1() systemv1beta1.SystemV1beta1Interface {
 	return &fakesystemv1beta1.FakeSystemV1beta1{Fake: &c.Fake}
+}
+
+// TanzuCrdV1alpha1 retrieves the TanzuCrdV1alpha1Client
+func (c *Clientset) TanzuCrdV1alpha1() tanzucrdv1alpha1.TanzuCrdV1alpha1Interface {
+	return &faketanzucrdv1alpha1.FakeTanzuCrdV1alpha1{Fake: &c.Fake}
 }

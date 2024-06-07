@@ -1,0 +1,38 @@
+{{if .Values.advanced}}
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: tierentitlements.crd.antrea.tanzu.vmware.com
+  labels:
+    app: antrea
+spec:
+  group: crd.antrea.tanzu.vmware.com
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              required:
+                - permission
+                - tiers
+              type: object
+              properties:
+                permission:
+                  type: string
+                  enum: ['edit', 'read']
+                tiers:
+                  type: array
+                  items:
+                    type: string
+  scope: Cluster
+  names:
+    plural: tierentitlements
+    singular: tierentitlement
+    kind: TierEntitlement
+    shortNames:
+      - te
+{{end}}

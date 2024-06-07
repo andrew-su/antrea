@@ -83,6 +83,7 @@ Kubernetes: `>= 1.19.0-0`
 | controller.apiPort | int | `10349` | Port for the antrea-controller APIServer to serve on. |
 | controller.enablePrometheusMetrics | bool | `true` | Enable metrics exposure via Prometheus. |
 | controller.enableUsageReporting | bool | `false` | Enables usage reporting. |
+| controller.enterpriseAntrea | bool | `true` | Enables Antrea advanced features. |
 | controller.nodeSelector | object | `{"kubernetes.io/os":"linux"}` | Node selector for the antrea-controller Pod. |
 | controller.podAnnotations | object | `{}` | Annotations to be added to antrea-controller Pod. |
 | controller.podLabels | object | `{}` | Labels to be added to antrea-controller Pod. |

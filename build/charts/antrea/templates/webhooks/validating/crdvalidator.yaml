@@ -29,7 +29,7 @@ webhooks:
         namespace: {{ .Release.Namespace }}
         path: "/validate/acnp"
     rules:
-      - operations: ["CREATE", "UPDATE"]
+      - operations: ["CREATE", "UPDATE"{{if .Values.advanced}}, "DELETE"{{end}}]
         apiGroups: ["crd.antrea.io"]
         apiVersions: ["v1beta1"]
         resources: ["clusternetworkpolicies"]
@@ -44,7 +44,7 @@ webhooks:
         namespace: {{ .Release.Namespace }}
         path: "/validate/annp"
     rules:
-      - operations: ["CREATE", "UPDATE"]
+      - operations: ["CREATE", "UPDATE"{{if .Values.advanced}}, "DELETE"{{end}}]
         apiGroups: ["crd.antrea.io"]
         apiVersions: ["v1beta1"]
         resources: ["networkpolicies"]

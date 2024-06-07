@@ -24,6 +24,7 @@ import (
 	versioned "antrea.io/antrea/pkg/client/clientset/versioned"
 	crd "antrea.io/antrea/pkg/client/informers/externalversions/crd"
 	internalinterfaces "antrea.io/antrea/pkg/client/informers/externalversions/internalinterfaces"
+	tanzucrd "antrea.io/antrea/pkg/client/informers/externalversions/tanzucrd"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -253,8 +254,13 @@ type SharedInformerFactory interface {
 	InformerFor(obj runtime.Object, newFunc internalinterfaces.NewInformerFunc) cache.SharedIndexInformer
 
 	Crd() crd.Interface
+	TanzuCrd() tanzucrd.Interface
 }
 
 func (f *sharedInformerFactory) Crd() crd.Interface {
 	return crd.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) TanzuCrd() tanzucrd.Interface {
+	return tanzucrd.New(f, f.namespace, f.tweakListOptions)
 }

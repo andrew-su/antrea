@@ -22,6 +22,7 @@ import (
 	v1alpha1 "antrea.io/antrea/pkg/apis/crd/v1alpha1"
 	v1alpha2 "antrea.io/antrea/pkg/apis/crd/v1alpha2"
 	v1beta1 "antrea.io/antrea/pkg/apis/crd/v1beta1"
+	tanzucrdv1alpha1 "antrea.io/antrea/pkg/apis/tanzucrd/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -95,6 +96,12 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Crd().V1beta1().Tiers().Informer()}, nil
 	case v1beta1.SchemeGroupVersion.WithResource("traceflows"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Crd().V1beta1().Traceflows().Informer()}, nil
+
+		// Group=crd.antrea.tanzu.vmware.com, Version=v1alpha1
+	case tanzucrdv1alpha1.SchemeGroupVersion.WithResource("tierentitlements"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.TanzuCrd().V1alpha1().TierEntitlements().Informer()}, nil
+	case tanzucrdv1alpha1.SchemeGroupVersion.WithResource("tierentitlementbindings"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.TanzuCrd().V1alpha1().TierEntitlementBindings().Informer()}, nil
 
 	}
 

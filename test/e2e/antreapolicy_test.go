@@ -158,6 +158,14 @@ func skipIfAntreaPolicyDisabled(tb testing.TB) {
 	skipIfFeatureDisabled(tb, features.AntreaPolicy, true, true)
 }
 
+func skipIfEnterpriseAntreaDisabled(tb testing.TB, data *TestData) {
+	if enterpriseAntreaEnabled, err := data.enterpriseAntreaEnabled(); err != nil {
+		tb.Fatalf("Cannot determine if EnterpriseAntrea is enabled: %v", err)
+	} else if !enterpriseAntreaEnabled {
+		tb.Skipf("Skipping test as it is required EnterpriseAntrea to be enabled")
+	}
+}
+
 func applyDefaultDenyToAllNamespaces(k8s *KubernetesUtils, namespaces map[string]TestNamespaceMeta) error {
 	if err := k8s.CleanNetworkPolicies(namespaces); err != nil {
 		return err
@@ -4234,6 +4242,234 @@ func testACNPMulticastEgress(t *testing.T, data *TestData, acnpName, caseName, g
 	}
 }
 
+func testACNPTierRefCreateDeny(t *testing.T) {
+	rbacErr := fmt.Errorf("unauthorized user allowed access to Tier reference")
+	// Create a TierEntitlement for Emergency Tier.
+	teBuilder := &TierEntitlementSpecBuilder{}
+	teBuilder = teBuilder.SetName("te-emer").
+		SetPriorityEdit().
+		AddTier("emergency")
+	te := teBuilder.Get()
+	_, err := k8sUtils.CreateOrUpdateTierEntitlement(te)
+	if err != nil {
+		failOnError(fmt.Errorf("create TierEntitlement failed for TE te-emer: %v", err), t)
+	}
+	// Emergency Tier with entitlement but no user binding should not be allowed
+	// to be referenced within an ACNP unless an admin.
+	builder := &ClusterNetworkPolicySpecBuilder{}
+	builder = builder.SetName("acnp-emer-not-allowed").
+		SetTier("emergency").
+		SetPriority(10.0).
+		SetAppliedToGroup([]ACNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}})
+	acnp := builder.Get()
+	log.Debugf("creating ACNP %v", acnp.Name)
+	_, err = k8sUtils.CreateOrUpdateACNPAsNonAdmin(acnp)
+	// Above creation of ACNP must fail as it is not called by authorized user.
+	if err == nil {
+		failOnError(rbacErr, t)
+	}
+	failOnError(k8sUtils.CleanACNPs(), t)
+	failOnError(k8sUtils.CleanTEs(), t)
+	failOnError(k8sUtils.CleanTEBs(), t)
+
+}
+
+func testACNPTierRefCreateAllow(t *testing.T, data *TestData) {
+	rbacErr := fmt.Errorf("authorized user not allowed access to Tier reference")
+	// Create a TierEntitlement for Emergency Tier.
+	teBuilder := &TierEntitlementSpecBuilder{}
+	teBuilder = teBuilder.SetName("te-emer").
+		SetPriorityEdit().
+		AddTier("emergency")
+	te := teBuilder.Get()
+	_, err := k8sUtils.CreateOrUpdateTierEntitlement(te)
+	if err != nil {
+		failOnError(fmt.Errorf("create TierEntitlement failed for TE te-emer: %v", err), t)
+	}
+	// Non-admin serviceaccount is "default". Retrieve it as User subject.
+	defaultSubject := getServiceAccountAsUserSubject(data.testNamespace, "default")
+	tebBuilder := &TierEntitlementBindingSpecBuilder{}
+	tebBuilder = tebBuilder.SetName("teb-emer").
+		SetTierEntitlement("te-emer").
+		AddSubject(defaultSubject)
+	teb := tebBuilder.Get()
+	_, err = k8sUtils.CreateOrUpdateTierEntitlementBinding(teb)
+	if err != nil {
+		failOnError(fmt.Errorf("create TierEntitlementBinding failed for TEB teb-emer: %v", err), t)
+	}
+	builder := &ClusterNetworkPolicySpecBuilder{}
+	builder = builder.SetName("acnp-emer-allowed").
+		SetTier("emergency").
+		SetPriority(10.0).
+		SetAppliedToGroup([]ACNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}})
+	acnp := builder.Get()
+	log.Debugf("creating ACNP %v", acnp.Name)
+	_, err = k8sUtils.CreateOrUpdateACNPAsNonAdmin(acnp)
+	// Above creation of ACNP must not fail as it is called by authorized user.
+	if err != nil {
+		failOnError(rbacErr, t)
+	}
+	// Clean ACNP for next use case.
+	failOnError(k8sUtils.CleanACNPs(), t)
+	_, err = k8sUtils.CreateOrUpdateACNP(acnp)
+	// Above creation of ACNP must not fail as it is called by admin.
+	if err != nil {
+		failOnError(rbacErr, t)
+	}
+	failOnError(k8sUtils.CleanACNPs(), t)
+	failOnError(k8sUtils.CleanTEs(), t)
+	failOnError(k8sUtils.CleanTEBs(), t)
+
+}
+
+func testACNPTierRefDeleteDeny(t *testing.T) {
+	rbacErr := fmt.Errorf("unauthorized user allowed access to remove Tier reference")
+	// Create a TierEntitlement for Emergency Tier.
+	teBuilder := &TierEntitlementSpecBuilder{}
+	teBuilder = teBuilder.SetName("te-emer").
+		SetPriorityEdit().
+		AddTier("emergency")
+	te := teBuilder.Get()
+	_, err := k8sUtils.CreateOrUpdateTierEntitlement(te)
+	if err != nil {
+		failOnError(fmt.Errorf("create TierEntitlement failed for TE te-emer: %v", err), t)
+	}
+	// Emergency Tier with entitlement but no user binding should not be allowed
+	// to be referenced within an ACNP unless an admin.
+	builder := &ClusterNetworkPolicySpecBuilder{}
+	builder = builder.SetName("acnp-emer-delete-not-allowed").
+		SetTier("emergency").
+		SetPriority(10.0).
+		SetAppliedToGroup([]ACNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}})
+	acnp := builder.Get()
+	log.Debugf("creating ACNP %v", acnp.Name)
+	// Successfully create ACNP as admin.
+	_, err = k8sUtils.CreateOrUpdateACNP(acnp)
+	if err != nil {
+		failOnError(rbacErr, t)
+	}
+	err = k8sUtils.DeleteACNPAsNonAdmin(acnp.Name)
+	// Above deletion of ACNP must fail as it is not called by authorized user.
+	if err == nil {
+		failOnError(rbacErr, t)
+	}
+	failOnError(k8sUtils.CleanACNPs(), t)
+	failOnError(k8sUtils.CleanTEs(), t)
+	failOnError(k8sUtils.CleanTEBs(), t)
+}
+
+func testANPTierRefCreateDeny(t *testing.T) {
+	rbacErr := fmt.Errorf("unauthorized user allowed access to Tier reference")
+	// Create a TierEntitlement for Emergency Tier.
+	teBuilder := &TierEntitlementSpecBuilder{}
+	teBuilder = teBuilder.SetName("te-emer").
+		SetPriorityEdit().
+		AddTier("emergency")
+	te := teBuilder.Get()
+	_, err := k8sUtils.CreateOrUpdateTierEntitlement(te)
+	if err != nil {
+		failOnError(fmt.Errorf("create TierEntitlement failed for TE te-emer: %v", err), t)
+	}
+	// Emergency Tier with entitlement but no user binding should not be allowed
+	// to be referenced within an ANP unless an admin.
+	builder := &AntreaNetworkPolicySpecBuilder{}
+	builder = builder.SetName("y", "anp-emer-not-allowed").
+		SetTier("emergency").
+		SetPriority(10.0).
+		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}})
+	anp := builder.Get()
+	log.Debugf("creating ANP %v/%v", anp.Namespace, anp.Name)
+	_, err = k8sUtils.CreateOrUpdateANNPAsNonAdmin(anp)
+	// Above creation of ANP must fail as it is not called by authorized user.
+	if err == nil {
+		failOnError(rbacErr, t)
+	}
+	failOnError(k8sUtils.CleanANNPs([]string{anp.Namespace}), t)
+	failOnError(k8sUtils.CleanTEs(), t)
+	failOnError(k8sUtils.CleanTEBs(), t)
+}
+
+func testANPTierRefCreateAllow(t *testing.T, data *TestData) {
+	rbacErr := fmt.Errorf("authorized user not allowed access to Tier reference")
+	// Create a TierEntitlement for Emergency Tier.
+	teBuilder := &TierEntitlementSpecBuilder{}
+	teBuilder = teBuilder.SetName("te-emer").
+		SetPriorityEdit().
+		AddTier("emergency")
+	te := teBuilder.Get()
+	_, err := k8sUtils.CreateOrUpdateTierEntitlement(te)
+	if err != nil {
+		failOnError(fmt.Errorf("create TierEntitlement failed for TE te-emer: %v", err), t)
+	}
+	// Non-admin serviceaccount is "default". Retrieve it as User subject.
+	defaultSubject := getServiceAccountAsUserSubject(data.testNamespace, "default")
+	tebBuilder := &TierEntitlementBindingSpecBuilder{}
+	tebBuilder = tebBuilder.SetName("teb-emer").
+		SetTierEntitlement("te-emer").
+		AddSubject(defaultSubject)
+	teb := tebBuilder.Get()
+	_, err = k8sUtils.CreateOrUpdateTierEntitlementBinding(teb)
+	if err != nil {
+		failOnError(fmt.Errorf("create TierEntitlementBinding failed for TEB teb-emer: %v", err), t)
+	}
+	builder := &AntreaNetworkPolicySpecBuilder{}
+	builder = builder.SetName(getNS("y"), "anp-emer-allowed").
+		SetTier("emergency").
+		SetPriority(10.0).
+		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}})
+	anp := builder.Get()
+	log.Debugf("creating ANP %v/%v", anp.Namespace, anp.Name)
+	_, err = k8sUtils.CreateOrUpdateANNPAsNonAdmin(anp)
+	// Above creation of ANP must not fail as it is called by authorized user.
+	if err != nil {
+		failOnError(rbacErr, t)
+	}
+	// Clean ANP for next use case.
+	failOnError(k8sUtils.CleanANNPs([]string{anp.Namespace}), t)
+	_, err = k8sUtils.CreateOrUpdateANNP(anp)
+	// Above creation of ANP must not fail as it is called by admin.
+	if err != nil {
+		failOnError(rbacErr, t)
+	}
+	failOnError(k8sUtils.CleanANNPs([]string{anp.Namespace}), t)
+	failOnError(k8sUtils.CleanTEs(), t)
+	failOnError(k8sUtils.CleanTEBs(), t)
+}
+
+func testANPTierRefDeleteDeny(t *testing.T) {
+	rbacErr := fmt.Errorf("unauthorized user allowed access to remove Tier reference")
+	// Create a TierEntitlement for Emergency Tier.
+	teBuilder := &TierEntitlementSpecBuilder{}
+	teBuilder = teBuilder.SetName("te-emer").
+		SetPriorityEdit().
+		AddTier("emergency")
+	te := teBuilder.Get()
+	_, err := k8sUtils.CreateOrUpdateTierEntitlement(te)
+	if err != nil {
+		failOnError(fmt.Errorf("create TierEntitlement failed for TE te-emer: %v", err), t)
+	}
+	builder := &AntreaNetworkPolicySpecBuilder{}
+	builder = builder.SetName(getNS("y"), "anp-emer-allowed").
+		SetTier("emergency").
+		SetPriority(10.0).
+		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}})
+	anp := builder.Get()
+	log.Debugf("creating ANP %v/%v", anp.Namespace, anp.Name)
+	// Successfully create ANP as admin.
+	_, err = k8sUtils.CreateOrUpdateANNP(anp)
+	if err != nil {
+		failOnError(rbacErr, t)
+	}
+	err = k8sUtils.DeleteANNPAsNonAdmin(anp.Namespace, anp.Name)
+	// Above deletion of ANP must fail as it is not called by authorized user.
+	if err == nil {
+		failOnError(rbacErr, t)
+	}
+	failOnError(k8sUtils.CleanANNPs([]string{anp.Namespace}), t)
+	failOnError(k8sUtils.CleanTEs(), t)
+	failOnError(k8sUtils.CleanTEBs(), t)
+}
+
 // the matchers parameter is a list of regular expressions which will be matched against the
 // contents of the audit logs. The call will "succeed" if all matches are successful.
 func checkAuditLoggingResult(t *testing.T, data *TestData, nodeName, logLocator string, matchers []*regexp.Regexp) {
@@ -4566,6 +4802,10 @@ func TestAntreaPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error when setting up test: %v", err)
 	}
+	err = data.setNonAdminClient()
+	if err != nil {
+		t.Fatalf("Error when setting up non admin user: %v", err)
+	}
 	defer teardownTest(t, data)
 
 	initialize(t, data, nil)
@@ -4593,6 +4833,15 @@ func TestAntreaPolicy(t *testing.T) {
 		t.Run("Case=DeleteReferencedTier", func(t *testing.T) { testDeleteValidationReferencedTier(t) })
 	})
 
+	t.Run("TestGroupValidateAntreaNativePoliciesTierRBAC", func(t *testing.T) {
+		skipIfEnterpriseAntreaDisabled(t, data)
+		t.Run("Case=ACNPTierRefCreateDenied", func(t *testing.T) { testACNPTierRefCreateDeny(t) })
+		t.Run("Case=ACNPTierRefCreateAllowed", func(t *testing.T) { testACNPTierRefCreateAllow(t, data) })
+		t.Run("Case=ACNPTierRefDeleteDenied", func(t *testing.T) { testACNPTierRefDeleteDeny(t) })
+		t.Run("Case=ANPTierRefCreateDenied", func(t *testing.T) { testANPTierRefCreateDeny(t) })
+		t.Run("Case=ANPTierRefCreateAllowed", func(t *testing.T) { testANPTierRefCreateAllow(t, data) })
+		t.Run("Case=ANPTierRefDeleteDenied", func(t *testing.T) { testANPTierRefDeleteDeny(t) })
+	})
 	// This test group only provides one case for each CR, including ACNP and ANNP to
 	// make sure the corresponding mutation webhooks is called. And for all specific
 	// cases/branches inside the mutation webhook, we just use UTs to cover them to

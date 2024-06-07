@@ -421,6 +421,8 @@ controller:
         memory: "100Mi"
   # -- Enables usage reporting.
   enableUsageReporting: false
+  # -- Enables Antrea advanced features.
+  enterpriseAntrea: true
 
 flowExporter:
   # -- Enable the flow exporter feature.

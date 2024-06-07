@@ -151,6 +151,8 @@ func run(o *Options) error {
 	grpInformer := crdInformerFactory.Crd().V1beta1().Groups()
 	egressInformer := crdInformerFactory.Crd().V1beta1().Egresses()
 	externalIPPoolInformer := crdInformerFactory.Crd().V1beta1().ExternalIPPools()
+	tierEntitlementInformer := crdInformerFactory.TanzuCrd().V1alpha1().TierEntitlements()
+	tierEntitlementBindingInformer := crdInformerFactory.TanzuCrd().V1alpha1().TierEntitlementBindings()
 	externalNodeInformer := crdInformerFactory.Crd().V1alpha1().ExternalNodes()
 	ipPoolInformer := crdInformerFactory.Crd().V1beta1().IPPools()
 	adminNPInformer := policyInformerFactory.Policy().V1alpha1().AdminNetworkPolicies()
@@ -196,11 +198,14 @@ func run(o *Options) error {
 		tierInformer,
 		cgInformer,
 		grpInformer,
+		tierEntitlementInformer,
+		tierEntitlementBindingInformer,
 		addressGroupStore,
 		appliedToGroupStore,
 		networkPolicyStore,
 		groupStore,
-		enableMulticlusterNP)
+		enableMulticlusterNP,
+		o.config.EnterpriseAntrea)
 
 	var externalNodeController *externalnode.ExternalNodeController
 	if features.DefaultFeatureGate.Enabled(features.ExternalNode) {

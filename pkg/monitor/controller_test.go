@@ -81,6 +81,9 @@ func newControllerMonitor(crdClient *fakeclientset.Clientset) *fakeController {
 	groupEntityIndex := grouping.NewGroupEntityIndex()
 	labelIdentityIndex := labelidentity.NewLabelIdentityIndex()
 
+	tierEntitlementInformer := crdInformerFactory.TanzuCrd().V1alpha1().TierEntitlements()
+	tierEntitlementBindingInformer := crdInformerFactory.TanzuCrd().V1alpha1().TierEntitlementBindings()
+
 	networkPolicyController := networkpolicy.NewNetworkPolicyController(client,
 		crdClient,
 		groupEntityIndex,
@@ -96,11 +99,15 @@ func newControllerMonitor(crdClient *fakeclientset.Clientset) *fakeController {
 		tierInformer,
 		cgInformer,
 		grpInformer,
+		tierEntitlementInformer,
+		tierEntitlementBindingInformer,
 		addressGroupStore,
 		appliedToGroupStore,
 		networkPolicyStore,
 		groupStore,
-		false)
+		false,
+		false,
+	)
 
 	controllerQuerier := querier.NewControllerQuerier(networkPolicyController, 10349)
 	externalNodeEnabled := true

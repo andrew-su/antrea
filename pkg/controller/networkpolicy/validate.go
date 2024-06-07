@@ -156,6 +156,11 @@ func NewNetworkPolicyValidator(networkPolicyController *NetworkPolicyController)
 	vr.RegisterTierValidator(&tv)
 	vr.RegisterGroupValidator(&gv)
 	vr.RegisterAdminNetworkPolicyValidator(&av)
+	// Initialize additional validators for enterprise Antrea features.
+	if networkPolicyController.enableEnterpriseFeatures() {
+		eav := enterpriseAntreaPolicyValidator{networkPolicyController: networkPolicyController}
+		vr.RegisterAntreaPolicyValidator(&eav)
+	}
 	return &vr
 }
 
@@ -325,8 +330,6 @@ func (v *NetworkPolicyValidator) validateAntreaPolicy(curObj, oldObj interface{}
 			}
 		}
 	case admv1.Delete:
-		// Delete of Antrea Policies have no validation. This will be an
-		// empty for loop.
 		for _, val := range v.antreaPolicyValidators {
 			reason, allowed = val.deleteValidate(oldObj, userInfo)
 			if !allowed {
@@ -478,7 +481,7 @@ func (v *NetworkPolicyValidator) validateTier(curTier, oldTier *crdv1beta1.Tier,
 			}
 		}
 	case admv1.Update:
-		// Tier priority updates are not allowed
+		// Tier priority updates are not allowed.
 		klog.V(2).Info("Validating UPDATE request for Tier")
 		for _, val := range v.tierValidators {
 			warnings, reason, allowed = val.updateValidate(curTier, oldTier, userInfo)

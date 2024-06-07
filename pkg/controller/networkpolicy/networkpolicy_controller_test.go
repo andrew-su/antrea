@@ -145,11 +145,14 @@ func newController(k8sObjects, crdObjects []runtime.Object) (*fake.Clientset, *n
 		crdInformerFactory.Crd().V1beta1().Tiers(),
 		cgInformer,
 		gInformer,
+		crdInformerFactory.TanzuCrd().V1alpha1().TierEntitlements(),
+		crdInformerFactory.TanzuCrd().V1alpha1().TierEntitlementBindings(),
 		addressGroupStore,
 		appliedToGroupStore,
 		internalNetworkPolicyStore,
 		internalGroupStore,
-		true)
+		true,
+		false)
 	npController.namespaceLister = informerFactory.Core().V1().Namespaces().Lister()
 	npController.namespaceListerSynced = alwaysReady
 	npController.networkPolicyListerSynced = alwaysReady

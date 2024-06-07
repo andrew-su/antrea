@@ -10,3 +10,4 @@ controller:
   tlsSecretName: "{{ if .ProviderCertSecretName }}{{ .ProviderCertSecretName }}{{ else }}antrea-controller-tls{{ end }}"
 nodePortLocal:
   enable: true
+advanced: true

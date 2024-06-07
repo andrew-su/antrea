@@ -78,6 +78,9 @@ type ControllerConfig struct {
 	// Enable usage reporting (telemetry) to VMware.
 	// Defaults to false.
 	EnableUsageReporting bool `yaml:"enableUsageReporting,omitempty"`
+	// EnterpriseAntrea enables advanced features in Antrea.
+	// Defaults to false.
+	EnterpriseAntrea bool `yaml:"enterpriseAntrea,omitempty"`
 }
 
 type MulticlusterConfig struct {

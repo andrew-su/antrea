@@ -2,3 +2,4 @@ antreaAgentTweaker:
   enable: true
 nodePortLocal:
   enable: true
+advanced: true
