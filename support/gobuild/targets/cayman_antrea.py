@@ -217,7 +217,7 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
                 "change": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_CLN,
                 "buildtype": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_BUILDTYPE,
                 "files": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_FILES},
-            "cayman_suricata":{
+            "cayman_suricata": {
                 "branch": specs.cayman_antrea.CAYMAN_SURICATA_BRANCH,
                 "change": specs.cayman_antrea.CAYMAN_SURICATA_CLN,
                 "buildtype": specs.cayman_antrea.CAYMAN_SURICATA_BUILDTYPE,
@@ -227,6 +227,11 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
                 "change": specs.cayman_antrea.CAYMAN_MSVC_REDISTS_CLN,
                 "buildtype": specs.cayman_antrea.CAYMAN_MSVC_REDISTS_BUILDTYPE,
                 "files": specs.cayman_antrea.CAYMAN_MSVC_REDISTS_FILES},
+            "nsx-python-publisher": {
+                "branch": specs.cayman_antrea.NSX_PYTHON_PUBLISHER_BRANCH,
+                "change": specs.cayman_antrea.NSX_PYTHON_PUBLISHER_CLN,
+                "buildtype": specs.cayman_antrea.NSX_PYTHON_PUBLISHER_BUILDTYPE,
+                "files": specs.cayman_antrea.NSX_PYTHON_PUBLISHER_FILES},
         }
 
         return comps
