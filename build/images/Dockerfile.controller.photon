@@ -13,8 +13,9 @@
 # limitations under the License.
 
 ARG BUILD_TAG
+ARG RPM_REPO_URL
 
-FROM nsx-ujo-docker-local.artifactory.eng.vmware.com/antrea/photon:5.0-8f8225ff2
+FROM scratch
 ARG BUILD_INFO
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
@@ -22,6 +23,20 @@ LABEL description="The Docker image to deploy the antrea-controller."
 LABEL build-info="${BUILD_INFO}"
 
 USER root
+
+ADD build/images/ovs/photon-rootfs.tar.gz /
+RUN if [ -n "${RPM_REPO_URL}" ]; then /usr/bin/sed -i -e 's/^enabled=.*/enabled=0/g' /etc/yum.repos.d/*.repo; fi
+COPY build/images/ovs/photon-iso.repo /etc/yum.repos.d/
+RUN if [ -n "${RPM_REPO_URL}" ]; then \
+        /usr/bin/sed -i -e "s|^baseurl=.*\$|baseurl=${RPM_REPO_URL}|g" /etc/yum.repos.d/photon-iso.repo; \
+    else \
+        /usr/bin/sed -i -e "s/^enabled=.*/enabled=0/g" /etc/yum.repos.d/photon-iso.repo; \
+    fi
+
+RUN tdnf install -y ca-certificates && \
+    tdnf clean all && \
+    rm -rf /var/cache/tdnf/* /usr/share/doc/* /usr/share/man/* /etc/yum.repos.d/photon-iso.repo && \
+    /usr/bin/sed -i -e 's/^enabled=.*/enabled=1/g' /etc/yum.repos.d/*.repo
 
 COPY build/images/scripts/* /usr/local/bin/
 COPY bin/antctl bin/antrea-controller bin/antrea-resource-init /usr/local/bin/
