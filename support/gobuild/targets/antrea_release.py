@@ -28,9 +28,26 @@ class AntreaRelease(helpers.target.Target):
     def GetClusterRequirements(self):
         return {
             specs.cayman_antrea.LINUX_HOSTTYPE: {
+                'srp_observer': {
+                    'debug_logging': True
+                },
                 'https_observer': {
                     'enabled': True,
                 },
+                'fs_observer': {
+                    'enabled': True
+                },
+                'git_observer': {
+                    'enabled': True
+                },
+                'default_protections': [
+                {
+                    'root_needed': False
+                },
+                {
+                    'sysctls_key': 'kernel.yama.ptrace_scope',
+                    'sysctls_value': '3'
+                }]
             },
         }
 
@@ -146,3 +163,8 @@ class AntreaRelease(helpers.target.Target):
         # Automatically uses latest builds from the specified branch
         return helpers.buildapi.update_component_commits(
             components, requested_buildtype=self.options.get('buildtype'))
+
+    def GetProvenanceSchematics(self, hosttype):
+        return [
+            'antrea-release/support/gobuild/provenance/antrea_release.schematic.json'
+        ]

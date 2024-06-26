@@ -39,7 +39,7 @@ env = {
     'ARCH': arch,
 
     # PROVENANCE_FILE defaults to GOBUILD_TARGET + '.yaml'. See vos.py in the
-    # cayman component. In rare cases a project may need to overried the
+    # cayman component. In rare cases a project may need to override the
     # filename. Typically this also requires passing a provenance_file
     # parameter to ExtractVersionFromProvenanceMetadata in the gobuild target.
     # See GetBuildProductVersion in support/gobuild/targets/cayman_antrea.py.

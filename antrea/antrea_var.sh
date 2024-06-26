@@ -57,7 +57,7 @@ elif [[ "${BRANCH_NAME}" == vmware-* ]]; then
   ANTREA_VERSION_DIGIT="${branch_name_trim}"
   ANTREA_TARGET="${BRANCH_NAME#vmware-*-}"
 else
-  echo Unsupported branch pattern "${BRANCH_NAME}" >&2
+  echo "Unsupported branch pattern ${BRANCH_NAME}" >&2
   return 1
 fi
 if [ "$ANTREA_TARGET" = "${BRANCH_NAME}" ]; then
