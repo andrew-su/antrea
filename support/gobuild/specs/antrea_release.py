@@ -21,3 +21,11 @@ CAYMAN_ANTREA_OPERATOR_FOR_KUBERNETES_FILES = {
         r'publish/.*',
     ]
 }
+
+NSX_MANAGEMENT_PROXY_PACKAGE_BRANCH = "release-0.1"
+NSX_MANAGEMENT_PROXY_PACKAGE_BUILDTYPE = "release"
+NSX_MANAGEMENT_PROXY_PACKAGE_FILES = {
+    "linux-centos8-fw": [
+        r'publish/.*',
+    ]
+}

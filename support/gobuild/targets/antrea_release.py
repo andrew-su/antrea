@@ -137,6 +137,11 @@ class AntreaRelease(helpers.target.Target):
                 "buildtype": specs.antrea_release.CAYMAN_ANTREA_OPERATOR_FOR_KUBERNETES_BUILDTYPE,
                 "files": specs.antrea_release.CAYMAN_ANTREA_OPERATOR_FOR_KUBERNETES_FILES,
             },
+            "nsx-management-proxy-package": {
+                "branch": specs.antrea_release.NSX_MANAGEMENT_PROXY_PACKAGE_BRANCH,
+                "buildtype": specs.antrea_release.NSX_MANAGEMENT_PROXY_PACKAGE_BUILDTYPE,
+                "files": specs.antrea_release.NSX_MANAGEMENT_PROXY_PACKAGE_FILES,
+            },
         }
         # Automatically uses latest builds from the specified branch
         return helpers.buildapi.update_component_commits(

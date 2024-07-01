@@ -82,4 +82,13 @@ unzip ${GOBUILD_CAYMAN_ANTREA_IPSEC_ROOT}/antrea-ubi-ipsec-*.zip
 cp antrea-ubi-ipsec-*/antrea-agent-ubi-ipsec-*.tar.gz antrea-ubi-ipsec-*/antrea-controller-ubi-ipsec-*.tar.gz "${operator_publish}/antrea/images/"
 popd
 rm -rf "${BUILDROOT}/tmp-ipsec"
+
+echo "====== Copying nsx-management-proxy-package Product Deliverables ======"
+nsx_management_proxy_package_publish="${PUBLISH_DIR}/nsx-management-proxy-package"
+mkdir -p "${nsx_management_proxy_package_publish}/images"
+cp -rv ${GOBUILD_NSX_MANAGEMENT_PROXY_PACKAGE_ROOT}/nsx-management-proxy-package/images/nsx-management-proxy-* "${nsx_management_proxy_package_publish}/images"
+mkdir -p "${nsx_management_proxy_package_publish}/manifests"
+cp -rv ${GOBUILD_NSX_MANAGEMENT_PROXY_PACKAGE_ROOT}/nsx-management-proxy-package/manifests/{nsx-management-proxy-data-values,nsx-management-proxy,package-install}.yml \
+  "${nsx_management_proxy_package_publish}/manifests"
+cp -rv ${GOBUILD_NSX_MANAGEMENT_PROXY_PACKAGE_ROOT}/VERSION ${GOBUILD_NSX_MANAGEMENT_PROXY_PACKAGE_ROOT}/nsx-management-proxy-package-*.zip "${nsx_management_proxy_package_publish}/"
 echo "****** antrea_release_build.sh finished ******"
