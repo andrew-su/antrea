@@ -213,6 +213,12 @@ function docker_build_and_push() {
     else
         cache_args="$cache_args --cache-from type=registry,ref=$image-cache:$BUILD_CACHE_TAG,mode=max"
     fi
+
+    local package_format="debs"
+    if [ "$DISTRO" == "ubi" -o "$DISTRO" == "photon" ]; then
+        package_format="rpms"
+    fi
+    docker buildx build $PLATFORM_ARG -o type=docker --target "ovs-$DISTRO-$package_format" -t "antrea/openvswitch-$DISTRO-$package_format:$BUILD_TAG" $cache_args $build_args -f $dockerfile .
     docker buildx build $PLATFORM_ARG -o type=docker -t $image:$BUILD_TAG $cache_args $build_args -f $dockerfile .
 
     if $PUSH; then

@@ -49,7 +49,9 @@ ARG IPSEC
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
 LABEL description="A Docker image based on UBI9 which includes Open vSwitch built from source."
 
-RUN --mount=type=bind,from=ovs-rpms,source=/tmp/,target=/tmp/build \
+COPY CentOS.repo /tmp/CentOS.repo
+RUN --mount=type=bind,from=ovs-ubi-rpms,source=/tmp/,target=/tmp/build \
+    rm -f /etc/yum.repos.d/* && cp /tmp/CentOS.repo /etc/yum.repos.d/CentOS.repo && \
     # Disable the default redhat.repo. This substitutes `subscription-manager config --rhsm.manage_repos=0`
     # as subscription-manager is not supported running in containers.
     sed -i.bak "s/^manage_repos = .$/manage_repos = 0/g" /etc/rhsm/rhsm.conf && \

@@ -71,7 +71,7 @@ RUN echo 'Acquire::https::Verify-Peer "false";' > /etc/apt/apt.conf.d/99insecure
     echo "deb https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu jammy-security main restricted" >> /etc/apt/sources.list && \
     echo "deb https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu jammy-updates main restricted" >> /etc/apt/sources.list
 
-COPY --from=ovs-debs /tmp/ovs-debs/* /tmp/ovs-debs/
+COPY --from=ovs-ubuntu-debs /tmp/ovs-debs/* /tmp/ovs-debs/
 COPY charon-logging.conf /tmp
 
 # Install OVS debs, iptables, logrotate, and strongSwan; update the OVS
