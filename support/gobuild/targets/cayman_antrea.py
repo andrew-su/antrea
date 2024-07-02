@@ -11,7 +11,6 @@ import helpers.python
 import helpers.target
 import specs.cayman_antrea
 
-
 class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
     """
     CaymanAntrea Open Source component
@@ -134,7 +133,6 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
 
         return comps
 
-
 class CaymanAntrea(_CaymanAntrea):
     """
     CaymanAntrea Open Source component
@@ -164,7 +162,6 @@ class CaymanAntrea(_CaymanAntrea):
 
     def GetComponentPath(self):
         return '%(buildroot)/publish'
-
 
 class CaymanAntreaTKGMAdv(_CaymanAntrea):
     """
@@ -198,38 +195,6 @@ class CaymanAntreaTKGMAdv(_CaymanAntrea):
     def GetComponentPath(self):
         return '%(buildroot)/publish'
 
-
-class CaymanAntreaTKGMStd(_CaymanAntrea):
-    """
-    CaymanAntrea Open Source component
-    """
-
-    product_map = {
-        specs.cayman_antrea.LINUX_HOSTTYPE: {
-            'https_observer': {
-                'enabled': True,
-            },
-        },
-    }
-    dist_map = {
-        specs.cayman_antrea.LINUX_HOSTTYPE: ['lin64'],
-    }
-
-    def GetClusterRequirements(self):
-        return CaymanAntrea.product_map
-
-    def GetBuildProductNames(self):
-        return {'name': 'cayman_antrea_tkgm-standard',
-                'longname': 'cayman_antrea_tkgm-standard'}
-
-    def GetCommands(self, hosttype):
-        products = CaymanAntrea.dist_map[hosttype]
-        return [self._Command(hosttype=hosttype, product=product, args={"BUILD_PRODUCT":"cayman_antrea_tkgm-standard"}) for product in products]
-
-    def GetComponentPath(self):
-        return '%(buildroot)/publish'
-
-
 class CaymanAntreaTKGSAdv(_CaymanAntrea):
     """
     CaymanAntrea Open Source component
@@ -259,7 +224,6 @@ class CaymanAntreaTKGSAdv(_CaymanAntrea):
 
     def GetComponentPath(self):
         return '%(buildroot)/publish'
-
 
 class CaymanAntreaMultiCluster(_CaymanAntrea):
     """

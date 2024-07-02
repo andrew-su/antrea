@@ -112,11 +112,6 @@ class AntreaRelease(helpers.target.Target):
                 "buildtype": specs.antrea_release.CAYMAN_ANTREA_BUILDTYPE,
                 "files": specs.antrea_release.CAYMAN_ANTREA_FILES,
             },
-            "cayman_antrea_tkgm-standard": {
-                "branch": specs.antrea_release.CAYMAN_ANTREA_BRANCH,
-                "buildtype": specs.antrea_release.CAYMAN_ANTREA_BUILDTYPE,
-                "files": specs.antrea_release.CAYMAN_ANTREA_FILES,
-            },
             "cayman_antrea_tkgs-advanced": {
                 "branch": specs.antrea_release.CAYMAN_ANTREA_BRANCH,
                 "buildtype": specs.antrea_release.CAYMAN_ANTREA_BUILDTYPE,

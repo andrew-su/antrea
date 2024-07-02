@@ -19,7 +19,6 @@ import targets.antrea_release
 TARGETS = {
     'cayman_antrea': targets.cayman_antrea.CaymanAntrea,
     'cayman_antrea_tkgm-advanced': targets.cayman_antrea.CaymanAntreaTKGMAdv,
-    'cayman_antrea_tkgm-standard': targets.cayman_antrea.CaymanAntreaTKGMStd,
     'cayman_antrea_tkgs-advanced': targets.cayman_antrea.CaymanAntreaTKGSAdv,
     'cayman_antrea_multi-cluster': targets.cayman_antrea.CaymanAntreaMultiCluster,
     'cayman_antrea_ipsec': targets.cayman_antrea.CaymanAntreaIPsec,
