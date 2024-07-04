@@ -1,0 +1,54 @@
+{
+    "schema_id": "1.1",
+    "order": 1,
+    "spdx_templates": {
+        "spdx": {
+            "package": {
+                "license_declared": "Broadcom_Proprietary",
+                "originator": "Organization: Broadcom, Inc.",
+                "supplier": "Organization: Broadcom, Inc.",
+                "home_page": "",
+                "short_summary": "",
+                "detailed_description": ""
+            }
+        }
+    },
+    "input_templates": {
+        "comps-common": {
+            "$(gobuild:gobuild_component_cayman_uid)": {
+                "incorporated": false,
+                "usages": ["building"]
+            },
+            "$(gobuild:gobuild_component_cayman_go_uid)": {
+                "incorporated": false,
+                "usages": ["building"]
+            },
+            "$(gobuild:gobuild_component_cayman_openssl_uid)": {
+                "incorporated": false,
+                "usages": ["building"]
+            },
+            "$(gobuild:gobuild_component_cayman_python_uid)": {
+                "incorporated": false,
+                "usages": ["building"]
+            },
+            "$(gobuild:gobuild_component_cayman_helm_uid)": {
+                "incorporated": false,
+                "usages": ["building"]
+            },
+            "$(gobuild:gobuild_component_cayman_kubernetes_sigs_kustomize_uid)": {
+                "incorporated": false,
+                "usages": ["building"]
+            }
+        }
+    },
+    "outputs": {
+        "$(gobuild:publish_deliverable_uid)": {
+            "merge_input_templates": ["comps-common"],
+            "merge_spdx_template": "spdx"
+        },
+        "$(gobuild:zip_deliverables_uid)": {
+            "merge_input_templates": ["comps-common"],
+            "merge_spdx_template": "spdx"
+        }
+    }
+}

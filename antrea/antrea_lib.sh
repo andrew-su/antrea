@@ -52,14 +52,6 @@ function export_dependency_env() {
   export GOBUILD_HELM_BIN_PATH="${GOBUILD_CAYMAN_HELM_ROOT}/lin64/bin/helm"
 }
 
-function update_docker() {
-  # Update Docker to a version that supports multi-stage builds
-  echo  "====== Updating Docker ======"
-  chmod a+x install_docker.sh
-  sudo ./install_docker.sh
-}
-
-
 function run_python {
   PYTHON="${GOBUILD_CAYMAN_PYTHON_ROOT}/lin64+gcc6/bin/python3"
   "${PYTHON}" "$@"
@@ -326,8 +318,6 @@ function stop_local_yum_repo() {
   pgrep -P $(jobs -p %?http.server)
   pkill -SIGTERM -P $(jobs -p %?http.server)
   wait %?http.server || echo wait returns error $? as expected
-  sudo lsof /tmp/photo-iso || true  # If no process is using photon-iso, lsof returns 1
-  sudo umount /tmp/photo-iso
 }
 
 function save_image_and_digest() {

@@ -24,25 +24,8 @@ echo "Photon images are for local testing, they are not consumed by cayman_photo
 We maintain a dedicated Antrea Dockerfile in cayman_photon. Antrea photon
 image is actually built there."
 
-echo "====== Preparing local Photon Yum Repo ======"
-mkdir -p /tmp/photo-iso
-sudo mount -o loop "${GOBUILD_CSC_PHOTON_ROOT}/csc-photon-5.0.0-x86_64.iso" /tmp/photo-iso
-pushd "/tmp/photo-iso"
-run_python -m http.server 8080 &
-popd
-
-function stop_local_repo {
-  jobs -l
-  ps aux | grep python
-  pgrep -P $(jobs -p %?http.server)
-  pkill -SIGTERM -P $(jobs -p %?http.server)
-  wait %?http.server || echo wait returns error $? as expected
-  sudo lsof /tmp/photo-iso || true  # If no process is using photon-iso, lsof returns 1
-  sudo umount /tmp/photo-iso
-}
-trap stop_local_repo Exit
-
-REPO_URL="http://`ip -f inet -o address show scope global | head -n 1| cut -f 7 -d ' ' | cut -f 1 -d '/'`:8080/RPMS"
+prepare_local_yum_repo
+trap stop_local_yum_repo Exit
 
 OVS_BUILD_TAG=$(build/images/build-tag.sh)
 
@@ -50,7 +33,7 @@ echo "====== Buildling OpenvSwitch Photon Image ======"
 pushd build/images/ovs
 cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
 cp ${OVS_DIR}/openvswitch-*.tar.gz .
-./build.sh --distro photon --rpm-repo-url ${REPO_URL}
+./build.sh --distro photon --rpm-repo-url ${LOCAL_YUM_REPO_URL}
 popd
 
 echo "====== Building Photon Base Image ======"
@@ -58,11 +41,11 @@ pushd build/images/base
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 cp ${GOBUILD_CAYMAN_SURICATA_ROOT}/lin64/suricata/packages/rpms/suricata-${SURICATA_VERSION}*.rpm .
 cp ${GOBUILD_CAYMAN_SURICATA_ROOT}/lin64/suricata/packages/rpms/libnet-1*.rpm .
-./build.sh --distro photon --rpm-repo-url ${REPO_URL}
+./build.sh --distro photon --rpm-repo-url ${LOCAL_YUM_REPO_URL}
 popd
 
 echo "====== Building antrea-agent-photon & antrea-controller-photon Images ======"
-make photon VERSION=${IMAGE_VERSION} RPM_REPO_URL=${REPO_URL} BUILD_INFO="${BUILD_NUMBER}"
+make photon VERSION=${IMAGE_VERSION} RPM_REPO_URL=${LOCAL_YUM_REPO_URL} BUILD_INFO="${BUILD_NUMBER}"
 docker tag antrea/antrea-agent-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-agent-photon:${IMAGE_VERSION}
 docker tag antrea/antrea-controller-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-controller-photon:${IMAGE_VERSION}
 

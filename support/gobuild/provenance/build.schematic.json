@@ -1,0 +1,276 @@
+{
+    "schema_id": "1.0",
+    "order": 0,
+    "spdx_templates": {
+        "spdx": {
+            "package": {
+                "license_declared": "Broadcom_Proprietary",
+                "originator": "Organization: Broadcom, Inc.",
+                "supplier": "Organization: Broadcom, Inc.",
+                "home_page": "",
+                "short_summary": "",
+                "detailed_description": ""
+            }
+        }
+    },
+    "input_templates": {
+        "build": {
+            "uid.obj.comp.package.rpm(name='container-selinux')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='containerd.io')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='device-mapper')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='device-mapper-event')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='device-mapper-event-libs')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='device-mapper-libs')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='device-mapper-persistent-data')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='dnf')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='dnf-data')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='dnf-plugins-core')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='docker-ce')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='docker-ce-cli')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='docker-ce-rootless-extras')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='fuse-overlayfs')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='fuse3')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='fuse3-libs')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='ima-evm-utils')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='libdnf')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='libmodulemd')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='librepo')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='libslirp')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='libsolv')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='lvm2')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='lvm2-libs')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='python3-dnf')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='python3-dnf-plugins-core')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='python3-hawkey')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='python3-libdnf')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='python3-librepo')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='python3-rpm')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='rpm')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='rpm-build-libs')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='rpm-libs')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='rpm-plugin-selinux')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='rpm-plugin-systemd-inhibit')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='slirp4netns')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='tpm2-tss')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='yum')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='yum-utils')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='jq')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            },
+            "uid.obj.comp.package.rpm(name='oniguruma')": {
+                "incorporated": false,
+                "usages": [
+                    "building"
+                ]
+            }
+        }
+    },
+    "outputs": {
+        "$(gobuild:publish_deliverable_uid)": {
+            "merge_input_templates": ["build"],
+            "merge_spdx_template": "spdx"
+        },
+        "$(gobuild:zip_deliverables_uid)": {
+            "merge_input_templates": ["build"],
+            "merge_spdx_template": "spdx"
+        }
+    }
+}

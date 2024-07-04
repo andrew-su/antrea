@@ -1,7 +1,9 @@
+LINUX_HOSTTYPE = 'linux-rocky8-vm-fw'
+
 ANTREA_INTERWORKING_BRANCH = "release-0.15"
 ANTREA_INTERWORKING_BUILDTYPE = "release"
 ANTREA_INTERWORKING_FILES = {
-    "linux-centos8-fw": [
+    LINUX_HOSTTYPE: [
         r'publish/.*',
     ]
 }
@@ -9,7 +11,7 @@ ANTREA_INTERWORKING_FILES = {
 CAYMAN_ANTREA_BRANCH = "vmware-1.15.0+vmware.2"
 CAYMAN_ANTREA_BUILDTYPE = "release"
 CAYMAN_ANTREA_FILES = {
-    "linux-centos8-fw": [
+    LINUX_HOSTTYPE: [
         r'publish/.*',
     ]
 }
@@ -17,7 +19,7 @@ CAYMAN_ANTREA_FILES = {
 CAYMAN_ANTREA_OPERATOR_FOR_KUBERNETES_BRANCH = "vmware-1.15.0+vmware.2"
 CAYMAN_ANTREA_OPERATOR_FOR_KUBERNETES_BUILDTYPE = "release"
 CAYMAN_ANTREA_OPERATOR_FOR_KUBERNETES_FILES = {
-    "linux-centos8-fw": [
+    LINUX_HOSTTYPE: [
         r'publish/.*',
     ]
 }
@@ -25,7 +27,7 @@ CAYMAN_ANTREA_OPERATOR_FOR_KUBERNETES_FILES = {
 NSX_MANAGEMENT_PROXY_PACKAGE_BRANCH = "release-0.1"
 NSX_MANAGEMENT_PROXY_PACKAGE_BUILDTYPE = "release"
 NSX_MANAGEMENT_PROXY_PACKAGE_FILES = {
-    "linux-centos8-fw": [
+    LINUX_HOSTTYPE: [
         r'publish/.*',
     ]
 }

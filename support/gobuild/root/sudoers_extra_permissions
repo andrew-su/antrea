@@ -1,0 +1,19 @@
+# Define sudo commands required to enable starting Docker daemon
+Cmnd_Alias IPTABLES_CMDS = /usr/sbin/iptables *
+mts ALL=(root) NOPASSWD: /usr/sbin/usermod -aG docker mts
+mts ALL=(root) NOPASSWD: /usr/bin/chown mts /var/run/docker.sock
+mts ALL=(root) NOPASSWD: /usr/bin/systemctl restart docker
+mts ALL=(root) NOPASSWD: /usr/bin/systemctl daemon-reload
+mts ALL=(root) NOPASSWD: /usr/bin/systemctl status docker.service
+mts ALL=(root) NOPASSWD: IPTABLES_CMDS
+mts ALL=(root) NOPASSWD: /usr/sbin/ip link set docker0 promisc on
+mts ALL=(root) NOPASSWD: /usr/bin/tee -a /etc/sysconfig/docker-storage-setup
+mts ALL=(root) NOPASSWD: /bin/bash ./antrea/configure_buildenv.sh
+mts ALL=(root) NOPASSWD: /bin/bash ./antrea/cleanup.sh
+mts ALL=(root) NOPASSWD: /usr/bin/rm *
+mts ALL=(root) NOPASSWD: /usr/bin/mount *
+mts ALL=(root) NOPASSWD: /usr/bin/umount *
+mts ALL=(root) NOPASSWD: /usr/bin/lsof *
+mts ALL=(root) NOPASSWD: /usr/bin/yum *
+mts ALL=(root) NOPASSWD: /usr/bin/rpm *
+mts ALL=(root) NOPASSWD: /usr/bin/yum-config-manager *

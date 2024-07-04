@@ -1,4 +1,4 @@
-LINUX_HOSTTYPE = 'linux-centos8-fw'
+LINUX_HOSTTYPE = 'linux-rocky8-vm-fw'
 
 CAYMAN_BRANCH = 'master'
 CAYMAN_CLN = '71c887b9ee67bd2298b85464ff14401b978ff885'
