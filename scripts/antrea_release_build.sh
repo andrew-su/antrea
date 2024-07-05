@@ -91,4 +91,10 @@ mkdir -p "${nsx_management_proxy_package_publish}/manifests"
 cp -rv ${GOBUILD_NSX_MANAGEMENT_PROXY_PACKAGE_ROOT}/nsx-management-proxy-package/manifests/{nsx-management-proxy-data-values,nsx-management-proxy,package-install}.yml \
   "${nsx_management_proxy_package_publish}/manifests"
 cp -rv ${GOBUILD_NSX_MANAGEMENT_PROXY_PACKAGE_ROOT}/VERSION ${GOBUILD_NSX_MANAGEMENT_PROXY_PACKAGE_ROOT}/nsx-management-proxy-package-*.zip "${nsx_management_proxy_package_publish}/"
+
+echo "====== Copying CI Deliverables ======"
+ci_publish="${PUBLISH_DIR}/ci"
+mkdir -p "${ci_publish}"
+cp scripts/publish-artifactory.sh ${ci_publish}/
+
 echo "****** antrea_release_build.sh finished ******"
