@@ -9,7 +9,7 @@ echo "====== Generating version Files for CI and Consumers ======"
 publish_version_files
 
 echo "====== Checkout Features Branch ======"
-git reset --hard origin/topic/dyanngg/ods-runbook-features
+git reset --hard origin/topic/${ANTREA_VERSION_DIGIT}-features
 check_manifests
 
 echo "===== Compile antrea e2e testcases ======"
@@ -58,16 +58,12 @@ mkdir -p "${OUTPUT_DIR}/manifests"
 MANIFESTS_DIR=$(mktemp -d)
 agent_img_name=antrea/antrea-advanced-agent-debian
 controller_img_name=antrea/antrea-advanced-controller-debian
-ods_img_name=antrea/antrea-advanced-ods-debian
-# TODO: add --ods option in manifest generation if we want to enable ods deployment by default in later releases
 AGENT_IMG_NAME=$agent_img_name CONTROLLER_IMG_NAME=$controller_img_name IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
 IMG_NAME=antrea/flow-aggregator-debian IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest-flow-aggregator.sh --mode release > "${MANIFESTS_DIR}/flow-aggregator.yml"
-ODS_IMG_NAME=$ods_img_name IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --ods-only --mode release > "${MANIFESTS_DIR}"/antrea-ods.yml
 AGENT_IMG_NAME=$agent_img_name CONTROLLER_IMG_NAME=$controller_img_name IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --feature-gates FlowExporter=true --extra-helm-values-file "${REPO_ROOT}/ci/kind/values-flow-exporter.yml" --mode release > "${MANIFESTS_DIR}"/antrea-flow-exporter-enabled.yml
 cp ${MANIFESTS_DIR}/antrea-advanced.yml "${OUTPUT_DIR}/manifests/antrea-${BINARY_VERSION}.yml"
 cp ${MANIFESTS_DIR}/antrea-advanced-fips.yml "${OUTPUT_DIR}/manifests/antrea-fips-${BINARY_VERSION}.yml"
 cp ${MANIFESTS_DIR}/flow-aggregator.yml "${OUTPUT_DIR}/manifests/flow-aggregator-${BINARY_VERSION}.yml"
-cp ${MANIFESTS_DIR}/antrea-ods.yml "${OUTPUT_DIR}/manifests/antrea-ods-${BINARY_VERSION}.yml"
 cp ${MANIFESTS_DIR}/antrea-flow-exporter-enabled.yml "${OUTPUT_DIR}/manifests/antrea-flow-exporter-enabled-${BINARY_VERSION}.yml"
 
 generate_flow_visibility_e2e_manifests "${REPO_ROOT}" "${BINARY_VERSION}" "${OUTPUT_DIR}/manifests"
@@ -79,21 +75,16 @@ mkdir -p "${OUTPUT_DIR}/images"
 # Just publish Antrea images.
 docker tag antrea/antrea-agent-debian:${IMAGE_VERSION} $agent_img_name:${IMAGE_VERSION}
 docker tag antrea/antrea-controller-debian:${IMAGE_VERSION} $controller_img_name:${IMAGE_VERSION}
-docker tag antrea/antrea-ods-debian:${IMAGE_VERSION} $ods_img_name:${IMAGE_VERSION}
 docker save $agent_img_name:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-advanced-agent-debian-${IMAGE_VERSION}.tar.gz"
 docker save $controller_img_name:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-advanced-controller-debian-${IMAGE_VERSION}.tar.gz"
-docker save $ods_img_name:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-advanced-ods-debian-${IMAGE_VERSION}.tar.gz"
 docker save antrea/flow-aggregator-debian:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/flow-aggregator-debian-${IMAGE_VERSION}.tar.gz"
 agent_image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-advanced-agent-debian:${IMAGE_VERSION}")"
 controller_image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-advanced-controller-debian:${IMAGE_VERSION}")"
-ods_image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-advanced-ods-debian:${IMAGE_VERSION}")"
 agent_digest_filename="antrea-advanced-agent-debian-${IMAGE_VERSION}-image-digests.txt"
 controller_digest_filename="antrea-advanced-controller-debian-${IMAGE_VERSION}-image-digests.txt"
-ods_digest_filename="antrea-advanced-ods-debian-${IMAGE_VERSION}-image-digests.txt"
 checksum_filename="antrea-advanced-debian-${IMAGE_VERSION}-image-checksums.txt"
 echo "antrea/antrea-advanced-agent-debian@${agent_image_id}" > "${OUTPUT_DIR}/images/${agent_digest_filename}"
 echo "antrea/antrea-advanced-controller-debian@${controller_image_id}" > "${OUTPUT_DIR}/images/${controller_digest_filename}"
-echo "antrea/antrea-advanced-ods-debian@${ods_image_id}" > "${OUTPUT_DIR}/images/${ods_digest_filename}"
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${checksum_filename}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/

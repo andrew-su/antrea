@@ -89,7 +89,6 @@ CAYMAN_MSVC_REDISTS_FILES = {
         "publish/win/.*"]
 }
 
-<<<<<<< HEAD
 CAYMAN_IMGPKG_BRANCH = 'vmware-0.40.0+vmware.1'
 CAYMAN_IMGPKG_CLN = 'cf1bea99a0d4ea8a1ae832438c5d1823127c9e5c'
 CAYMAN_IMGPKG_BUILDTYPE = 'release'

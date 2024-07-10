@@ -227,11 +227,6 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
                 "change": specs.cayman_antrea.CAYMAN_MSVC_REDISTS_CLN,
                 "buildtype": specs.cayman_antrea.CAYMAN_MSVC_REDISTS_BUILDTYPE,
                 "files": specs.cayman_antrea.CAYMAN_MSVC_REDISTS_FILES},
-            "nsx-python-publisher": {
-                "branch": specs.cayman_antrea.NSX_PYTHON_PUBLISHER_BRANCH,
-                "change": specs.cayman_antrea.NSX_PYTHON_PUBLISHER_CLN,
-                "buildtype": specs.cayman_antrea.NSX_PYTHON_PUBLISHER_BUILDTYPE,
-                "files": specs.cayman_antrea.NSX_PYTHON_PUBLISHER_FILES},
         }
 
         return comps
