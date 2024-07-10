@@ -16,40 +16,40 @@
     "input_templates": {
         "build": {
             "$(gobuild:gobuild_component_cayman_antrea_uid)": {
-                "incorporated": false,
-                "usages": ["building"]
+                "incorporated": true,
+                "usages": ["building", "functionality"]
             },
             "$(gobuild:gobuild_component_antrea_interworking_uid)": {
-                "incorporated": false,
-                "usages": ["building"]
+                "incorporated": true,
+                "usages": ["building", "functionality"]
             },
             "$(gobuild:gobuild_component_cayman_antrea_operator_for_kubernetes_uid)": {
-                "incorporated": false,
-                "usages": ["building"]
+                "incorporated": true,
+                "usages": ["building", "functionality"]
             },
             "$(gobuild:gobuild_component_cayman_antrea_idps_uid)": {
-                "incorporated": false,
-                "usages": ["building"]
+                "incorporated": true,
+                "usages": ["building", "functionality"]
             },
             "$(gobuild:gobuild_component_cayman_antrea_ipsec_uid)": {
-                "incorporated": false,
-                "usages": ["building"]
+                "incorporated": true,
+                "usages": ["building", "functionality"]
             },
             "$(gobuild:gobuild_component_cayman_antrea_multi_cluster_uid)": {
-                "incorporated": false,
-                "usages": ["building"]
+                "incorporated": true,
+                "usages": ["building", "functionality"]
             },
             "$(gobuild:gobuild_component_cayman_antrea_tkgm_advanced_uid)": {
-                "incorporated": false,
-                "usages": ["building"]
+                "incorporated": true,
+                "usages": ["building", "functionality"]
             },
             "$(gobuild:gobuild_component_nsx_management_proxy_package_uid)": {
-                "incorporated": false,
-                "usages": ["building"]
+                "incorporated": true,
+                "usages": ["building", "functionality"]
             },
             "$(gobuild:gobuild_component_cayman_antrea_tkgs_advanced_uid)": {
-                "incorporated": false,
-                "usages": ["building"]
+                "incorporated": true,
+                "usages": ["building", "functionality"]
             }
         }
     },
