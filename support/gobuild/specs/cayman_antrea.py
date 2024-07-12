@@ -56,8 +56,8 @@ NSX_OVS_BUILD_FILES = {
         "publish/windows_x64/.*"]
 }
 
-CAYMAN_HELM_BRANCH = "vmware-3.12.3"
-CAYMAN_HELM_CLN = "e77bc98b8823e23edc4268e542efec1cf6bd11b1"
+CAYMAN_HELM_BRANCH = "vmware-3.12.3-antrea"
+CAYMAN_HELM_CLN = "bcc709d6441aa2fbd3b9abaa9f8e56a68a96f3b0"
 CAYMAN_HELM_BUILDTYPE = "release"
 CAYMAN_HELM_FILES = {
     LINUX_HOSTTYPE: [
