@@ -159,6 +159,11 @@ class AntreaRelease(helpers.target.Target):
                 "buildtype": specs.antrea_release.NSX_MANAGEMENT_PROXY_PACKAGE_BUILDTYPE,
                 "files": specs.antrea_release.NSX_MANAGEMENT_PROXY_PACKAGE_FILES,
             },
+            "cayman_antrea_package": {
+                "branch": specs.antrea_release.CAYMAN_ANTREA_BRANCH,
+                "buildtype": specs.antrea_release.CAYMAN_ANTREA_BUILDTYPE,
+                "files": specs.antrea_release.CAYMAN_ANTREA_FILES,
+            },
         }
         # Automatically uses latest builds from the specified branch
         return helpers.buildapi.update_component_commits(

@@ -1,0 +1,11 @@
+#! schema-overlay.yaml
+
+#@data/values-schema
+#@library/ref "@bundle/config"
+#@schema/desc "OpenAPIv3 Schema for antrea"
+---
+#@schema/desc "Configuration for antrea"
+antrea:
+  #@schema/desc "The psp names that antrea will use in its clusterrole.rules"
+  #@overlay/match missing_ok=True
+  pspNames: [""]

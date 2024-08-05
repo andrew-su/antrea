@@ -1,0 +1,77 @@
+#! interworking-overlay.yaml
+
+#@ load("@ytt:overlay", "overlay")
+#@ load("@ytt:yaml", "yaml")
+#@ load("/values.star", "values")
+
+#@ def antrea_interworking_mp_adapter_conf():
+NSXClientTimeout: #@ values.antrea_nsx.config.mp_adapter_conf.NSXClientTimeout
+InventoryBatchSize: #@ values.antrea_nsx.config.mp_adapter_conf.InventoryBatchSize
+InventoryBatchPeriod: #@ values.antrea_nsx.config.mp_adapter_conf.InventoryBatchPeriod
+InventoryGCPeriod: #@ values.antrea_nsx.config.mp_adapter_conf.InventoryGCPeriod 
+EnableDebugServer: #@ values.antrea_nsx.config.mp_adapter_conf.EnableDebugServer
+APIServerPort: #@ values.antrea_nsx.config.mp_adapter_conf.APIServerPort
+DebugServerPort: #@ values.antrea_nsx.config.mp_adapter_conf.DebugServerPort
+NSXRPCDebug: #@ values.antrea_nsx.config.mp_adapter_conf.NSXRPCDebug
+ConditionTimeout: #@ values.antrea_nsx.config.mp_adapter_conf.ConditionTimeout
+NSXCAFile: #@ values.antrea_nsx.config.mp_adapter_conf.NSXCAFile
+NSXClientAuthCertFile: #@ values.antrea_nsx.config.mp_adapter_conf.NSXClientAuthCertFile
+NSXClientAuthKeyFile: #@ values.antrea_nsx.config.mp_adapter_conf.NSXClientAuthKeyFile
+NSXRemoteAuth: #@ values.antrea_nsx.config.mp_adapter_conf.NSXRemoteAuth
+NSXInsecure: #@ values.antrea_nsx.config.mp_adapter_conf.NSXInsecure
+NSXRPCConnType: #@ values.antrea_nsx.config.mp_adapter_conf.NSXRPCConnType
+clusterType: #@ values.antrea_nsx.config.mp_adapter_conf.clusterType
+#@ if hasattr(values.antrea_nsx.config.mp_adapter_conf, "NSXVerifyServerName") and values.antrea_nsx.config.mp_adapter_conf.NSXVerifyServerName:
+NSXVerifyServerName: true
+#@ else:
+#!NSXVerifyServerName: false
+#@ end
+#@ end
+
+
+#@ def antrea_interworking_ccp_adapter_conf():
+EnableDebugServer: #@ values.antrea_nsx.config.ccp_adapter_conf.EnableDebugServer
+APIServerPort: #@ values.antrea_nsx.config.ccp_adapter_conf.APIServerPort
+DebugServerPort: #@ values.antrea_nsx.config.ccp_adapter_conf.DebugServerPort
+NSXRPCDebug: #@ values.antrea_nsx.config.ccp_adapter_conf.NSXRPCDebug
+RealizeTimeoutSeconds: #@ values.antrea_nsx.config.ccp_adapter_conf.RealizeTimeoutSeconds
+RealizeErrorSyncIntervalSeconds: #@ values.antrea_nsx.config.ccp_adapter_conf.RealizeErrorSyncIntervalSeconds
+ReconcilerWorkerCount: #@ values.antrea_nsx.config.ccp_adapter_conf.ReconcilerWorkerCount
+ReconcilerQPS: #@ values.antrea_nsx.config.ccp_adapter_conf.ReconcilerQPS
+ReconcilerBurst: #@ values.antrea_nsx.config.ccp_adapter_conf.ReconcilerBurst
+ReconcilerResyncSeconds: #@ values.antrea_nsx.config.ccp_adapter_conf.ReconcilerResyncSeconds
+#@ end
+
+#! Antrea-interworking-config
+#@overlay/match by=overlay.subset({"kind":"ConfigMap","metadata":{"name": "antrea-interworking-config"}})
+#@ if/end values.antrea_nsx.enable:
+---
+kind: ConfigMap
+data:
+  mp-adapter.conf: #@ yaml.encode(antrea_interworking_mp_adapter_conf())
+  ccp-adapter.conf: #@ yaml.encode(antrea_interworking_ccp_adapter_conf())
+
+#! Filter the Deployment and overlay it to be empty.
+#@overlay/match by=overlay.subset({"kind":"Deployment", "metadata":{"namespace": "vmware-system-antrea"}}), expects=2
+#@ if/end values.antrea_nsx.enable == False:
+---
+
+#! Filter the ConfigMap and overlay it to be empty.
+#@overlay/match by=overlay.subset({"kind":"ConfigMap", "metadata":{"namespace": "vmware-system-antrea"}}), expects=3
+#@ if/end values.antrea_nsx.enable == False:
+---
+
+#! Filter the Secret and overlay it to be empty.
+#@overlay/match by=overlay.subset({"kind":"Secret", "metadata":{"namespace": "vmware-system-antrea"}}), expects=1
+#@ if/end values.antrea_nsx.enable == False:
+---
+
+#! Filter the CustomResourceDefinition and overlay the antreampadapterinfos to be empty.
+#@overlay/match by=overlay.subset({"kind":"CustomResourceDefinition","metadata":{"name": "antreampadapterinfos.clusterinformation.antrea-interworking.tanzu.vmware.com"}})
+#@ if/end values.antrea_nsx.enable == False:
+---
+
+#! Filter the CustomResourceDefinition and overlay the antreaccpadapterinfos to be empty.
+#@overlay/match by=overlay.subset({"kind":"CustomResourceDefinition","metadata":{"name": "antreaccpadapterinfos.clusterinformation.antrea-interworking.tanzu.vmware.com"}})
+#@ if/end values.antrea_nsx.enable == False:
+---

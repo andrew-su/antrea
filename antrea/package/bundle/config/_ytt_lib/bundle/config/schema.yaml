@@ -1,0 +1,352 @@
+#! schema.yaml
+
+#@data/values-schema
+#@schema/desc "OpenAPIv3 Schema for antrea"
+---
+#@schema/desc "The cloud provider in use. One of the following options => aws, azure, vsphere, docker"
+infraProvider: vsphere
+#@schema/desc "NodeSelector configuration applied to all the deployments"
+#@schema/type any=True
+nodeSelector:
+deployment:
+  #@schema/desc "Update strategy of deployments"
+  #@schema/nullable
+  updateStrategy: ""
+  rollingUpdate:
+    #@schema/desc "The maxUnavailable of rollingUpdate. Applied only if RollingUpdate is used as updateStrategy"
+    #@schema/nullable
+    maxUnavailable: 1
+    #@schema/desc "The maxSurge of rollingUpdate. Applied only if RollingUpdate is used as updateStrategy"
+    #@schema/nullable
+    maxSurge: 0
+daemonset:
+  #@schema/desc "Update strategy of daemonsets"
+  #@schema/nullable
+  updateStrategy: ""
+antrea:
+  #@schema/desc "Configuration for antrea"
+  config:
+    #@schema/desc "Control SNAT IPs of Pod egress traffic."
+    egress:
+      #@schema/desc "The CIDR ranges to which outbound Pod traffic will not be SNAT'd by Egresses."
+      exceptCIDRs:
+      - ""
+      #@schema/desc "The maximum number of Egress IPs that can be assigned to a Node."
+      maxEgressIPsPerNode: 255
+    nodePortLocal:
+      #@schema/desc "Enable NodePortLocal feature."
+      enabled: true
+      #@schema/desc "Provide the port range used by NodePortLocal."
+      portRange: ""
+    #@schema/desc "AntreaProxy related configuration options."
+    antreaProxy:
+      #@schema/desc "enable antreaProxy feature."
+      enable: true
+      #@schema/desc "ProxyAll tells antrea-agent to proxy all Service traffic."
+      proxyAll: false
+      #@schema/desc "Specifies the host IPv4/IPv6 addresses for NodePort."
+      nodePortAddresses:
+       - ""
+      #@schema/desc "List of Services which should be ignored by AntreaProxy."
+      skipServices:
+        - ""
+      #@schema/desc "Load-balance traffic destined to the External IPs of LoadBalancer services."
+      proxyLoadBalancerIPs: true
+      #@schema/desc "AntreaProxy will only handle Services with the label that equals the provided value."
+      serviceProxyName: ""
+      #@schema/desc "Determines how external traffic is processed when it's load balanced across Nodes by default"
+      defaultLoadBalancerMode: "nat"
+    #@schema/desc "FlowExporter related configuration options."
+    flowExporter:
+      #@schema/desc "Flag to enable flowExporter feature."
+      enable: false
+      #@schema/desc "Provide the IPFIX collector address as a string."
+      collectorAddress: ""
+      #@schema/desc "Provide flow poll interval as a duration string."
+      pollInterval: ""
+      #@schema/desc "Provide the active flow export timeout."
+      activeFlowTimeout: ""
+      #@schema/desc "Provide the idle flow export timeout."
+      idleFlowTimeout: ""
+    #@schema/desc "Provide the address of Kubernetes apiserver."
+    #@schema/nullable
+    kubeAPIServerOverride: ""
+    #@schema/desc "File path of the certificate bundle for all the signers that is recognized for incoming client certs."
+    #@schema/nullable
+    clientCAFile: ""
+    #@schema/desc "The name of the interface on Node which is used for tunneling or routing the traffic."
+    #@schema/nullable
+    transportInterface: ""
+    #@schema/desc "The network CIDRs of the interface on Node which is used for tunneling or routing the traffic."
+    transportInterfaceCIDRs:
+      - ""
+    #@schema/desc "Tunnel protocols used for encapsulating traffic across Nodes. One of the following options => geneve, vxlan, gre, stt"
+    tunnelType: none
+    #@schema/desc "TunnelPort is the destination port for UDP and TCP based tunnel protocols (Geneve, VXLAN, and STT)."
+    tunnelPort: 0
+    #@schema/desc "TunnelCsum determines whether to compute UDP encapsulation header (Geneve or VXLAN) checksums on outgoing packets."
+    tunnelCsum: false
+    #@schema/desc "Determines how tunnel traffic is encrypted. One of the following options => none, ipsec, wireGuard"
+    trafficEncryptionMode: none
+    #@schema/desc "packetInRate defines the OVS controller packet rate limits for different features."
+    packetInRate: 500
+    #@schema/desc "WireGuard related configurations."
+    wireGuard:
+      #@schema/desc "The port for WireGuard to receive traffic."
+      port: 51820
+    #@schema/desc "Enable usage reporting (telemetry) to VMware."
+    enableUsageReporting: false
+    #@schema/desc "ClusterIP CIDR range for IPv4 Services"
+    #@schema/nullable
+    serviceCIDR: 10.96.0.0/12
+    #@schema/desc "ClusterIP CIDR range for IPv6 Services"
+    #@schema/nullable
+    serviceCIDRv6: ""
+    #@schema/desc "The traffic encapsulation mode. One of the following options => encap, noEncap, hybrid, networkPolicyOnly"
+    trafficEncapMode: encap
+    #@schema/desc "Flag to enable/disable SNAT for the egress traffic from a Pod to the external network"
+    noSNAT: false
+    #@schema/desc "Disable UDP tunnel offload feature on default NIC"
+    disableUdpTunnelOffload: false
+    #@schema/desc "Default MTU to use for the host gateway interface and the network interface of each Pod"
+    #@schema/nullable
+    defaultMTU: 0
+    #@schema/desc "List of allowed cipher suites. If omitted, the default Go Cipher Suites will be used"
+    tlsCipherSuites: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_256_GCM_SHA384
+    #@schema/desc "Enable bridging mode of Pod network on Nodes."
+    enableBridgingMode: false
+    #@schema/desc "Disable TX checksum offloading for container network interfaces"
+    disableTXChecksumOffload: false
+    #@schema/desc "Provide the address of DNS server, to override the kube-dns service"
+    #@schema/nullable
+    dnsServerOverride: ""
+    #@schema/desc "The names of the interfaces on Nodes that are used to forward multicast traffic."
+    multicastInterfaces:
+      - ""
+    #@schema/desc "Multicast related configuration options"
+    multicast:
+      #@schema/desc "Flag to enable multicast feature."
+      enable: false
+      #@schema/desc "The interval at which the antrea-agent sends IGMP queries to Pods."
+      igmpQueryInterval: "125s"
+      #@schema/desc "The versions of IGMP queries antrea-agent sends to pods."
+      igmpQueryVersions:
+        - 1
+    #@schema/desc "Multicluster related configurations"
+    multicluster:
+      #@schema/desc "Enable Antrea Multi-cluster Gateway to support cross-cluster traffic."
+      enable: false
+      #@schema/desc "The Namespace where Antrea Multi-cluster Controller is running.Default is antrea-agent's Namespace"
+      #@schema/nullable
+      namespace: ""
+      #@schema/desc "Enable Multi-cluster NetworkPolicy (ingress rules)."
+      enableStretchedNetworkPolicy: false
+      #@schema/desc "Enable Pod to Pod connectivity."
+      enablePodToPodConnectivity: false
+      #@schema/desc "Determines how cross-cluster traffic is encrypted."
+      trafficEncryptionMode: "none"
+      #@schema/desc "WireGuard tunnel configuration for cross-cluster traffic"
+      wireGuard:
+        #@schema/desc "WireGuard tunnel port for cross-cluster traffic."
+        port: 51821
+    #@schema/desc "Log rotation configuration for audit logs."
+    auditLogging:
+      #@schema/desc "MaxSize is the maximum size in MB of a log file before it gets rotated."
+      maxSize: 500
+      #@schema/desc "MaxBackups is the maximum number of old log files to retain"
+      maxBackups: 3
+      #@schema/desc "MaxAge is the maximum number of days to retain old log files based on the timestamp encoded in their filename"
+      maxAge: 28
+      #@schema/desc "Compress enables gzip compression on rotated files."
+      compress: true
+    #@schema/desc "cloud provider configurations"
+    cloudProvider:
+      #@schema/desc "Cloud provider name. Disable the cloud controller if it is empty."
+      #@schema/nullable
+      name: ""
+    #@schema/desc "FeatureGates is a map of feature names to flags that enable or disable experimental features"
+    featureGates:
+      #@schema/desc "Flag to enable/disable antrea proxy"
+      AntreaProxy: true
+      #@schema/desc "Flag to enable/disable EndpointSlice support in AntreaProxy. If AntreaProxy is not enabled, this flag will not take effect"
+      EndpointSlice: true
+      #@schema/desc "Flag to enable/disable antrea traceflow"
+      AntreaTraceflow: true
+      #@schema/desc "Flag to enable/disable NodePortLocal feature to make the pods reachable externally through NodePort"
+      NodePortLocal: true
+      #@schema/desc "Flag to enable/disable antrea policy"
+      AntreaPolicy: true
+      #@schema/desc "Flag to enable/disable flow exporter"
+      FlowExporter: false
+      #@schema/desc "Flag to enable/disable network policy stats"
+      NetworkPolicyStats: true
+      #@schema/desc "Flag to enable/disable SNAT IPs of Pod egress traffic"
+      Egress: true
+      #@schema/desc "Flag to enable/disable flexible IPAM mode"
+      AntreaIPAM: false
+      #@schema/desc "Flag to enable/disable managing external IPs for Load balancers services"
+      ServiceExternalIP: false
+      #@schema/desc "Flag to enable/disable multicast traffic"
+      Multicast: true
+      #@schema/desc "Enable Antrea Multi-cluster Gateway to support cross-cluster traffic.This feature is supported only with encap mode."
+      Multicluster: false
+      #@schema/desc "Enable support for provisioning secondary network interfaces for Pods (using Pod annotations)."
+      SecondaryNetwork: false
+      #@schema/desc "Enable mirroring or redirecting the traffic Pods send or receive."
+      TrafficControl: false
+      #@schema/desc "Enable TopologyAwareHints in AntreaProxy. This requires AntreaProxy and EndpointSlice to be enabled."
+      TopologyAwareHints: true
+      #@schema/desc "Enable collecting support bundle files with SupportBundleCollection CRD."
+      SupportBundleCollection: false
+      #@schema/desc "Enable users to protect their applications by specifying how they are allowed to communicate with others."
+      L7NetworkPolicy: false
+      #@schema/desc "Enable support for cleaning up stale UDP Service conntrack connections in AntreaProxy"
+      CleanupStaleUDPSvcConntrack: false
+      #@schema/desc "Enable NodeLatencyMonitor to monitor the latency between Nodes."
+      NodeLatencyMonitor: false
+      #@schema/desc "Enable the use of Network Policy APIs (https://network-policy-api.sigs.k8s.io/api-overview) which helps administrators set security postures for their clusters."
+      AdminNetworkPolicy: false
+      #@schema/desc "Allow users to specify the load balancer mode as DSR"
+      LoadBalancerModeDSR: false
+      #@schema/desc "Allow users to allocate Egress IPs from a different subnet from the default Node subnet."
+      EgressSeparateSubnet: false
+      #@schema/desc "Enable L7FlowExporter on Pods and Namespaces to export the application layer flows such as HTTP flows."
+      L7FlowExporter: false
+      #@schema/desc "Enable Egress traffic shaping."
+      EgressTrafficShaping: false
+      #@schema/desc "Allow users to apply ClusterNetworkPolicy to Kubernetes Nodes."
+      NodeNetworkPolicy: false
+  windows:
+    #@schema/desc "Enable indicates whether windows config shall be enabled in the cluster."
+    enable: false
+    config:
+      nodePortLocal:
+        #@schema/desc "Enable NodePortLocal feature."
+        enabled: true
+        #@schema/desc "Provide the port range used by NodePortLocal."
+        portRange: ""
+        #@schema/desc "AntreaProxy related configuration options."
+      antreaProxy:
+        enable: true
+        proxyAll: true
+        serviceProxyName: ""
+      flowExporter:
+        #@schema/desc "Provide the IPFIX collector address as a string."
+        collectorAddress: ""
+        #@schema/desc "Provide flow poll interval as a duration string."
+        pollInterval: ""
+        #@schema/desc "Provide the active flow export timeout."
+        activeFlowTimeout: ""
+        #@schema/desc "Provide the idle flow export timeout."
+        idleFlowTimeout: ""
+      kubeAPIServerOverride: ""
+      #@schema/desc "The name of the interface on Node which is used for tunneling or routing the traffic."
+      #@schema/nullable
+      transportInterface: ""
+      #@schema/desc "The network CIDRs of the interface on Node which is used for tunneling or routing the traffic."
+      transportInterfaceCIDRs:
+        - ""
+      serviceCIDR: 10.96.0.0/12
+      #! Setting defaultMTU to null since antrea-agent will discover the MTU of the Node's primary interface and
+      #! also adjust MTU to accommodate for tunnel encapsulation overhead.
+      defaultMTU: 0
+      tlsCipherSuites: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_256_GCM_SHA384
+      featureGates:
+        AntreaProxy: true
+        NodePortLocal: true
+        FlowExporter: false
+
+  #! Deprecated. Kept for backward compatibility
+  image:
+    #@schema/desc "The repository of antrea image"
+    repository: ""
+    #@schema/desc "The path of image"
+    path: ""
+    #@schema/desc "The image tag"
+    tag: ""
+    #@schema/desc "The pull policy of image"
+    pullPolicy: IfNotPresent
+antrea_nsx:
+  #@schema/desc "Enable indicates whether nsxt adapter shall be enabled in the cluster."
+  enable: false
+  #@schema/desc "Configuration for antrea-interworking"
+  config:
+    #@schema/desc "NsxCert is base64 encoded NSX client certificate data.One line base64 encoded data. Can be generated by command: cat tls.crt | base64 -w 0"
+    nsxCert: ZHVtbXlBZG1pbg
+    #@schema/desc "NSXKey is base64 encoded NSX client key data.One line base64 encoded data. Can be generated by command: cat tls.key | base64 -w 0"
+    nsxKey: ZHVtbXlQYXNzd29yZA
+    #@schema/desc "ClusterName is the name of the cluster."
+    clusterName: dummyClusterName
+    #@schema/desc "bootstrapSupervisorResourceName is required if bootstrapFrom is SupervisorCluster. The value should be NSXServiceAccount resource name in the SupervisorCluster."
+    bootstrapSupervisorResourceName: dummyClusterName-antrea
+    #@schema/desc "NSXManagers is a string slice that contains the IP address or domain name of the NSX Managers."
+    NSXManagers: [dummyNSXIP1]
+    #@schema/desc "VPCPath is the VPC configuration path."
+    vpcPath: dummyVPCPath
+    #@schema/desc "BootstrapFrom is used to specify the bootstrap method, either Inline or SupervisorCluster.If SupervisorCluster is set, bootstrapSupervisorResourceName must be set, and clusterName, NSXManagers, vpcPath, ProxyEndpoints will be filled automatically by register job."
+    bootstrapFrom: SupervisorCluster
+    #@schema/desc "ProxyEndpoints is a struct for proxy endpoints containing the information needed to access the API server."
+    proxyEndpoints:
+      #@schema/desc "RestAPI is a string slice that contains the IP address or domain name of the REST API endpoint."
+      rest_api: [192.168.1.1:1234]
+      #@schema/desc "NSXRPCFwdProxy is a string slice that contains the IP address or domain name of the NSX RPC forward proxy."
+      nsx_rpc_fwd_proxy: [192.168.1.1:1235]
+    #@schema/desc "Configuration for MP Adapter, MP Adapter is for integrate with NSX MP."
+    mp_adapter_conf:
+      #@schema/desc "Path to the CA file."
+      NSXCAFile: ""
+      #@schema/desc "Path to the client authentication certificate file."
+      NSXClientAuthCertFile: ""
+      #@schema/desc "Path to the client authentication key file."
+      NSXClientAuthKeyFile: ""
+      #@schema/desc "NSXRemoteAuth indicates whether to use remote authentication."
+      NSXRemoteAuth: false
+      #@schema/desc "NSXInsecure indicates whether to enable insecure connections."
+      NSXInsecure: true
+      #@schema/desc "NsxRpcConnType is the NSX connection type: either mock or tnproxy."
+      NSXRPCConnType: tnproxy
+      #@schema/desc "ClusterType represents the type of the cluster."
+      clusterType: "kubernetes"
+      #@schema/desc "Timeout for NSX client."
+      NSXClientTimeout: 120
+      #@schema/desc "InventoryBatchSize is the max objects in one inventory update request."
+      InventoryBatchSize: 50
+      #@schema/desc "InventoryBatchPeriod is the time in seconds to send out request even if the max batch size is not reached."
+      InventoryBatchPeriod: 5
+      #@schema/desc "The time in seconds to run inventory garbage collection."
+      InventoryGCPeriod: 60
+      #@schema/desc "EnableDebugServer indicates whether to enable the debug server."
+      EnableDebugServer: false
+      #@schema/desc "Port on which the API server listens."
+      APIServerPort: 16664
+      #@schema/desc "DebugServerPort is the port for the APIServer to serve on. Defaults to 16666."
+      DebugServerPort: 16666
+      #@schema/desc "NSXRPCDebug indicates whether to enable NSX RPC debug mode."
+      NSXRPCDebug: false
+      #@schema/desc "Monitor for determine the timeout."
+      ConditionTimeout: 150
+      #@schema/desc "NSXVerifyServerName indicates whether to validate NSX server name when NSXInsecure is false."
+      NSXVerifyServerName: false
+    #@schema/desc "Configuration for CCP Adapter, CCP Adapter is for integrate with NSX MP."
+    ccp_adapter_conf:
+      #@schema/desc "EnableDebugServer indicates whether to enable the debug server."
+      EnableDebugServer: false
+      #@schema/desc "Port on which the API server listens."
+      APIServerPort: 16665
+      #@schema/desc "DebugServerPort is the port for the APIServer to serve on. Defaults to 16667."
+      DebugServerPort: 16667
+      #@schema/desc "NSXRPCDebug indicates whether to enable NSX RPC debug mode."
+      NSXRPCDebug: false
+      #@schema/desc "Time to wait for realization."
+      RealizeTimeoutSeconds: 60
+      #@schema/desc "An interval for regularly report latest realization error in background."
+      RealizeErrorSyncIntervalSeconds: 600
+      #@schema/desc "Number of workers for reconciler."
+      ReconcilerWorkerCount: 8
+      #@schema/desc "Average QPS = ReconcilerWorkerCount * ReconcilerQPS"
+      ReconcilerQPS: 5.0
+      #@schema/desc "Peak QPS =  ReconcilerWorkerCount * ReconcilerBurst"
+      ReconcilerBurst: 10
+      #@schema/desc "Period for Reconciler to rsync downstream events."
+      ReconcilerResyncSeconds: 86400
+

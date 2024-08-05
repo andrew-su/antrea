@@ -49,8 +49,12 @@ env = {
 
 
 # Pass through certain environment variables.
+# Maintainer Notes:
+#
+# - GIT_SSH_COMMAND should be passed further to build.sh
+# - This environment setting enables downloading git based go dependencies from gitlab.eng.vmware.com
 for v in ['SystemRoot', 'SystemDrive',
-          'PROCESSOR_ARCHITECTURE',
+          'PROCESSOR_ARCHITECTURE', 'GIT_SSH_COMMAND',
           'TMP', 'TEMP', 'TMPDIR', 'windir', 'GOBUILD_OFFICIAL_SIGNING_ALLOWED']:
     if v in os.environ:
         env[v] = os.environ[v]
@@ -76,6 +80,7 @@ print('target = %s' % target)
 print('global environment: %s' % os.environ)
 
 env['TARGET'] = target
+
 
 # Pass to next stage. '-B' suppresses .pyc file creation.
 typical = os.path.join(env['GOBUILD_CAYMAN_ROOT'], 'typical.py')

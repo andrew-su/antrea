@@ -1,0 +1,772 @@
+#@ load("@ytt:data", "data")
+
+---
+apiVersion: data.packaging.carvel.dev/v1alpha1
+kind: Package
+metadata:
+  name: #@ "antrea.tanzu.vmware.com.{}".format(data.values.version)
+spec:
+  refName: antrea.tanzu.vmware.com
+  version: #@ data.values.version
+  releaseNotes: #@ data.values.version
+  licenses:
+  - Apache 2.0
+  template:
+    spec:
+      syncPeriod: 5m
+      fetch:
+      - imgpkgBundle:
+          image: ""
+      template:
+      - ytt:
+          paths:
+          - config/
+      - kbld:
+          paths:
+          - '-'
+          - .imgpkg/images.yml
+      deploy:
+      - kapp:
+          rawOptions:
+          - --wait-timeout=30s
+  valuesSchema:
+    openAPIv3:
+      type: object
+      additionalProperties: false
+      description: OpenAPIv3 Schema for antrea
+      properties:
+        infraProvider:
+          type: string
+          description: The cloud provider in use. One of the following options => aws, azure, vsphere, docker
+          default: vsphere
+        nodeSelector:
+          nullable: true
+          description: NodeSelector configuration applied to all the deployments
+          default: null
+        deployment:
+          type: object
+          additionalProperties: false
+          properties:
+            updateStrategy:
+              type: string
+              nullable: true
+              description: Update strategy of deployments
+              default: null
+            rollingUpdate:
+              type: object
+              additionalProperties: false
+              properties:
+                maxUnavailable:
+                  type: integer
+                  nullable: true
+                  description: The maxUnavailable of rollingUpdate. Applied only if RollingUpdate is used as updateStrategy
+                  default: null
+                maxSurge:
+                  type: integer
+                  nullable: true
+                  description: The maxSurge of rollingUpdate. Applied only if RollingUpdate is used as updateStrategy
+                  default: null
+        daemonset:
+          type: object
+          additionalProperties: false
+          properties:
+            updateStrategy:
+              type: string
+              nullable: true
+              description: Update strategy of daemonsets
+              default: null
+        antrea:
+          type: object
+          additionalProperties: false
+          properties:
+            config:
+              type: object
+              additionalProperties: false
+              description: Configuration for antrea
+              properties:
+                egress:
+                  type: object
+                  additionalProperties: false
+                  description: Control SNAT IPs of Pod egress traffic.
+                  properties:
+                    exceptCIDRs:
+                      type: array
+                      description: The CIDR ranges to which outbound Pod traffic will not be SNAT'd by Egresses.
+                      items:
+                        type: string
+                        default: ""
+                      default: []
+                    maxEgressIPsPerNode:
+                      type: integer
+                      description: The maximum number of Egress IPs that can be assigned to a Node.
+                      default: 255
+                nodePortLocal:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    enabled:
+                      type: boolean
+                      description: Enable NodePortLocal feature.
+                      default: true
+                    portRange:
+                      type: string
+                      description: Provide the port range used by NodePortLocal.
+                      default: ""
+                antreaProxy:
+                  type: object
+                  additionalProperties: false
+                  description: AntreaProxy related configuration options.
+                  properties:
+                    enable:
+                      type: boolean
+                      description: enable antreaProxy feature.
+                      default: true
+                    proxyAll:
+                      type: boolean
+                      description: ProxyAll tells antrea-agent to proxy all Service traffic.
+                      default: false
+                    nodePortAddresses:
+                      type: array
+                      description: Specifies the host IPv4/IPv6 addresses for NodePort.
+                      items:
+                        type: string
+                        default: ""
+                      default: []
+                    skipServices:
+                      type: array
+                      description: List of Services which should be ignored by AntreaProxy.
+                      items:
+                        type: string
+                        default: ""
+                      default: []
+                    proxyLoadBalancerIPs:
+                      type: boolean
+                      description: Load-balance traffic destined to the External IPs of LoadBalancer services.
+                      default: true
+                    serviceProxyName:
+                      type: string
+                      description: AntreaProxy will only handle Services with the label that equals the provided value.
+                      default: ""
+                    defaultLoadBalancerMode:
+                      type: string
+                      description: Determines how external traffic is processed when it's load balanced across Nodes by default
+                      default: nat
+                flowExporter:
+                  type: object
+                  additionalProperties: false
+                  description: FlowExporter related configuration options.
+                  properties:
+                    enable:
+                      type: boolean
+                      description: Flag to enable flowExporter feature.
+                      default: false
+                    collectorAddress:
+                      type: string
+                      description: Provide the IPFIX collector address as a string.
+                      default: ""
+                    pollInterval:
+                      type: string
+                      description: Provide flow poll interval as a duration string.
+                      default: ""
+                    activeFlowTimeout:
+                      type: string
+                      description: Provide the active flow export timeout.
+                      default: ""
+                    idleFlowTimeout:
+                      type: string
+                      description: Provide the idle flow export timeout.
+                      default: ""
+                kubeAPIServerOverride:
+                  type: string
+                  nullable: true
+                  description: Provide the address of Kubernetes apiserver.
+                  default: null
+                clientCAFile:
+                  type: string
+                  nullable: true
+                  description: File path of the certificate bundle for all the signers that is recognized for incoming client certs.
+                  default: null
+                transportInterface:
+                  type: string
+                  nullable: true
+                  description: The name of the interface on Node which is used for tunneling or routing the traffic.
+                  default: null
+                transportInterfaceCIDRs:
+                  type: array
+                  description: The network CIDRs of the interface on Node which is used for tunneling or routing the traffic.
+                  items:
+                    type: string
+                    default: ""
+                  default: []
+                tunnelType:
+                  type: string
+                  description: Tunnel protocols used for encapsulating traffic across Nodes. One of the following options => geneve, vxlan, gre, stt
+                  default: none
+                tunnelPort:
+                  type: integer
+                  description: TunnelPort is the destination port for UDP and TCP based tunnel protocols (Geneve, VXLAN, and STT).
+                  default: 0
+                tunnelCsum:
+                  type: boolean
+                  description: TunnelCsum determines whether to compute UDP encapsulation header (Geneve or VXLAN) checksums on outgoing packets.
+                  default: false
+                trafficEncryptionMode:
+                  type: string
+                  description: Determines how tunnel traffic is encrypted. One of the following options => none, ipsec, wireGuard
+                  default: none
+                packetInRate:
+                  type: integer
+                  description: packetInRate defines the OVS controller packet rate limits for different features.
+                  default: 500
+                wireGuard:
+                  type: object
+                  additionalProperties: false
+                  description: WireGuard related configurations.
+                  properties:
+                    port:
+                      type: integer
+                      description: The port for WireGuard to receive traffic.
+                      default: 51820
+                enableUsageReporting:
+                  type: boolean
+                  description: Enable usage reporting (telemetry) to VMware.
+                  default: false
+                serviceCIDR:
+                  type: string
+                  nullable: true
+                  description: ClusterIP CIDR range for IPv4 Services
+                  default: null
+                serviceCIDRv6:
+                  type: string
+                  nullable: true
+                  description: ClusterIP CIDR range for IPv6 Services
+                  default: null
+                trafficEncapMode:
+                  type: string
+                  description: The traffic encapsulation mode. One of the following options => encap, noEncap, hybrid, networkPolicyOnly
+                  default: encap
+                noSNAT:
+                  type: boolean
+                  description: Flag to enable/disable SNAT for the egress traffic from a Pod to the external network
+                  default: false
+                disableUdpTunnelOffload:
+                  type: boolean
+                  description: Disable UDP tunnel offload feature on default NIC
+                  default: false
+                defaultMTU:
+                  type: integer
+                  nullable: true
+                  description: Default MTU to use for the host gateway interface and the network interface of each Pod
+                  default: null
+                tlsCipherSuites:
+                  type: string
+                  description: List of allowed cipher suites. If omitted, the default Go Cipher Suites will be used
+                  default: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_256_GCM_SHA384
+                enableBridgingMode:
+                  type: boolean
+                  description: Enable bridging mode of Pod network on Nodes.
+                  default: false
+                disableTXChecksumOffload:
+                  type: boolean
+                  description: Disable TX checksum offloading for container network interfaces
+                  default: false
+                dnsServerOverride:
+                  type: string
+                  nullable: true
+                  description: Provide the address of DNS server, to override the kube-dns service
+                  default: null
+                multicastInterfaces:
+                  type: array
+                  description: The names of the interfaces on Nodes that are used to forward multicast traffic.
+                  items:
+                    type: string
+                    default: ""
+                  default: []
+                multicast:
+                  type: object
+                  additionalProperties: false
+                  description: Multicast related configuration options
+                  properties:
+                    enable:
+                      type: boolean
+                      description: Flag to enable multicast feature.
+                      default: false
+                    igmpQueryInterval:
+                      type: string
+                      description: The interval at which the antrea-agent sends IGMP queries to Pods.
+                      default: 125s
+                    igmpQueryVersions:
+                      type: array
+                      description: The versions of IGMP queries antrea-agent sends to pods.
+                      items:
+                        type: integer
+                        default: 1
+                      default: []
+                multicluster:
+                  type: object
+                  additionalProperties: false
+                  description: Multicluster related configurations
+                  properties:
+                    enable:
+                      type: boolean
+                      description: Enable Antrea Multi-cluster Gateway to support cross-cluster traffic.
+                      default: false
+                    namespace:
+                      type: string
+                      nullable: true
+                      description: The Namespace where Antrea Multi-cluster Controller is running.Default is antrea-agent's Namespace
+                      default: null
+                    enableStretchedNetworkPolicy:
+                      type: boolean
+                      description: Enable Multi-cluster NetworkPolicy (ingress rules).
+                      default: false
+                    enablePodToPodConnectivity:
+                      type: boolean
+                      description: Enable Pod to Pod connectivity.
+                      default: false
+                    trafficEncryptionMode:
+                      type: string
+                      description: Determines how cross-cluster traffic is encrypted.
+                      default: none
+                    wireGuard:
+                      type: object
+                      additionalProperties: false
+                      description: WireGuard tunnel configuration for cross-cluster traffic
+                      properties:
+                        port:
+                          type: integer
+                          description: WireGuard tunnel port for cross-cluster traffic.
+                          default: 51821
+                auditLogging:
+                  type: object
+                  additionalProperties: false
+                  description: Log rotation configuration for audit logs.
+                  properties:
+                    maxSize:
+                      type: integer
+                      description: MaxSize is the maximum size in MB of a log file before it gets rotated.
+                      default: 500
+                    maxBackups:
+                      type: integer
+                      description: MaxBackups is the maximum number of old log files to retain
+                      default: 3
+                    maxAge:
+                      type: integer
+                      description: MaxAge is the maximum number of days to retain old log files based on the timestamp encoded in their filename
+                      default: 28
+                    compress:
+                      type: boolean
+                      description: Compress enables gzip compression on rotated files.
+                      default: true
+                cloudProvider:
+                  type: object
+                  additionalProperties: false
+                  description: cloud provider configurations
+                  properties:
+                    name:
+                      type: string
+                      nullable: true
+                      description: Cloud provider name. Disable the cloud controller if it is empty.
+                      default: null
+                featureGates:
+                  type: object
+                  additionalProperties: false
+                  description: FeatureGates is a map of feature names to flags that enable or disable experimental features
+                  properties:
+                    AntreaProxy:
+                      type: boolean
+                      description: Flag to enable/disable antrea proxy
+                      default: true
+                    EndpointSlice:
+                      type: boolean
+                      description: Flag to enable/disable EndpointSlice support in AntreaProxy. If AntreaProxy is not enabled, this flag will not take effect
+                      default: true
+                    AntreaTraceflow:
+                      type: boolean
+                      description: Flag to enable/disable antrea traceflow
+                      default: true
+                    NodePortLocal:
+                      type: boolean
+                      description: Flag to enable/disable NodePortLocal feature to make the pods reachable externally through NodePort
+                      default: true
+                    AntreaPolicy:
+                      type: boolean
+                      description: Flag to enable/disable antrea policy
+                      default: true
+                    FlowExporter:
+                      type: boolean
+                      description: Flag to enable/disable flow exporter
+                      default: false
+                    NetworkPolicyStats:
+                      type: boolean
+                      description: Flag to enable/disable network policy stats
+                      default: true
+                    Egress:
+                      type: boolean
+                      description: Flag to enable/disable SNAT IPs of Pod egress traffic
+                      default: true
+                    AntreaIPAM:
+                      type: boolean
+                      description: Flag to enable/disable flexible IPAM mode
+                      default: false
+                    ServiceExternalIP:
+                      type: boolean
+                      description: Flag to enable/disable managing external IPs for Load balancers services
+                      default: false
+                    Multicast:
+                      type: boolean
+                      description: Flag to enable/disable multicast traffic
+                      default: true
+                    Multicluster:
+                      type: boolean
+                      description: Enable Antrea Multi-cluster Gateway to support cross-cluster traffic.This feature is supported only with encap mode.
+                      default: false
+                    SecondaryNetwork:
+                      type: boolean
+                      description: Enable support for provisioning secondary network interfaces for Pods (using Pod annotations).
+                      default: false
+                    TrafficControl:
+                      type: boolean
+                      description: Enable mirroring or redirecting the traffic Pods send or receive.
+                      default: false
+                    TopologyAwareHints:
+                      type: boolean
+                      description: Enable TopologyAwareHints in AntreaProxy. This requires AntreaProxy and EndpointSlice to be enabled.
+                      default: true
+                    SupportBundleCollection:
+                      type: boolean
+                      description: Enable collecting support bundle files with SupportBundleCollection CRD.
+                      default: false
+                    L7NetworkPolicy:
+                      type: boolean
+                      description: Enable users to protect their applications by specifying how they are allowed to communicate with others.
+                      default: false
+                    CleanupStaleUDPSvcConntrack:
+                      type: boolean
+                      description: Enable support for cleaning up stale UDP Service conntrack connections in AntreaProxy
+                      default: false
+                    NodeLatencyMonitor:
+                      type: boolean
+                      description: Enable NodeLatencyMonitor to monitor the latency between Nodes.
+                      default: false
+                    AdminNetworkPolicy:
+                      type: boolean
+                      description: Enable the use of Network Policy APIs (https://network-policy-api.sigs.k8s.io/api-overview) which helps administrators set security postures for their clusters.
+                      default: false
+                    LoadBalancerModeDSR:
+                      type: boolean
+                      description: Allow users to specify the load balancer mode as DSR
+                      default: false
+                    EgressSeparateSubnet:
+                      type: boolean
+                      description: Allow users to allocate Egress IPs from a different subnet from the default Node subnet.
+                      default: false
+                    L7FlowExporter:
+                      type: boolean
+                      description: Enable L7FlowExporter on Pods and Namespaces to export the application layer flows such as HTTP flows.
+                      default: false
+                    EgressTrafficShaping:
+                      type: boolean
+                      description: Enable Egress traffic shaping.
+                      default: false
+                    NodeNetworkPolicy:
+                      type: boolean
+                      description: Allow users to apply ClusterNetworkPolicy to Kubernetes Nodes.
+                      default: false
+            windows:
+              type: object
+              additionalProperties: false
+              properties:
+                enable:
+                  type: boolean
+                  description: Enable indicates whether windows config shall be enabled in the cluster.
+                  default: false
+                config:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    nodePortLocal:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        enabled:
+                          type: boolean
+                          description: Enable NodePortLocal feature.
+                          default: true
+                        portRange:
+                          type: string
+                          description: Provide the port range used by NodePortLocal.
+                          default: ""
+                    antreaProxy:
+                      type: object
+                      additionalProperties: false
+                      description: AntreaProxy related configuration options.
+                      properties:
+                        enable:
+                          type: boolean
+                          default: true
+                        proxyAll:
+                          type: boolean
+                          default: true
+                        serviceProxyName:
+                          type: string
+                          default: ""
+                    flowExporter:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        collectorAddress:
+                          type: string
+                          description: Provide the IPFIX collector address as a string.
+                          default: ""
+                        pollInterval:
+                          type: string
+                          description: Provide flow poll interval as a duration string.
+                          default: ""
+                        activeFlowTimeout:
+                          type: string
+                          description: Provide the active flow export timeout.
+                          default: ""
+                        idleFlowTimeout:
+                          type: string
+                          description: Provide the idle flow export timeout.
+                          default: ""
+                    kubeAPIServerOverride:
+                      type: string
+                      default: ""
+                    transportInterface:
+                      type: string
+                      nullable: true
+                      description: The name of the interface on Node which is used for tunneling or routing the traffic.
+                      default: null
+                    transportInterfaceCIDRs:
+                      type: array
+                      description: The network CIDRs of the interface on Node which is used for tunneling or routing the traffic.
+                      items:
+                        type: string
+                        default: ""
+                      default: []
+                    serviceCIDR:
+                      type: string
+                      default: 10.96.0.0/12
+                    defaultMTU:
+                      type: integer
+                      default: 0
+                    tlsCipherSuites:
+                      type: string
+                      default: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_256_GCM_SHA384
+                    featureGates:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        AntreaProxy:
+                          type: boolean
+                          default: true
+                        NodePortLocal:
+                          type: boolean
+                          default: true
+                        FlowExporter:
+                          type: boolean
+                          default: false
+            image:
+              type: object
+              additionalProperties: false
+              properties:
+                repository:
+                  type: string
+                  description: The repository of antrea image
+                  default: ""
+                path:
+                  type: string
+                  description: The path of image
+                  default: ""
+                tag:
+                  type: string
+                  description: The image tag
+                  default: ""
+                pullPolicy:
+                  type: string
+                  description: The pull policy of image
+                  default: IfNotPresent
+        antrea_nsx:
+          type: object
+          additionalProperties: false
+          properties:
+            enable:
+              type: boolean
+              description: Enable indicates whether nsxt adapter shall be enabled in the cluster.
+              default: false
+            config:
+              type: object
+              additionalProperties: false
+              description: Configuration for antrea-interworking
+              properties:
+                nsxCert:
+                  type: string
+                  description: 'NsxCert is base64 encoded NSX client certificate data.One line base64 encoded data. Can be generated by command: cat tls.crt | base64 -w 0'
+                  default: ZHVtbXlBZG1pbg
+                nsxKey:
+                  type: string
+                  description: 'NSXKey is base64 encoded NSX client key data.One line base64 encoded data. Can be generated by command: cat tls.key | base64 -w 0'
+                  default: ZHVtbXlQYXNzd29yZA
+                clusterName:
+                  type: string
+                  description: ClusterName is the name of the cluster.
+                  default: dummyClusterName
+                bootstrapSupervisorResourceName:
+                  type: string
+                  description: bootstrapSupervisorResourceName is required if bootstrapFrom is SupervisorCluster. The value should be NSXServiceAccount resource name in the SupervisorCluster.
+                  default: dummyClusterName-antrea
+                NSXManagers:
+                  type: array
+                  description: NSXManagers is a string slice that contains the IP address or domain name of the NSX Managers.
+                  items:
+                    type: string
+                    default: dummyNSXIP1
+                  default: []
+                vpcPath:
+                  type: string
+                  description: VPCPath is the VPC configuration path.
+                  default: dummyVPCPath
+                bootstrapFrom:
+                  type: string
+                  description: BootstrapFrom is used to specify the bootstrap method, either Inline or SupervisorCluster.If SupervisorCluster is set, bootstrapSupervisorResourceName must be set, and clusterName, NSXManagers, vpcPath, ProxyEndpoints will be filled automatically by register job.
+                  default: SupervisorCluster
+                proxyEndpoints:
+                  type: object
+                  additionalProperties: false
+                  description: ProxyEndpoints is a struct for proxy endpoints containing the information needed to access the API server.
+                  properties:
+                    rest_api:
+                      type: array
+                      description: RestAPI is a string slice that contains the IP address or domain name of the REST API endpoint.
+                      items:
+                        type: string
+                        default: 192.168.1.1:1234
+                      default: []
+                    nsx_rpc_fwd_proxy:
+                      type: array
+                      description: NSXRPCFwdProxy is a string slice that contains the IP address or domain name of the NSX RPC forward proxy.
+                      items:
+                        type: string
+                        default: 192.168.1.1:1235
+                      default: []
+                mp_adapter_conf:
+                  type: object
+                  additionalProperties: false
+                  description: Configuration for MP Adapter, MP Adapter is for integrate with NSX MP.
+                  properties:
+                    NSXCAFile:
+                      type: string
+                      description: Path to the CA file.
+                      default: ""
+                    NSXClientAuthCertFile:
+                      type: string
+                      description: Path to the client authentication certificate file.
+                      default: ""
+                    NSXClientAuthKeyFile:
+                      type: string
+                      description: Path to the client authentication key file.
+                      default: ""
+                    NSXRemoteAuth:
+                      type: boolean
+                      description: NSXRemoteAuth indicates whether to use remote authentication.
+                      default: false
+                    NSXInsecure:
+                      type: boolean
+                      description: NSXInsecure indicates whether to enable insecure connections.
+                      default: true
+                    NSXRPCConnType:
+                      type: string
+                      description: 'NsxRpcConnType is the NSX connection type: either mock or tnproxy.'
+                      default: tnproxy
+                    clusterType:
+                      type: string
+                      description: ClusterType represents the type of the cluster.
+                      default: kubernetes
+                    NSXClientTimeout:
+                      type: integer
+                      description: Timeout for NSX client.
+                      default: 120
+                    InventoryBatchSize:
+                      type: integer
+                      description: InventoryBatchSize is the max objects in one inventory update request.
+                      default: 50
+                    InventoryBatchPeriod:
+                      type: integer
+                      description: InventoryBatchPeriod is the time in seconds to send out request even if the max batch size is not reached.
+                      default: 5
+                    InventoryGCPeriod:
+                      type: integer
+                      description: The time in seconds to run inventory garbage collection.
+                      default: 60
+                    EnableDebugServer:
+                      type: boolean
+                      description: EnableDebugServer indicates whether to enable the debug server.
+                      default: false
+                    APIServerPort:
+                      type: integer
+                      description: Port on which the API server listens.
+                      default: 16664
+                    DebugServerPort:
+                      type: integer
+                      description: DebugServerPort is the port for the APIServer to serve on. Defaults to 16666.
+                      default: 16666
+                    NSXRPCDebug:
+                      type: boolean
+                      description: NSXRPCDebug indicates whether to enable NSX RPC debug mode.
+                      default: false
+                    ConditionTimeout:
+                      type: integer
+                      description: Monitor for determine the timeout.
+                      default: 150
+                    NSXVerifyServerName:
+                      type: boolean
+                      description: NSXVerifyServerName indicates whether to validate NSX server name when NSXInsecure is false.
+                      default: false
+                ccp_adapter_conf:
+                  type: object
+                  additionalProperties: false
+                  description: Configuration for CCP Adapter, CCP Adapter is for integrate with NSX MP.
+                  properties:
+                    EnableDebugServer:
+                      type: boolean
+                      description: EnableDebugServer indicates whether to enable the debug server.
+                      default: false
+                    APIServerPort:
+                      type: integer
+                      description: Port on which the API server listens.
+                      default: 16665
+                    DebugServerPort:
+                      type: integer
+                      description: DebugServerPort is the port for the APIServer to serve on. Defaults to 16667.
+                      default: 16667
+                    NSXRPCDebug:
+                      type: boolean
+                      description: NSXRPCDebug indicates whether to enable NSX RPC debug mode.
+                      default: false
+                    RealizeTimeoutSeconds:
+                      type: integer
+                      description: Time to wait for realization.
+                      default: 60
+                    RealizeErrorSyncIntervalSeconds:
+                      type: integer
+                      description: An interval for regularly report latest realization error in background.
+                      default: 600
+                    ReconcilerWorkerCount:
+                      type: integer
+                      description: Number of workers for reconciler.
+                      default: 8
+                    ReconcilerQPS:
+                      type: number
+                      format: float
+                      description: Average QPS = ReconcilerWorkerCount * ReconcilerQPS
+                      default: 5
+                    ReconcilerBurst:
+                      type: integer
+                      description: Peak QPS =  ReconcilerWorkerCount * ReconcilerBurst
+                      default: 10
+                    ReconcilerResyncSeconds:
+                      type: integer
+                      description: Period for Reconciler to rsync downstream events.
+                      default: 86400

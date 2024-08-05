@@ -17,3 +17,4 @@ mts ALL=(root) NOPASSWD: /usr/bin/lsof *
 mts ALL=(root) NOPASSWD: /usr/bin/yum *
 mts ALL=(root) NOPASSWD: /usr/bin/rpm *
 mts ALL=(root) NOPASSWD: /usr/bin/yum-config-manager *
+mts ALL=(ALL) NOPASSWD: /usr/bin/docker *

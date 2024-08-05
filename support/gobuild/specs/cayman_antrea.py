@@ -88,3 +88,45 @@ CAYMAN_MSVC_REDISTS_FILES = {
     LINUX_HOSTTYPE: [
         "publish/win/.*"]
 }
+
+CAYMAN_IMGPKG_BRANCH = 'vmware-0.40.0+vmware.1'
+CAYMAN_IMGPKG_CLN = 'cf1bea99a0d4ea8a1ae832438c5d1823127c9e5c'
+CAYMAN_IMGPKG_BUILDTYPE = 'release'
+CAYMAN_IMGPKG_FILES = {
+    LINUX_HOSTTYPE: [ r'imgpkg-linux-amd64-.*.gz$' ],
+}
+
+CAYMAN_YTT_BRANCH = 'vmware-0.46.3+vmware.2'
+CAYMAN_YTT_CLN = 'f6b7ec1f0cff5155091e31ab03df80ef9044fab5'
+CAYMAN_YTT_BUILDTYPE = 'release'
+CAYMAN_YTT_FILES = {
+    LINUX_HOSTTYPE: [ r'ytt-linux-amd64-.*.gz$' ],
+}
+
+CAYMAN_KBLD_BRANCH = 'vmware-0.38.2+vmware.2'
+CAYMAN_KBLD_CLN = '4105552d6205db550ff118f50f4c6d8efa772cf1'
+CAYMAN_KBLD_BUILDTYPE = 'release'
+CAYMAN_KBLD_FILES = {
+    LINUX_HOSTTYPE: [ r'kbld-linux-amd64-.*.gz$' ],
+}
+
+
+CAYMAN_ANTREA_TKGM_ADVANCED_BRANCH = 'vmware-2.1.0+vmware.1'
+CAYMAN_ANTREA_TKGM_ADVANCED_CLN = '8c2d8fc2c20a3698c80ec17fc6912dbe2719dd87'
+CAYMAN_ANTREA_TKGM_ADVANCED_BUILDTYPE = 'release'
+CAYMAN_ANTREA_TKGM_ADVANCED_FILES = {
+    LINUX_HOSTTYPE: [
+        "publish/.*"
+    ]
+}
+
+ANTREA_INTERWORKING_BRANCH = 'release-1.1'
+ANTREA_INTERWORKING_CLN = '37bbd74b7862700e5055fc5654a9ce10cd2fc4ff'
+ANTREA_INTERWORKING_BUILDTYPE = 'release'
+ANTREA_INTERWORKING_FILES = {
+    LINUX_HOSTTYPE: [
+        "publish/antrea-interworking/.*",
+        "publish/VERSION"
+    ]
+}
+

@@ -2,3 +2,4 @@ osstp_results
 vendor
 .idea/
 tmp/
+antrea/package/artifacts/

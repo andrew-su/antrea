@@ -1,0 +1,25 @@
+#! Load ytt libs
+#@ load("@ytt:library", "library")
+#@ load("@ytt:template", "template")
+#@ load("@ytt:data", "data")
+
+#! export vendored secretgen bundle as a var
+#@ antrea_lib = library.get("bundle/config")
+
+#@ def antrea_values():
+#@overlay/match-child-defaults missing_ok=True
+infraProvider:  #@ data.values.infraProvider
+#@overlay/match-child-defaults missing_ok=True
+nodeSelector:  #@ data.values.nodeSelector
+#@overlay/match-child-defaults missing_ok=True
+deployment:  #@ data.values.deployment
+#@overlay/match-child-defaults missing_ok=True
+daemonset:  #@ data.values.daemonset
+#@overlay/match-child-defaults missing_ok=True
+antrea:  #@ data.values.antrea
+#@overlay/match-child-defaults missing_ok=True
+antrea_nsx:  #@ data.values.antrea_nsx
+#@ end
+
+#! render yaml from vendored lib with data values
+--- #@ template.replace(antrea_lib.with_data_values(antrea_values()).eval())

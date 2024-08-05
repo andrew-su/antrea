@@ -31,9 +31,20 @@ echo "STORAGE_DRIVER=overlay" | \
 echo "EXTRA_DOCKER_STORAGE_OPTIONS='-g ${DOCKER_STORAGE_DIR}'" | \
     sudo /usr/bin/tee -a ${DOCKER_STORAGE_CFG_PATH}
 
+
+
+
 sudo /usr/bin/systemctl daemon-reload
 sudo /usr/bin/systemctl restart docker
 sudo /usr/bin/chown mts /var/run/docker.sock
 sudo /usr/sbin/iptables -I FORWARD -j ACCEPT
 sudo /usr/sbin/ip link set docker0 promisc on
 sudo /usr/bin/systemctl status docker.service
+
+
+
+# This step is required on firewalled machines, since host to container traffic is blocked by default
+echo "Enabling firewall rule to allow traffic from host to docker bridge network"
+bridge_net=$(sudo /usr/bin/docker network inspect --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' bridge)
+sudo /usr/sbin/iptables -A BUILD_OUT -d ${bridge_net} -m comment --comment "allow traffic from host to docker bridge network" -j ACCEPT
+

@@ -1,0 +1,17 @@
+#@data/values
+#@overlay/match-child-defaults missing_ok=True
+
+---
+infraProvider: vsphere
+nodeSelector: null
+deployment:
+  updateStrategy: null
+  rollingUpdate:
+    maxUnavailable: null
+    maxSurge: null
+daemonset:
+  updateStrategy: null
+antrea:
+  pspNames: ["vmware-system-privileged"]
+antrea_nsx:
+  enable: false

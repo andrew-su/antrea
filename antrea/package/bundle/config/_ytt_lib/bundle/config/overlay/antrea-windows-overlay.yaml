@@ -1,0 +1,251 @@
+#! antrea-windows-overlay.yaml
+
+#@ load("@ytt:overlay", "overlay")
+#@ load("@ytt:yaml", "yaml")
+#@ load("/values.star", "values")
+
+#@ def antrea_windows_agent_conf():
+
+#! FeatureGates is a map of feature names to bools that enable or disable experimental features.
+featureGates:
+  #! Enable AntreaProxy which provides ServiceLB for in-cluster Services in antrea-agent.
+  #! It should be enabled on Windows, otherwise NetworkPolicy will not take effect on
+  #! Service traffic.
+  AntreaProxy: true
+
+
+  #! Enable NodePortLocal feature to make the pods reachable externally through NodePort
+  NodePortLocal: #@ values.antrea.windows.config.featureGates.NodePortLocal
+
+
+  #! Enable flowexporter which exports polled conntrack connections as IPFIX flow records from each
+  #! agent to a configured collector.
+  FlowExporter: #@ values.antrea.windows.config.featureGates.FlowExporter
+
+
+#! Name of the OpenVSwitch bridge antrea-agent will create and use.
+#! Make sure it doesn't conflict with your existing OpenVSwitch bridges.
+#!ovsBridge: br-int
+
+
+#! Name of the interface antrea-agent will create and use for host <--> pod communication.
+#! Make sure it doesn't conflict with your existing interfaces.
+#!hostGateway: antrea-gw0
+
+
+
+#! Tunnel protocols used for encapsulating traffic across Nodes. Supported values:
+#! - geneve (default)
+#! - vxlan
+#! - gre
+#! - stt
+tunnelType: #@ values.antrea.config.tunnelType
+
+#! TunnelPort is the destination port for UDP and TCP based tunnel protocols (Geneve, VXLAN, and STT).
+#! If zero, it will use the assigned IANA port for the protocol, i.e. 6081 for Geneve, 4789 for VXLAN,
+#! and 7471 for STT.
+tunnelPort: #@ values.antrea.config.tunnelPort
+
+
+
+#! Default MTU to use for the host gateway interface and the network interface of each Pod.
+#! If omitted, antrea-agent will discover the MTU of the Node's primary interface and
+#! also adjust MTU to accommodate for tunnel encapsulation overhead (if applicable).
+#@ if/end values.antrea.config.defaultMTU:
+defaultMTU: #@ values.antrea.windows.config.defaultMTU
+
+
+
+#! ClusterIP CIDR range for Services. It's required when AntreaProxy is not enabled, and should be
+#! set to the same value as the one specified by --service-cluster-ip-range for kube-apiserver. When
+#! AntreaProxy is enabled, this parameter is not needed and will be ignored if provided.
+serviceCIDR: #@ values.antrea.windows.config.serviceCIDR
+
+
+#! The port for the antrea-agent APIServer to serve on.
+#! Note that if it's set to another value, the `containerPort` of the `api` port of the
+#! `antrea-agent` container must be set to the same value.
+#!apiPort: 10350
+
+#! Enable metrics exposure via Prometheus. Initializes Prometheus metrics listener.
+#!enablePrometheusMetrics: true
+
+#@ if values.antrea.windows.config.featureGates.FlowExporter:
+#! Provide the IPFIX collector address as a string with format <HOST>:[<PORT>][:<PROTO>].
+#! HOST can either be the DNS name or the IP of the Flow Collector. For example,
+#! "flow-aggregator.flow-aggregator.svc" can be provided as DNS name to connect
+#! to the Antrea Flow Aggregator service. If IP, it can be either IPv4 or IPv6.
+#! However, IPv6 address should be wrapped with [].
+#! If PORT is empty, we default to 4739, the standard IPFIX port.
+#! If no PROTO is given, we consider "tls" as default. We support "tls", "tcp" and
+#! "udp" protocols. "tls" is used for securing communication between flow exporter and
+#! flow aggregator.
+#@ if/end values.antrea.config.featureGates.FlowExporter:
+flowCollectorAddr: #@ values.antrea.windows.config.flowExporter.collectorAddress
+
+#! Provide flow poll interval as a duration string. This determines how often the flow exporter dumps connections from the conntrack module.
+#! Flow poll interval should be greater than or equal to 1s (one second).
+#! Valid time units are "ns", "us" (or "Âµs"), "ms", "s", "m", "h".
+#@ if/end values.antrea.config.featureGates.FlowExporter:
+flowPollInterval: #@ values.antrea.windows.config.flowExporter.pollInterval
+
+#! Provide the active flow export timeout, which is the timeout after which a flow
+#! record is sent to the collector for active flows. Thus, for flows with a continuous
+#! stream of packets, a flow record will be exported to the collector once the elapsed
+#! time since the last export event is equal to the value of this timeout.
+#! Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+#@ if/end values.antrea.config.featureGates.FlowExporter:
+activeFlowExportTimeout: #@ values.antrea.windows.config.flowExporter.activeFlowTimeout
+
+#! Provide the idle flow export timeout, which is the timeout after which a flow
+#! record is sent to the collector for idle flows. A flow is considered idle if no
+#! packet matching this flow has been observed since the last export event.
+#! Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+#@ if/end values.antrea.config.featureGates.FlowExporter:
+idleFlowExportTimeout:  #@ values.antrea.windows.config.flowExporter.idleFlowTimeout
+#@ end
+
+
+
+#! Determines how traffic is encapsulated. It has the following options:
+#! encap(default):    Inter-node Pod traffic is always encapsulated and Pod to external network
+#!                    traffic is SNAT'd.
+#! noEncap:           Inter-node Pod traffic is not encapsulated; Pod to external network traffic is
+#!                    SNAT'd if noSNAT is not set to true. Underlying network must be capable of
+#!                    supporting Pod traffic across IP subnets.
+#! hybrid:            noEncap if source and destination Nodes are on the same subnet, otherwise encap.
+#! networkPolicyOnly: Antrea enforces NetworkPolicy only, and utilizes CNI chaining and delegates Pod
+#!                    IPAM and connectivity to the primary CNI.
+#!
+trafficEncapMode: #@ values.antrea.config.trafficEncapMode
+
+
+
+
+#! The name of the interface on Node which is used for tunneling or routing the traffic across Nodes.
+#! If there are multiple IP addresses configured on the interface, the first one is used. The IP
+#! address used for tunneling or routing traffic to remote Nodes is decided in the following order of
+#! preference (from highest to lowest):
+#! 1. transportInterface
+#! 2. transportInterfaceCIDRs
+#! 3. The Node IP
+#@ if/end values.antrea.windows.config.transportInterface:
+transportInterface: #@ values.antrea.windows.config.transportInterface
+
+
+
+#! The network CIDRs of the interface on Node which is used for tunneling or routing the traffic across
+#! Nodes. If there are multiple interfaces configured the same network CIDR, the first one is used. The
+#! IP address used for tunneling or routing traffic to remote Nodes is decided in the following order of
+#! preference (from highest to lowest):
+#! 1. transportInterface
+#! 2. transportInterfaceCIDRs
+#! 3. The Node IP
+#@ if/end values.antrea.windows.config.transportInterfaceCIDRs:
+transportInterfaceCIDRs: #@ values.antrea.windows.config.transportInterfaceCIDRs
+
+
+#! Provide the address of Kubernetes apiserver, to override any value provided in kubeconfig or InClusterConfig.
+#! It is typically used when kube-proxy is not deployed (replaced by AntreaProxy) and kube-controller-manager
+#! does not run NodeIPAMController (replaced by Antrea NodeIPAM).
+#! Defaults to "". It must be a host string, a host:port pair, or a URL to the base of the apiserver.
+#@ if not values.antrea.windows.config.kubeAPIServerOverride:
+#!kubeAPIServerOverride: ""
+#@ else:
+kubeAPIServerOverride: #@ values.antrea.windows.config.kubeAPIServerOverride
+#@ end
+
+
+#! Option antreaProxy contains AntreaProxy related configuration options.
+antreaProxy:
+  #@ if hasattr(values.antrea.windows.config.antreaProxy, "enable") and not values.antrea.windows.config.antreaProxy.enable:
+  enable: false
+  #@ else:
+  #!enable: true
+  #@ end
+  #!  ProxyAll tells antrea-agent to proxy all Service traffic, including NodePort, LoadBalancer, and ClusterIP traffic,
+  #!  regardless of where they come from. Therefore, running kube-proxy is no longer required. This requires the AntreaProxy
+  #!  feature to be enabled.
+  #!  Note that this option is experimental. If kube-proxy is removed, option kubeAPIServerOverride must be used to access
+  #!  apiserver directly.
+  proxyAll: #@ values.antrea.windows.config.antreaProxy.proxyAll
+  #! The value of the "service.kubernetes.io/service-proxy-name" label for AntreaProxy to match. If it is set,
+  #! then AntreaProxy will only handle Services with the label that equals the provided value. If it is not set,
+  #! then AntreaProxy will only handle Services without the "service.kubernetes.io/service-proxy-name" label,
+  #! but ignore Services with the label no matter what is the value.
+  #@ if values.antrea.windows.config.antreaProxy.serviceProxyName == "":
+  #!serviceProxyName: ""
+  #@ else:
+  serviceProxyName: #@ values.antrea.windows.config.antreaProxy.serviceProxyName
+  #@ end
+
+
+nodePortLocal:
+#@ if values.antrea.windows.config.featureGates.NodePortLocal:
+  #! Enable NodePortLocal, a feature used to make Pods reachable using port forwarding on the host. To
+  #! enable this feature, you need to set "enable" to true, and ensure that the NodePortLocal feature
+  #! gate is also enabled (which is the default).
+  enable: #@ values.antrea.windows.config.nodePortLocal.enabled
+  #! Provide the port range used by NodePortLocal. When the NodePortLocal feature is enabled, a port
+  #! from that range will be assigned whenever a Pod's container defines a specific port to be exposed
+  #! (each container can define a list of ports as pod.spec.containers[].ports), and all Node traffic
+  #! directed to that port will be forwarded to the Pod.
+  portRange: #@ values.antrea.windows.config.nodePortLocal.portRange
+#@ end
+
+#@ end
+
+
+
+
+
+#! Antrea agent and controller configuration
+#@overlay/match by=overlay.subset({"kind":"ConfigMap","metadata":{"name": "antrea-windows-config"}})
+---
+kind: ConfigMap
+data:
+  antrea-agent.conf: #@ yaml.encode(antrea_windows_agent_conf())
+
+
+#@ def windows_app_labels():
+app: antrea
+component: antrea-agent-windows
+#@ end
+
+#@overlay/match by=overlay.subset({"kind":"DaemonSet","metadata":{"name": "antrea-agent-windows"}})
+---
+kind: DaemonSet
+metadata:
+  labels: #@ windows_app_labels()
+  #@overlay/match missing_ok=True
+  annotations:
+    kapp.k14s.io/disable-default-label-scoping-rules: ""
+spec:
+  selector:
+    matchLabels: #@ windows_app_labels()
+  template:
+    metadata:
+      labels: #@ windows_app_labels()
+
+
+
+#! Filter the Daemonset and overlay it to be empty.
+#@overlay/match by=overlay.subset({"kind":"DaemonSet", "metadata":{"name": "antrea-agent-windows"}}),expects=1
+#@ if/end values.antrea.windows.enable == False:
+---
+
+
+
+#! Filter the Config and overlay it to be empty.
+#@overlay/match by=overlay.subset({"kind":"ConfigMap", "metadata":{"name": "antrea-windows-config"}}),expects=1
+#@ if/end values.antrea.windows.enable == False:
+---
+
+
+
+
+#! Filter the Config and overlay it to be empty.
+#@overlay/match by=overlay.subset({"kind":"ConfigMap", "metadata":{"name": "antrea-agent-windows"}}),expects=1
+#@ if/end values.antrea.windows.enable == False:
+---
+

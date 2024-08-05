@@ -23,6 +23,7 @@ TARGETS = {
     'cayman_antrea_multi-cluster': targets.cayman_antrea.CaymanAntreaMultiCluster,
     'cayman_antrea_ipsec': targets.cayman_antrea.CaymanAntreaIPsec,
     'cayman_antrea_idps': targets.cayman_antrea.CaymanAntreaIDPS,
+    'cayman_antrea_package': targets.cayman_antrea.CaymanAntreaPackage,
     'antrea-release': targets.antrea_release.AntreaRelease,
 }
 

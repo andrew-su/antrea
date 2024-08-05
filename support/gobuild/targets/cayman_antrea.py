@@ -440,3 +440,97 @@ class CaymanAntreaIDPS(_CaymanAntrea):
             'cayman_antrea/support/gobuild/provenance/cayman_antrea_idps.schematic.json',
             'cayman_antrea/support/gobuild/provenance/build.schematic.json'
         ]
+
+class CaymanAntreaPackage(_CaymanAntrea):
+    """
+    CaymanAntrea Open Source component
+    """
+    def GetClusterRequirements(self):
+        return product_map
+
+    def GetBuildProductNames(self):
+        return {'name': 'cayman_antrea_package',
+                'longname': 'cayman_antrea_package'}
+
+    def GetCommands(self, hosttype):
+        products = dist_map[hosttype]
+        commands = [self._Command(hosttype=hosttype, product=product, args={"BUILD_PRODUCT":"cayman_antrea_package"}) for product in products]
+        return self._WrapCommands(hosttype, commands)
+
+    def GetComponentPath(self):
+        return '%(buildroot)/publish'
+
+    def GetComponentDependencies(self):
+        comps = super(CaymanAntreaPackage, self).GetComponentDependencies()
+        comps['cayman'] = {
+            'branch':    specs.cayman_antrea.CAYMAN_BRANCH,
+            'change':    specs.cayman_antrea.CAYMAN_CLN,
+            'buildtype': specs.cayman_antrea.CAYMAN_BUILDTYPE,
+            'hosttypes': specs.cayman_antrea.CAYMAN_HOSTTYPES,
+        }
+        # Note we are using `cayman_go` component instead of `cayman_golang` to ensure GO lang version
+        # used is FIPS compliant version.
+        comps['cayman_go'] = {
+            'branch':    specs.cayman_antrea.CAYMAN_GO_BRANCH,     # nopep8
+            'change':    specs.cayman_antrea.CAYMAN_GO_CLN,        # nopep8
+            'buildtype': specs.cayman_antrea.CAYMAN_GO_BUILDTYPE,  # nopep8
+            "files": specs.cayman_antrea.CAYMAN_GO_FILES,
+        }
+        comps['cayman_python'] = {
+            "branch": specs.cayman_antrea.CAYMAN_PYTHON_BRANCH,
+            "change": specs.cayman_antrea.CAYMAN_PYTHON_CLN,
+            "buildtype": specs.cayman_antrea.CAYMAN_PYTHON_BUILDTYPE,
+            "hosttypes": specs.cayman_antrea.CAYMAN_PYTHON_HOSTTYPES,
+        }
+        comps['cayman_imgpkg'] = {
+            'branch': specs.cayman_antrea.CAYMAN_IMGPKG_BRANCH,
+            'change': specs.cayman_antrea.CAYMAN_IMGPKG_CLN,
+            'buildtype': specs.cayman_antrea.CAYMAN_IMGPKG_BUILDTYPE,
+            'files': specs.cayman_antrea.CAYMAN_IMGPKG_FILES,
+        }
+        comps['cayman_k14s_ytt'] = {
+            'branch': specs.cayman_antrea.CAYMAN_YTT_BRANCH,
+            'change': specs.cayman_antrea.CAYMAN_YTT_CLN,
+            'buildtype': specs.cayman_antrea.CAYMAN_YTT_BUILDTYPE,
+            'files': specs.cayman_antrea.CAYMAN_YTT_FILES,
+        }
+        comps['cayman_kbld'] = {
+            'branch': specs.cayman_antrea.CAYMAN_KBLD_BRANCH,
+            'change': specs.cayman_antrea.CAYMAN_KBLD_CLN,
+            'buildtype': specs.cayman_antrea.CAYMAN_KBLD_BUILDTYPE,
+            'files': specs.cayman_antrea.CAYMAN_KBLD_FILES,
+        }
+        comps["cayman_kubernetes-sigs_kustomize"] = {
+            "branch": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_BRANCH,
+            "change": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_CLN,
+            "buildtype": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_BUILDTYPE,
+            "files": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_FILES,
+        }
+        comps["cayman_helm"] = {
+            "branch": specs.cayman_antrea.CAYMAN_HELM_BRANCH,
+            "change": specs.cayman_antrea.CAYMAN_HELM_CLN,
+            "buildtype": specs.cayman_antrea.CAYMAN_HELM_BUILDTYPE,
+            "files": specs.cayman_antrea.CAYMAN_HELM_FILES,
+        }
+        comps["cayman_antrea_tkgm-advanced"] = {
+            "branch": specs.cayman_antrea.CAYMAN_ANTREA_TKGM_ADVANCED_BRANCH,
+            "change": specs.cayman_antrea.CAYMAN_ANTREA_TKGM_ADVANCED_CLN,
+            "buildtype": specs.cayman_antrea.CAYMAN_ANTREA_TKGM_ADVANCED_BUILDTYPE,
+            "files": specs.cayman_antrea.CAYMAN_ANTREA_TKGM_ADVANCED_FILES,
+        }
+        comps["antrea-interworking"] = {
+            "branch": specs.cayman_antrea.ANTREA_INTERWORKING_BRANCH,
+            "change": specs.cayman_antrea.ANTREA_INTERWORKING_CLN,
+            "buildtype": specs.cayman_antrea.ANTREA_INTERWORKING_BUILDTYPE,
+            "files": specs.cayman_antrea.ANTREA_INTERWORKING_FILES,
+        }
+        return comps
+
+    def GetProvenanceSchematics(self, hosttype):
+        return [
+            'cayman_antrea/support/gobuild/provenance/cayman_antrea_package.schematic.json',
+            'cayman_antrea/support/gobuild/provenance/build.schematic.json'
+        ]
+
+
+
