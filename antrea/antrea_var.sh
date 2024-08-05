@@ -1,5 +1,3 @@
-source release.config
-
 REPO_ROOT="${PROJECT_DIR}/src"
 
 OVS_VER=$(cat src/build/images/deps/ovs-version)
@@ -34,6 +32,8 @@ export DOCKER_BUILDKIT=1
 #
 # Note: Since Antrea >=1.5.2+vmware.2 the $ANTREA_TARGET is not encoded in branch name.
 # The $ANTREA_TARGET is determined in the next "if" block according to $BUILD_PRODUCT.
+source release.config
+source versions.config
 if [[ "${BRANCH_NAME}" == vmware-master* ]]; then
   IMAGE_VERSION=vmware-master
   BINARY_VERSION=vmware-master
@@ -57,7 +57,6 @@ elif [[ "${BRANCH_NAME}" == vmware-* ]]; then
   ANTREA_VERSION_DIGIT="${branch_name_trim}"
   ANTREA_TARGET="${BRANCH_NAME#vmware-*-}"
 else
-  source versions.config
   ANTREA_TARGET="${BRANCH_NAME}"
 fi
 if [ "$ANTREA_TARGET" = "${BRANCH_NAME}" ]; then
