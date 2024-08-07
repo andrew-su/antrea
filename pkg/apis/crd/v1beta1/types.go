@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -1284,4 +1285,86 @@ type TraceflowList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 
 	Items []Traceflow `json:"items"`
+}
+
+// AppliedToScope describes the grouping selector of workloads in AppliedToScope field.
+type AppliedToScope struct {
+	// Select all workloads from the namespaces matched/selected by the NamespaceSelector.
+	// +optional
+	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
+}
+
+// +genclient
+// +genclient:nonNamespaced
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type EgressEntitlement struct {
+	metav1.TypeMeta `json:",inline"`
+	// Standard metadata of the object.
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// Specification of the desired behavior of EgressEntitlement.
+	Spec EgressEntitlementSpec `json:"spec"`
+}
+
+// EgressEntitlementSpec defines the desired state for EgressEntitlement.
+type EgressEntitlementSpec struct {
+	// ExternalIPPools represents the list of ExternalIPPool names, for which the user will be entitled.
+	// If one wants to entitle the user to use all the available externalIPPools then they can use '*',
+	// to select all.
+	ExternalIPPools []string `json:"externalIPPools"`
+	// EgressIPs represents the list of Egress IPs, for which the user will be entitled.
+	// If one wants to entitle the user to use any IP as Egress IP then they can use '*', to select all.
+	EgressIPs []string `json:"egressIPs"`
+	// AppliedToScope represents the scope of the Egress resource which the user can create. It includes
+	// a namespaceSelector. If the namespaceSelector is omitted (nil), the user will not be allowed to create
+	// Egress resources. If the namespaceSelector is provided, the user will be allowed to create Egress resources
+	// for workloads present in the Namespaces selected by the provided namespaceSelector.
+	AppliedToScope AppliedToScope `json:"appliedToScope"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type EgressEntitlementList struct {
+	metav1.TypeMeta `json:",inline"`
+	// +optional
+	metav1.ListMeta `json:"metadata,omitempty"`
+
+	Items []EgressEntitlement `json:"items"`
+}
+
+// +genclient
+// +genclient:nonNamespaced
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type EgressEntitlementBinding struct {
+	metav1.TypeMeta `json:",inline"`
+	// Standard metadata of the object.
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// Specification of the desired behavior of EgressEntitlementBinding.
+	Spec EgressEntitlementBindingSpec `json:"spec"`
+}
+
+// EgressEntitlementBindingSpec defines the desired state for EgressEntitlementBinding.
+type EgressEntitlementBindingSpec struct {
+	// Subjects holds references to the objects the entitlement applies to.
+	// +optional
+	Subjects []rbacv1.Subject `json:"subjects,omitempty"`
+	// EgressEntitlement references a EgressEntitlement in the global namespace.
+	// If the EgressEntitlement cannot be resolved, the Authorizer must return an
+	// error.
+	EgressEntitlement string `json:"egressEntitlement"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type EgressEntitlementBindingList struct {
+	metav1.TypeMeta `json:",inline"`
+	// +optional
+	metav1.ListMeta `json:"metadata,omitempty"`
+
+	Items []EgressEntitlementBinding `json:"items"`
 }

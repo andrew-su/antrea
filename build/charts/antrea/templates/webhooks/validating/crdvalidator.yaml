@@ -132,7 +132,7 @@ webhooks:
         namespace: {{ .Release.Namespace }}
         path: "/validate/egress"
     rules:
-      - operations: ["CREATE", "UPDATE"]
+      - operations: ["CREATE", "UPDATE"{{if .Values.advanced}}, "DELETE"{{end}}]
         apiGroups: ["crd.antrea.io"]
         apiVersions: ["v1beta1"]
         resources: ["egresses"]
@@ -185,4 +185,21 @@ webhooks:
     admissionReviewVersions: ["v1", "v1beta1"]
     sideEffects: None
     timeoutSeconds: 5
+{{- if .Values.advanced}}
+  - name: "egressentitlementvalidator.antrea.io"
+    clientConfig:
+      service:
+        name: "antrea"
+        namespace: {{ .Release.Namespace }}
+        path: "/validate/egressentitlement"
+    rules:
+      - operations: ["DELETE"]
+        apiGroups: ["crd.antrea.io"]
+        apiVersions: ["v1beta1"]
+        resources: ["egressentitlements"]
+        scope: "Cluster"
+    admissionReviewVersions: ["v1", "v1beta1"]
+    sideEffects: None
+    timeoutSeconds: 5
+{{- end}}
 {{- end }}

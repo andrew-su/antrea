@@ -203,6 +203,7 @@ func Test_getControllerGatesResponse(t *testing.T) {
 				{Component: "controller", Name: "AntreaIPAM", Status: "Disabled", Version: "ALPHA"},
 				{Component: "controller", Name: "AntreaPolicy", Status: "Enabled", Version: "BETA"},
 				{Component: "controller", Name: "Egress", Status: egressStatus, Version: "BETA"},
+				{Component: "controller", Name: "EgressRBAC", Status: "Disabled", Version: "ALPHA"},
 				{Component: "controller", Name: "IPsecCertAuth", Status: "Disabled", Version: "ALPHA"},
 				{Component: "controller", Name: "L7NetworkPolicy", Status: "Disabled", Version: "ALPHA"},
 				{Component: "controller", Name: "Multicast", Status: multicastStatus, Version: "BETA"},

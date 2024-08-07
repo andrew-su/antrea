@@ -4362,6 +4362,9 @@ data:
     # set security postures for their clusters.
     #  AdminNetworkPolicy: false
 
+    # Enable Egress RBAC features.
+    #  EgressRBAC: false
+
     # The port for the antrea-controller APIServer to serve on.
     # Note that if it's set to another value, the `containerPort` of the `api` port of the
     # `antrea-controller` container must be set to the same value.
@@ -4631,7 +4634,7 @@ data:
             namespace: kube-system
             path: "/validate/egress"
         rules:
-          - operations: ["CREATE", "UPDATE"]
+          - operations: ["CREATE", "UPDATE", "DELETE"]
             apiGroups: ["crd.antrea.io"]
             apiVersions: ["v1beta1"]
             resources: ["egresses"]
@@ -4680,6 +4683,21 @@ data:
             apiGroups: ["crd.antrea.io"]
             apiVersions: ["v1beta1"]
             resources: ["traceflows"]
+            scope: "Cluster"
+        admissionReviewVersions: ["v1", "v1beta1"]
+        sideEffects: None
+        timeoutSeconds: 5
+      - name: "egressentitlementvalidator.antrea.io"
+        clientConfig:
+          service:
+            name: "antrea"
+            namespace: kube-system
+            path: "/validate/egressentitlement"
+        rules:
+          - operations: ["DELETE"]
+            apiGroups: ["crd.antrea.io"]
+            apiVersions: ["v1beta1"]
+            resources: ["egressentitlements"]
             scope: "Cluster"
         admissionReviewVersions: ["v1", "v1beta1"]
         sideEffects: None
@@ -4893,6 +4911,124 @@ data:
         # Enable disableUdpTunnelOffload will disable udp tunnel offloading feature on kubernetes node's default interface.
         # By default, no actions will be taken.
         disableUdpTunnelOffload: false
+---
+# Source: antrea/templates/crds/egressentitlement.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: egressentitlements.crd.antrea.io
+  labels:
+    app: antrea
+spec:
+  group: crd.antrea.io
+  versions:
+    - name: v1beta1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              required:
+                - externalIPPools
+                - egressIPs
+                - appliedToScope
+              type: object
+              properties:
+                externalIPPools:
+                  type: array
+                  items:
+                    type: string
+                egressIPs:
+                  type: array
+                  items:
+                    type: string
+                    oneOf:
+                    - format: ipv4
+                    - format: ipv6
+                    - pattern: '^\*$'
+                appliedToScope:
+                  type: object
+                  properties:
+                    namespaceSelector:
+                      type: object
+                      properties:
+                        matchExpressions:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              key:
+                                type: string
+                              operator:
+                                enum:
+                                  - In
+                                  - NotIn
+                                  - Exists
+                                  - DoesNotExist
+                                type: string
+                              values:
+                                type: array
+                                items:
+                                  type: string
+                                  pattern: "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$"
+                        matchLabels:
+                          type: object
+                          additionalProperties:
+                            type: string
+                            pattern: "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$"  
+  scope: Cluster
+  names:
+    plural: egressentitlements
+    singular: egressentitlement
+    kind: EgressEntitlement
+---
+# Source: antrea/templates/crds/egressentitlementbinding.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: egressentitlementbindings.crd.antrea.io
+  labels:
+    app: antrea
+spec:
+  group: crd.antrea.io
+  versions:
+    - name: v1beta1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              required:
+                - egressEntitlement
+                - subjects
+              type: object
+              properties:
+                egressEntitlement:
+                  type: string
+                subjects:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      kind:
+                        type: string
+                        enum: ['User', 'Group', 'ServiceAccount']
+                      apiGroup:
+                        type: string
+                        enum: ['rbac.authorization.k8s.io']
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+  scope: Cluster
+  names:
+    plural: egressentitlementbindings
+    singular: egressentitlementbinding
+    kind: EgressEntitlementBinding
 ---
 # Source: antrea/templates/crds/tierentitlement.yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -5692,6 +5828,16 @@ rules:
       - get
       - watch
       - list
+  - apiGroups:
+      - crd.antrea.io
+    resources:
+      - egressentitlements
+      - egressentitlementbindings
+    verbs:
+      - get
+      - watch
+      - list
+      - create
 ---
 # Source: antrea/templates/crds-rbac/clusterroles.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -5927,7 +6073,7 @@ spec:
         kubectl.kubernetes.io/default-container: antrea-agent
         # Automatically restart Pods with a RollingUpdate if the ConfigMap changes
         # See https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
-        checksum/config: ca0b5bc8714aa6a7ccf10613d6ece7fce88fcd8cad50e53496a429c2d38da483
+        checksum/config: f16f19978e19c32af7134ebce0e02684810cc747e0ab2347da34efb475a1a7c6
         checksum/tweaker-config: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
         # Adding annotations to allow Wavefront Collectors to scrape metrics
         prometheus.io/scheme: "https"
@@ -6199,7 +6345,7 @@ spec:
       annotations:
         # Automatically restart Pod if the ConfigMap changes
         # See https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
-        checksum/config: ca0b5bc8714aa6a7ccf10613d6ece7fce88fcd8cad50e53496a429c2d38da483
+        checksum/config: f16f19978e19c32af7134ebce0e02684810cc747e0ab2347da34efb475a1a7c6
         # Adding annotations to allow Wavefront Collectors to scrape metrics
         prometheus.io/scheme: "https"
         prometheus.io/scrape: "true"
@@ -6330,7 +6476,7 @@ spec:
       annotations:
         # Automatically restart Pod if the ConfigMap changes
         # See https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
-        checksum/config: 4a0fa663de14ba8fb9c1bcb38f490fab95206920364278b75fbd94cd7c9034f9
+        checksum/config: 9671d7a72605319643c7c1653eef62d8aa71098cfc90286053e3189b14a6b72b
       labels:
         app: antrea
         component: antrea-resource-init

@@ -198,7 +198,9 @@ func newController(objects, crdObjects []runtime.Object) *egressController {
 		informerFactory.Core().V1().Pods(),
 		informerFactory.Core().V1().Namespaces(),
 		crdInformerFactory.Crd().V1alpha2().ExternalEntities())
-	controller := NewEgressController(crdClient, groupEntityIndex, egressInformer, externalIPAllocator, egressGroupStore)
+	egressEntitlementInformer := crdInformerFactory.Crd().V1beta1().EgressEntitlements()
+	egressEntitlementBindingInformer := crdInformerFactory.Crd().V1beta1().EgressEntitlementBindings()
+	controller := NewEgressController(crdClient, groupEntityIndex, egressInformer, externalIPAllocator, egressGroupStore, egressEntitlementInformer, egressEntitlementBindingInformer, true)
 	return &egressController{
 		controller,
 		client,
@@ -684,9 +686,9 @@ func TestRecreateExternalIPPoolWithNewRange(t *testing.T) {
 	controller.restoreIPAllocations([]*v1beta1.Egress{egress})
 
 	require.True(t, controller.externalIPAllocator.IPPoolExists(eipFoo1.Name))
-	getEgressIP, egress, err := controller.syncEgressIP(egress)
+	egress, err := controller.syncEgressIP(egress)
 	require.NoError(t, err)
-	assert.Equal(t, net.ParseIP("1.1.1.1"), getEgressIP)
+	assert.Equal(t, "1.1.1.1", egress.Spec.EgressIP)
 
 	// Delete and recreate the ExternalIPPool immediately with a different IP range. We do not
 	// call syncEgressIP in-between, so the Egress controller doesn't have a chance to process
@@ -702,9 +704,9 @@ func TestRecreateExternalIPPoolWithNewRange(t *testing.T) {
 		assert.True(t, controller.externalIPAllocator.IPPoolExists(eipFoo1.Name))
 	}, 1*time.Second, 10*time.Millisecond)
 
-	getEgressIP, _, err = controller.syncEgressIP(egress)
+	egress, err = controller.syncEgressIP(egress)
 	require.NoError(t, err)
-	assert.Equal(t, net.ParseIP("1.1.2.1"), getEgressIP)
+	assert.Equal(t, "1.1.2.1", egress.Spec.EgressIP)
 }
 
 func TestSyncEgressIP(t *testing.T) {

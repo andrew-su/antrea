@@ -116,6 +116,7 @@ var allowedPaths = []string{
 	"/validate/clustergroup",
 	"/validate/externalippool",
 	"/validate/egress",
+	"/validate/egressentitlement",
 	"/validate/group",
 	"/validate/ippool",
 	"/validate/supportbundlecollection",
@@ -159,6 +160,8 @@ func run(o *Options) error {
 	ipPoolInformer := crdInformerFactory.Crd().V1beta1().IPPools()
 	adminNPInformer := policyInformerFactory.Policy().V1alpha1().AdminNetworkPolicies()
 	banpInformer := policyInformerFactory.Policy().V1alpha1().BaselineAdminNetworkPolicies()
+	egressEntitlementInformer := crdInformerFactory.Crd().V1beta1().EgressEntitlements()
+	egressEntitlementBindingInformer := crdInformerFactory.Crd().V1beta1().EgressEntitlementBindings()
 
 	// Add IP-Pod index. Each Pod has no more than 2 IPs, the extra overhead is constant and acceptable.
 	// @tnqn evaluated the performance without/with IP index is 3us vs 4us per pod, i.e. 300ms vs 400ms for 100k Pods.
@@ -268,7 +271,7 @@ func run(o *Options) error {
 	}
 
 	if features.DefaultFeatureGate.Enabled(features.Egress) {
-		egressController = egress.NewEgressController(crdClient, groupEntityIndex, egressInformer, externalIPPoolController, egressGroupStore)
+		egressController = egress.NewEgressController(crdClient, groupEntityIndex, egressInformer, externalIPPoolController, egressGroupStore, egressEntitlementInformer, egressEntitlementBindingInformer, *o.config.EnterpriseAntrea)
 		if o.config.CloudProvider.Name != "" {
 			egressCloudController, err = egress.NewEgressCloudController(client, egressInformer, nodeInformer, cloudProvider)
 			if err != nil {

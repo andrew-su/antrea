@@ -26,6 +26,10 @@ type ClusterNetworkPolicyExpansion interface{}
 
 type EgressExpansion interface{}
 
+type EgressEntitlementExpansion interface{}
+
+type EgressEntitlementBindingExpansion interface{}
+
 type ExternalIPPoolExpansion interface{}
 
 type GroupExpansion interface{}

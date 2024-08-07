@@ -320,4 +320,14 @@ rules:
       - get
       - watch
       - list
+  - apiGroups:
+      - crd.antrea.io
+    resources:
+      - egressentitlements
+      - egressentitlementbindings
+    verbs:
+      - get
+      - watch
+      - list
+      - create
 {{- end}}

@@ -84,6 +84,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Crd().V1beta1().ClusterNetworkPolicies().Informer()}, nil
 	case v1beta1.SchemeGroupVersion.WithResource("egresses"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Crd().V1beta1().Egresses().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("egressentitlements"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Crd().V1beta1().EgressEntitlements().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("egressentitlementbindings"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Crd().V1beta1().EgressEntitlementBindings().Informer()}, nil
 	case v1beta1.SchemeGroupVersion.WithResource("externalippools"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Crd().V1beta1().ExternalIPPools().Informer()}, nil
 	case v1beta1.SchemeGroupVersion.WithResource("groups"):

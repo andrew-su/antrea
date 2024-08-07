@@ -31,6 +31,8 @@ type CrdV1beta1Interface interface {
 	ClusterGroupsGetter
 	ClusterNetworkPoliciesGetter
 	EgressesGetter
+	EgressEntitlementsGetter
+	EgressEntitlementBindingsGetter
 	ExternalIPPoolsGetter
 	GroupsGetter
 	IPPoolsGetter
@@ -62,6 +64,14 @@ func (c *CrdV1beta1Client) ClusterNetworkPolicies() ClusterNetworkPolicyInterfac
 
 func (c *CrdV1beta1Client) Egresses() EgressInterface {
 	return newEgresses(c)
+}
+
+func (c *CrdV1beta1Client) EgressEntitlements() EgressEntitlementInterface {
+	return newEgressEntitlements(c)
+}
+
+func (c *CrdV1beta1Client) EgressEntitlementBindings() EgressEntitlementBindingInterface {
+	return newEgressEntitlementBindings(c)
 }
 
 func (c *CrdV1beta1Client) ExternalIPPools() ExternalIPPoolInterface {

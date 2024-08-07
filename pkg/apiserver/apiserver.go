@@ -337,6 +337,13 @@ func installHandlers(c *ExtraConfig, s *genericapiserver.GenericAPIServer) {
 
 	if features.DefaultFeatureGate.Enabled(features.Egress) {
 		s.Handler.NonGoRestfulMux.HandleFunc("/validate/egress", webhook.HandlerForValidateFunc(c.egressController.ValidateEgress))
+		if features.DefaultFeatureGate.Enabled(features.EgressRBAC) {
+			s.Handler.NonGoRestfulMux.HandleFunc("/validate/egressentitlement", webhook.HandlerForValidateFunc(c.egressController.ValidateEgressEntitlement))
+			s.AddPostStartHook("initialize-entitlements", func(context genericapiserver.PostStartHookContext) error {
+				go c.egressController.InitializeEgressEntitlement()
+				return nil
+			})
+		}
 	}
 
 	if features.DefaultFeatureGate.Enabled(features.AntreaIPAM) || features.DefaultFeatureGate.Enabled(features.SecondaryNetwork) {

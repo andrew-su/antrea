@@ -179,6 +179,10 @@ const (
 	// Allow users to initiate BGP process on selected Kubernetes Nodes and advertise Service IPs, Pod IPs and Egress
 	// IPs to remote BGP peers.
 	BGPPolicy featuregate.Feature = "BGPPolicy"
+
+	// alpha: v2.1
+	// Allows user to impose RBAC features on Egress resource.
+	EgressRBAC featuregate.Feature = "EgressRBAC"
 )
 
 var (
@@ -224,6 +228,7 @@ var (
 		NodeNetworkPolicy:           {Default: false, PreRelease: featuregate.Alpha},
 		L7FlowExporter:              {Default: false, PreRelease: featuregate.Alpha},
 		NodeLatencyMonitor:          {Default: false, PreRelease: featuregate.Alpha},
+		EgressRBAC:                  {Default: false, PreRelease: featuregate.Alpha},
 	}
 
 	// AgentGates consists of all known feature gates for the Antrea Agent.
@@ -276,6 +281,7 @@ var (
 		ServiceExternalIP,
 		SupportBundleCollection,
 		Traceflow,
+		EgressRBAC,
 	)
 
 	// UnsupportedFeaturesOnWindows records the features not supported on
@@ -310,6 +316,7 @@ var (
 		L7FlowExporter:              {},
 		NodeLatencyMonitor:          {},
 		PacketCapture:               {},
+		EgressRBAC:                  {},
 	}
 	// supportedFeaturesOnExternalNode records the features supported on an external
 	// Node. Antrea Agent checks the enabled features if it is running on an

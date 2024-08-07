@@ -36,6 +36,14 @@ type ClusterNetworkPolicyListerExpansion interface{}
 // EgressLister.
 type EgressListerExpansion interface{}
 
+// EgressEntitlementListerExpansion allows custom methods to be added to
+// EgressEntitlementLister.
+type EgressEntitlementListerExpansion interface{}
+
+// EgressEntitlementBindingListerExpansion allows custom methods to be added to
+// EgressEntitlementBindingLister.
+type EgressEntitlementBindingListerExpansion interface{}
+
 // ExternalIPPoolListerExpansion allows custom methods to be added to
 // ExternalIPPoolLister.
 type ExternalIPPoolListerExpansion interface{}

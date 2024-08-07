@@ -46,6 +46,14 @@ func (c *FakeCrdV1beta1) Egresses() v1beta1.EgressInterface {
 	return &FakeEgresses{c}
 }
 
+func (c *FakeCrdV1beta1) EgressEntitlements() v1beta1.EgressEntitlementInterface {
+	return &FakeEgressEntitlements{c}
+}
+
+func (c *FakeCrdV1beta1) EgressEntitlementBindings() v1beta1.EgressEntitlementBindingInterface {
+	return &FakeEgressEntitlementBindings{c}
+}
+
 func (c *FakeCrdV1beta1) ExternalIPPools() v1beta1.ExternalIPPoolInterface {
 	return &FakeExternalIPPools{c}
 }

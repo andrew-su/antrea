@@ -24,6 +24,7 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -45,6 +46,7 @@ import (
 	"antrea.io/antrea/pkg/controller/externalippool"
 	"antrea.io/antrea/pkg/controller/grouping"
 	antreatypes "antrea.io/antrea/pkg/controller/types"
+	"antrea.io/antrea/pkg/features"
 	"antrea.io/antrea/pkg/util/k8s"
 )
 
@@ -61,6 +63,9 @@ const (
 	egressGroupType grouping.GroupType = "egressGroup"
 
 	externalIPPoolIndex = "externalIPPool"
+
+	subjectUserIndex  = "subjectUser"
+	subjectGroupIndex = "subjectGroup"
 )
 
 // ipAllocation contains a map of IPPool and IP string: <the IP Pool which allocates the IP>:<the IP>.
@@ -90,6 +95,16 @@ type EgressController struct {
 	groupingInterface grouping.Interface
 	// Added as a member to the struct to allow injection for testing.
 	groupingInterfaceSynced func() bool
+
+	egressEntitlementInformer     egressinformers.EgressEntitlementInformer
+	egressEntitlementLister       egresslisters.EgressEntitlementLister
+	egressEntitlementListerSynced cache.InformerSynced
+
+	egressEntitlementBindingInformer     egressinformers.EgressEntitlementBindingInformer
+	egressEntitlementBindingLister       egresslisters.EgressEntitlementBindingLister
+	egressEntitlementBindingListerSynced cache.InformerSynced
+
+	isEnterpriseAntrea bool
 }
 
 // NewEgressController returns a new *EgressController.
@@ -97,7 +112,10 @@ func NewEgressController(crdClient clientset.Interface,
 	groupingInterface grouping.Interface,
 	egressInformer egressinformers.EgressInformer,
 	externalIPAllocator externalippool.ExternalIPAllocator,
-	egressGroupStore storage.Interface) *EgressController {
+	egressGroupStore storage.Interface,
+	egressEntitlementInformer egressinformers.EgressEntitlementInformer,
+	egressEntitlementBindingInformer egressinformers.EgressEntitlementBindingInformer,
+	enterpriseAntrea bool) *EgressController {
 	c := &EgressController{
 		crdClient:          crdClient,
 		egressInformer:     egressInformer,
@@ -115,6 +133,7 @@ func NewEgressController(crdClient clientset.Interface,
 		groupingInterfaceSynced: groupingInterface.HasSynced,
 		ipAllocationMap:         make(map[string]ipAllocation),
 		externalIPAllocator:     externalIPAllocator,
+		isEnterpriseAntrea:      enterpriseAntrea,
 	}
 	// Add handlers for Group events and Egress events.
 	c.groupingInterface.AddEventHandler(egressGroupType, c.enqueueEgressGroup)
@@ -146,6 +165,49 @@ func NewEgressController(crdClient clientset.Interface,
 	c.externalIPAllocator.AddEventHandler(func(ipPool string) {
 		c.enqueueEgresses(ipPool)
 	})
+
+	if features.DefaultFeatureGate.Enabled(features.EgressRBAC) && enterpriseAntrea {
+		c.egressEntitlementInformer = egressEntitlementInformer
+		c.egressEntitlementLister = egressEntitlementInformer.Lister()
+		c.egressEntitlementListerSynced = egressEntitlementInformer.Informer().HasSynced
+		c.egressEntitlementBindingInformer = egressEntitlementBindingInformer
+		c.egressEntitlementBindingLister = egressEntitlementBindingInformer.Lister()
+		c.egressEntitlementBindingListerSynced = egressEntitlementBindingInformer.Informer().HasSynced
+
+		egressEntitlementBindingInformer.Informer().AddIndexers(
+			cache.Indexers{
+				subjectUserIndex: func(obj interface{}) ([]string, error) {
+					eetb, ok := obj.(*egressv1beta1.EgressEntitlementBinding)
+					if !ok || len(eetb.Spec.Subjects) == 0 {
+						return []string{}, nil
+					}
+					var subjects []string
+					for _, s := range eetb.Spec.Subjects {
+						switch s.Kind {
+						case rbacv1.UserKind:
+							subjects = append(subjects, s.Name)
+						case rbacv1.ServiceAccountKind:
+							subjects = append(subjects, fmt.Sprintf("%s:%s", s.Namespace, s.Name))
+						}
+					}
+					return subjects, nil
+				},
+				subjectGroupIndex: func(obj interface{}) ([]string, error) {
+					eetb, ok := obj.(*egressv1beta1.EgressEntitlementBinding)
+					if !ok || len(eetb.Spec.Subjects) == 0 {
+						return []string{}, nil
+					}
+					var subjects []string
+					for _, s := range eetb.Spec.Subjects {
+						if s.Kind == rbacv1.GroupKind {
+							subjects = append(subjects, s.Name)
+						}
+					}
+					return subjects, nil
+				},
+			},
+		)
+	}
 	return c
 }
 
