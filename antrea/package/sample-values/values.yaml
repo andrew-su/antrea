@@ -53,7 +53,7 @@ antrea:
     disableUdpTunnelOffload: false
     #! Setting defaultMTU to null since antrea-agent will discover the MTU of the Node's primary interface and
     #! also adjust MTU to accommodate for tunnel encapsulation overhead.
-    defaultMTU: 0
+    defaultMTU: 1599
     tlsCipherSuites: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_256_GCM_SHA384
     enableBridgingMode: false
     disableTXChecksumOffload: false
@@ -115,24 +115,20 @@ antrea:
       antreaProxy:
         enable: true
         proxyAll: true
-        serviceProxyName: ""
+        serviceProxyName: "test"
       flowExporter:
         collectorAddress: "flow-aggregator/flow-aggregator:4739:tls"
-        pollInterval: "5s"
+        pollInterval: "15s"
         activeFlowTimeout: "60s"
         idleFlowTimeout: "15s"
       kubeAPIServerOverride: ""
       transportInterface: null
       transportInterfaceCIDRs: []
-      serviceCIDR: 10.96.0.0/12
-      #! Setting defaultMTU to null since antrea-agent will discover the MTU of the Node's primary interface and
-      #! also adjust MTU to accommodate for tunnel encapsulation overhead.
-      defaultMTU: 0
       tlsCipherSuites: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_256_GCM_SHA384
       featureGates:
         AntreaProxy: true
         NodePortLocal: true
-        FlowExporter: false
+        FlowExporter: true
 
 antrea_nsx:
   enable: true

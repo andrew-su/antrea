@@ -81,7 +81,7 @@ func main() {
 	buildStartTime := time.Now()
 	logInfo(buildLogCtx, "started")
 	gobuildTarget := "cayman_antrea_package" // same as the one found at support/gobuild/__init__.py
-	timeout := time.Hour
+	timeout := time.Hour * 2
 
 	bw, makeErr := buildweb.MakeBuildwebBuildOptions(
 		buildweb.WithVaultTokenFromEnv("VAULT_TOKEN"),

@@ -331,7 +331,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-        image: antrea/antrea-windows:v2.1.0_vmware.1
+        image: antrea/antrea-windows:v2.1.0_vmware.2
         imagePullPolicy: IfNotPresent
         lifecycle:
           postStart:
@@ -363,7 +363,7 @@ spec:
         - $env:CONTAINER_SANDBOX_MOUNT_POINT/var/lib/antrea-windows/Run-AntreaOVS.ps1
         command:
         - powershell
-        image: antrea/antrea-windows:v2.1.0_vmware.1
+        image: antrea/antrea-windows:v2.1.0_vmware.2
         imagePullPolicy: IfNotPresent
         name: antrea-ovs
         volumeMounts:
@@ -379,7 +379,7 @@ spec:
         - $env:CONTAINER_SANDBOX_MOUNT_POINT/var/lib/antrea-windows/Install-WindowsCNI.ps1
         command:
         - powershell
-        image: antrea/antrea-windows:v2.1.0_vmware.1
+        image: antrea/antrea-windows:v2.1.0_vmware.2
         imagePullPolicy: IfNotPresent
         name: install-cni
         volumeMounts:
@@ -393,7 +393,7 @@ spec:
         - $env:CONTAINER_SANDBOX_MOUNT_POINT/var/lib/antrea-windows/Install-OVSDriver.ps1
         command:
         - powershell
-        image: antrea/antrea-windows:v2.1.0_vmware.1
+        image: antrea/antrea-windows:v2.1.0_vmware.2
         imagePullPolicy: IfNotPresent
         name: install-ovs-driver
         volumeMounts:
