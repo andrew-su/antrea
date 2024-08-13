@@ -182,8 +182,8 @@ func main() {
 
 	// bundle => antrea-v2.1.0_vmware.1-tkg.1-thick.tar
 	bundleTar := fmt.Sprintf("antrea-%s-thick.tar", bundleTag)
-	// Package CR => 2.1.0_vmware.1-tkg.1.yaml (1MB)
-	pkgCrFilename := fmt.Sprintf("%s_%s-%s.yml", os.Getenv("ANTREA_SEMVER"), os.Getenv("VMWARE_VERSION_SUFFIX"), tkgVersionSuffix)
+	// Package CR => 2.1.0+vmware.1-tkg.1.yaml (1MB)
+	pkgCrFilename := fmt.Sprintf("%s+%s-%s.yml", os.Getenv("ANTREA_SEMVER"), os.Getenv("VMWARE_VERSION_SUFFIX"), tkgVersionSuffix)
 	pkgMetaCrFilename := "upstream-metadata.yaml"
 
 	bundlePubSpec := bwartifact.BundlePublishSpecs{
