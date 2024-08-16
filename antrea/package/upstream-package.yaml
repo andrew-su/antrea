@@ -7,10 +7,12 @@ metadata:
   name: #@ "antrea.tanzu.vmware.com.{}".format(data.values.version)
 spec:
   refName: antrea.tanzu.vmware.com
-  version: #@ data.values.version
-  releaseNotes: #@ data.values.version
+  releasedAt: #@ data.values.current_time
+  releaseNotes: #@ "https://github.com/antrea-io/antrea/releases/tag/v{}".format(data.values.semver_version)
   licenses:
-  - Apache 2.0
+  - >-
+    VMware's End User License Agreement (Underlying OSS license: Apache
+    License 2.0)
   template:
     spec:
       syncPeriod: 5m

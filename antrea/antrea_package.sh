@@ -101,8 +101,8 @@ cp "${IMAGE_FILEPATH_ANTREA_WINDOWS}" "${OUTPUT_DIR}"/images
 # Build carvel package
 # package metadata. version format example: 2.1.0+vmware.1-tkg.1
 mkdir -p ${OUTPUT_DIR}/package-crs
-cp ${PROJECT_DIR}/package/upstream-metadata.yaml ${OUTPUT_DIR}/package-crs/
-ytt --data-value-yaml version=${ANTREA_SEMVER}+${BUILD_VERSION_SUFFIX} -f ${PROJECT_DIR}/package/upstream-package.yaml > ${OUTPUT_DIR}/package-crs/${ANTREA_SEMVER}+${BUILD_VERSION_SUFFIX}.yml
+cp ${PROJECT_DIR}/package/upstream-metadata.yaml ${OUTPUT_DIR}/package-crs/metadata.yaml
+ytt -v semver_version=${ANTREA_SEMVER} -v current_time=`date '+%Y-%m-%dT%T.%zZ'`  -v version=${ANTREA_SEMVER}+${BUILD_VERSION_SUFFIX} -f ${PROJECT_DIR}/package/upstream-package.yaml > ${OUTPUT_DIR}/package-crs/${ANTREA_SEMVER}+${BUILD_VERSION_SUFFIX}.yml
 
 
 # copy version files for ci use.
