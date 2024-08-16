@@ -8,6 +8,7 @@ metadata:
 spec:
   refName: antrea.tanzu.vmware.com
   releasedAt: #@ data.values.current_time
+  version: #@ data.values.version
   releaseNotes: #@ "https://github.com/antrea-io/antrea/releases/tag/v{}".format(data.values.semver_version)
   licenses:
   - >-
