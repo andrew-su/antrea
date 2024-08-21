@@ -102,7 +102,7 @@ cp "${IMAGE_FILEPATH_ANTREA_WINDOWS}" "${OUTPUT_DIR}"/images
 # package metadata. version format example: 2.1.0+vmware.1-tkg.1
 mkdir -p ${OUTPUT_DIR}/package-crs
 cp ${PROJECT_DIR}/package/upstream-metadata.yaml ${OUTPUT_DIR}/package-crs/metadata.yml
-ytt -v semver_version=${ANTREA_SEMVER} -v current_time=`date '+%Y-%m-%dT%T.%zZ'`  -v version=${ANTREA_SEMVER}+${BUILD_VERSION_SUFFIX} -f ${PROJECT_DIR}/package/upstream-package.yaml > ${OUTPUT_DIR}/package-crs/${ANTREA_SEMVER}+${BUILD_VERSION_SUFFIX}.yml
+ytt -v semver_version=${ANTREA_SEMVER} -v current_time=`date -u +"%Y-%m-%dT%H:%M:%SZ"`  -v version=${ANTREA_SEMVER}+${BUILD_VERSION_SUFFIX} -f ${PROJECT_DIR}/package/upstream-package.yaml > ${OUTPUT_DIR}/package-crs/${ANTREA_SEMVER}+${BUILD_VERSION_SUFFIX}.yml
 
 
 # copy version files for ci use.
