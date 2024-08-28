@@ -632,22 +632,3 @@ metadata:
     kapp.k14s.io/disable-default-label-scoping-rules: ""
 
 
-#@overlay/match by=overlay.subset({"kind": "CustomResourceDefinition", "metadata": {"name": "clustergroups.crd.antrea.io"}})
-#@overlay/match-child-defaults missing_ok=True
----
-kind: CustomResourceDefinition
-metadata:
-  #@overlay/merge
-  labels:
-    served-by: antrea-controller
-spec:
-  #@overlay/match missing_ok=True
-  conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions: ["v1", "v1beta1"]
-      clientConfig:
-        service:
-          name: "antrea"
-          namespace: "kube-system"
-          path: "/convert/clustergroup"

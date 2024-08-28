@@ -28,3 +28,9 @@ rebaseRules:
       matchers:
       - kindNamespaceNameMatcher: {kind: ConfigMap, namespace: vmware-system-antrea, name: cluster-id}
       - kindNamespaceNameMatcher: {kind: Secret, namespace: vmware-system-antrea, name: nsx-cert}
+
+- path: [spec, conversion]
+  type: remove
+  sources: [existing]
+  resourceMatchers:
+  - kindNamespaceNameMatcher: {kind: CustomResourceDefinition, namespace: "", name: clustergroups.crd.antrea.io}
