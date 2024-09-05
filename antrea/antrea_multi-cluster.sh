@@ -21,7 +21,8 @@ for yml_file in ${REPO_ROOT}/multicluster/build/yamls/*.yml; do
   base_name="$(basename $yml_file .yml)"
   sed \
     -e "s/image: antrea\/antrea-.*\$/image: antrea\/antrea-mc-controller:${IMAGE_VERSION}/g" \
-    -e "s/image: projects.registry.vmware.com\/antrea\/antrea-.*\$/image: antrea\/antrea-mc-controller:${IMAGE_VERSION}/g" \
+    -e "s/image: projects.packages.vcfd.broadcom.net\/antrea\/antrea-.*\$/image: antrea\/antrea-mc-controller:${IMAGE_VERSION}/g" \
+    -e "s/image: projects.packages.vcfd.broadcom.net\/antrea\/antrea-.*\$/image: antrea\/antrea-mc-controller:${IMAGE_VERSION}/g" \
     "$yml_file" > "${OUTPUT_DIR}/manifests/${base_name}-${BINARY_VERSION}.yml"
 done
 cp -r "${REPO_ROOT}/multicluster/config/samples/clusterset_init" "${OUTPUT_DIR}/manifests"

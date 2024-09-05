@@ -10,6 +10,7 @@ import helpers.env
 import helpers.python
 import helpers.target
 import specs.cayman_antrea
+from helpers.lvn_helper import simulate_lvn_build
 
 BRANCH_NAME = "%(branch)"
 BUILDROOT = "%(buildroot)"
@@ -235,6 +236,7 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
             'cayman_antrea/support/gobuild/provenance/build.schematic.json'
         ]
 
+@simulate_lvn_build
 class CaymanAntrea(_CaymanAntrea):
     """
     CaymanAntrea Open Source component
@@ -255,6 +257,7 @@ class CaymanAntrea(_CaymanAntrea):
     def GetComponentPath(self):
         return '%(buildroot)/publish'
 
+@simulate_lvn_build
 class CaymanAntreaTKGMAdv(_CaymanAntrea):
     """
     CaymanAntrea Open Source component
@@ -275,6 +278,7 @@ class CaymanAntreaTKGMAdv(_CaymanAntrea):
     def GetComponentPath(self):
         return '%(buildroot)/publish'
 
+@simulate_lvn_build
 class CaymanAntreaTKGSAdv(_CaymanAntrea):
     """
     CaymanAntrea Open Source component
@@ -295,6 +299,7 @@ class CaymanAntreaTKGSAdv(_CaymanAntrea):
     def GetComponentPath(self):
         return '%(buildroot)/publish'
 
+@simulate_lvn_build
 class CaymanAntreaMultiCluster(_CaymanAntrea):
     """
     CaymanAntrea Open Source component
@@ -358,6 +363,7 @@ class CaymanAntreaMultiCluster(_CaymanAntrea):
             'cayman_antrea/support/gobuild/provenance/build.schematic.json'
         ]
 
+@simulate_lvn_build
 class CaymanAntreaIPsec(_CaymanAntrea):
     """
     CaymanAntrea Open Source component
@@ -378,6 +384,7 @@ class CaymanAntreaIPsec(_CaymanAntrea):
     def GetComponentPath(self):
         return '%(buildroot)/publish'
 
+@simulate_lvn_build
 class CaymanAntreaIDPS(_CaymanAntrea):
     """
     CaymanAntrea Open Source component
@@ -441,6 +448,7 @@ class CaymanAntreaIDPS(_CaymanAntrea):
             'cayman_antrea/support/gobuild/provenance/build.schematic.json'
         ]
 
+@simulate_lvn_build
 class CaymanAntreaPackage(_CaymanAntrea):
     """
     CaymanAntrea Open Source component

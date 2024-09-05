@@ -23,8 +23,8 @@
     Specifies if extract certificate from driver file.
 
 .EXAMPLE
-    PS C:\> $NSXOVSUrl="http://build-squid.eng.vmware.com/build/mts/release/bora-17654316/publish/windows_x64/openvswitch_2.13.1.17654316-win64.zip"
-    PS C:\> $VCRedistUrl="http://build-artifactory.eng.vmware.com/artifactory/nsbu-windows-local/vcredists.zip"
+    PS C:\> $NSXOVSUrl="http://build-squid.vcfd.broadcom.net/build/mts/release/bora-17654316/publish/windows_x64/openvswitch_2.13.1.17654316-win64.zip"
+    PS C:\> $VCRedistUrl="http://packages.vcfd.broadcom.net/artifactory/nsbu-windows-local/vcredists.zip"
     PS C:\> .\Get-NSXOVS.ps1 -OVSUrl $NSXOVSUrl -VCRedistUrl $VCRedistUrl
 
     The outout OVS package will be ./ovs-win64.zip

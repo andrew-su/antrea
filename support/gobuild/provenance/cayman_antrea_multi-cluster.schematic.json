@@ -38,6 +38,10 @@
             "$(gobuild:gobuild_component_cayman_kubernetes_sigs_kustomize_uid)": {
                 "incorporated": false,
                 "usages": ["building"]
+            },
+            "$(gobuild:gobuild_component_lvn_sim_tools_uid)": {
+                "incorporated": false,
+                "usages": ["building"]
             }
         }
     },

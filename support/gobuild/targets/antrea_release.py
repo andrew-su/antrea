@@ -4,6 +4,7 @@ import helpers.buildapi
 import helpers.target
 import helpers.env
 import specs.antrea_release
+from helpers.lvn_helper import simulate_lvn_build
 
 BRANCH_NAME = "%(branch)"
 BUILDROOT = "%(buildroot)"
@@ -11,6 +12,7 @@ PROJECT_DIR = "%s/antrea-release" % (BUILDROOT)
 PUBLISH_DIR = "%s/publish" %(BUILDROOT)
 BUILDNUMBER = "%(buildnumber)"
 
+@simulate_lvn_build
 class AntreaRelease(helpers.target.Target):
     def GetBuildProductNames(self):
         return {

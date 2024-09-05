@@ -24,21 +24,21 @@ make suricata-image VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
 
 echo "====== Prepairing Antrea IDPS Manifests ======"
 MANIFESTS_DIR=$(mktemp -d)
-IDPS_IMG_NAME=projects.registry.vmware.com/antreainterworking/idps SURICATA_IMG_NAME=projects.registry.vmware.com/antreainterworking/suricata IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest-idps.sh --mode release --out "${MANIFESTS_DIR}"
+IDPS_IMG_NAME=projects.packages.broadcom.com/antreainterworking/idps SURICATA_IMG_NAME=projects.packages.broadcom.com/antreainterworking/suricata IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest-idps.sh --mode release --out "${MANIFESTS_DIR}"
 
 echo "====== Saving and Signing Antrea IDPS Product Images ======"
 for variant in "debian" "ubi"; do
   mkdir -p "${OUTPUT_DIR}/images-${variant}"
-  image_id_idps="$(docker inspect -f '{{.ID}}' "projects.registry.vmware.com/antreainterworking/idps-${variant}:${IMAGE_VERSION}")"
-  docker tag projects.registry.vmware.com/antreainterworking/idps-${variant}:${IMAGE_VERSION} projects.registry.vmware.com/antreainterworking/idps:${IMAGE_VERSION}
-  docker save projects.registry.vmware.com/antreainterworking/idps-${variant}:${IMAGE_VERSION} projects.registry.vmware.com/antreainterworking/idps:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images-${variant}/antrea-idps-${IMAGE_VERSION}.tar.gz"
+  image_id_idps="$(docker inspect -f '{{.ID}}' "projects.packages.broadcom.com/antreainterworking/idps-${variant}:${IMAGE_VERSION}")"
+  docker tag projects.packages.broadcom.com/antreainterworking/idps-${variant}:${IMAGE_VERSION} projects.packages.broadcom.com/antreainterworking/idps:${IMAGE_VERSION}
+  docker save projects.packages.broadcom.com/antreainterworking/idps-${variant}:${IMAGE_VERSION} projects.packages.broadcom.com/antreainterworking/idps:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images-${variant}/antrea-idps-${IMAGE_VERSION}.tar.gz"
   digest_filename_idps="antrea-idps-${IMAGE_VERSION}-image-digests.txt"
-  echo "projects.registry.vmware.com/antreainterworking/idps@${image_id_idps}" > "${OUTPUT_DIR}/images-${variant}/${digest_filename_idps}"
+  echo "projects.packages.broadcom.com/antreainterworking/idps@${image_id_idps}" > "${OUTPUT_DIR}/images-${variant}/${digest_filename_idps}"
 
-  image_id_suricata="$(docker inspect -f '{{.ID}}' "projects.registry.vmware.com/antreainterworking/suricata:${IMAGE_VERSION}")"
-  docker save projects.registry.vmware.com/antreainterworking/suricata:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images-${variant}/antrea-suricata-${IMAGE_VERSION}.tar.gz"
+  image_id_suricata="$(docker inspect -f '{{.ID}}' "projects.packages.broadcom.com/antreainterworking/suricata:${IMAGE_VERSION}")"
+  docker save projects.packages.broadcom.com/antreainterworking/suricata:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images-${variant}/antrea-suricata-${IMAGE_VERSION}.tar.gz"
   digest_filename_suricata="antrea-suricata-${IMAGE_VERSION}-image-digests.txt"
-  echo "projects.registry.vmware.com/antreainterworking@${image_id_suricata}" > "${OUTPUT_DIR}/images-${variant}/${digest_filename_suricata}"
+  echo "projects.packages.broadcom.com/antreainterworking@${image_id_suricata}" > "${OUTPUT_DIR}/images-${variant}/${digest_filename_suricata}"
 
   checksum_filename="antrea-${IMAGE_VERSION}-images-checksums.txt"
   pushd "${OUTPUT_DIR}/images-${variant}/"

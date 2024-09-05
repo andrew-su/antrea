@@ -238,7 +238,7 @@ popd
 echo "====== Building UBI Base Image ======"
 pushd build/images/base
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
-curl -LO https://build-artifactory.eng.vmware.com/artifactory/nsx-ujo-local/antrea/epel/suricata-7.0.6-1.el9.x86_64.rpm
+curl -k -LO https://packages.vcfd.broadcom.net/artifactory/nsx-ujo-local/antrea/epel/suricata-7.0.6-1.el9.x86_64.rpm
 ./build.sh --distro ubi
 popd
 

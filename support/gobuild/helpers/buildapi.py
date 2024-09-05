@@ -4,7 +4,7 @@ import urllib
 import urllib2
 import json
 
-URL_PREFIX = 'http://buildapi.eng.vmware.com'
+URL_PREFIX = 'http://buildapi.lvn.broadcom.net'
 
 
 def retry_open(url, num_tries=10):

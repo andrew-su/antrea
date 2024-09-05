@@ -2,19 +2,27 @@
 
 set -e
 
-sudo yum install -y yum-utils
+# Disable default repos since they are still using vmware.com artifactory
+# which will cause package installation failure when LVN simulator is enabled.
+sudo /usr/bin/sed -i -e 's/^enabled=.*/enabled=0/g' /etc/yum.repos.d/*.repo
 
-function add_to_yum {
-    local artifactory_base="https://build-artifactory.eng.vmware.com/artifactory/"
-    local repo_path="${1}"
-    sudo /usr/bin/yum-config-manager --add-repo $artifactory_base$repo_path;
-}
+# This repository information should be updated accordingly whenever
+# the LINUX_HOSTTYPE is changed. It's linux-rocky8-vm-fw for now.
+sudo /bin/cat >> /tmp/CentOS.repo << EOF
+[AppStream]
+name=CentOS-8 - AppStream
+baseurl=https://packages.vcfd.broadcom.net/artifactory/centos-remote/8/AppStream/x86_64/os/
+gpgcheck=0
+enabled=1
 
-echo "Added yum repos from artifactory."
-for repo_type in AppStream BaseOS extras;
-do
-    add_to_yum centos-remote/8/$repo_type/x86_64/os
-done
+[BaseOS]
+name=CentOS-8 - BaseOS
+baseurl=https://packages.vcfd.broadcom.net/artifactory/centos-remote/8/BaseOS/x86_64/os/
+gpgcheck=0
+enabled=1
+EOF
+
+sudo /bin/mv /tmp/CentOS.repo /etc/yum.repos.d/CentOS.repo
 
 # Installing jq
 sudo yum install -y jq
@@ -31,9 +39,6 @@ echo "STORAGE_DRIVER=overlay" | \
 echo "EXTRA_DOCKER_STORAGE_OPTIONS='-g ${DOCKER_STORAGE_DIR}'" | \
     sudo /usr/bin/tee -a ${DOCKER_STORAGE_CFG_PATH}
 
-
-
-
 sudo /usr/bin/systemctl daemon-reload
 sudo /usr/bin/systemctl restart docker
 sudo /usr/bin/chown mts /var/run/docker.sock
@@ -41,10 +46,7 @@ sudo /usr/sbin/iptables -I FORWARD -j ACCEPT
 sudo /usr/sbin/ip link set docker0 promisc on
 sudo /usr/bin/systemctl status docker.service
 
-
-
 # This step is required on firewalled machines, since host to container traffic is blocked by default
 echo "Enabling firewall rule to allow traffic from host to docker bridge network"
 bridge_net=$(sudo /usr/bin/docker network inspect --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' bridge)
 sudo /usr/sbin/iptables -A BUILD_OUT -d ${bridge_net} -m comment --comment "allow traffic from host to docker bridge network" -j ACCEPT
-

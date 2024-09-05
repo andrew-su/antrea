@@ -159,7 +159,7 @@ function build_windows() {
   DownloadDir="${REPO_ROOT}/download"
   rm -rf "${DownloadDir}"
   mkdir -p "${DownloadDir}"
-  CNI_WINDOWS_URL="https://artifactory.eng.vmware.com/artifactory/nsx-ujo-local/cayman_antrea/cni-plugins-windows-amd64-v1.1.1.tgz"
+  CNI_WINDOWS_URL="https://packages.vcfd.broadcom.net/artifactory/nsx-ujo-local/cayman_antrea/cni-plugins-windows-amd64-v1.1.1.tgz"
   wget -q "${CNI_WINDOWS_URL}" -O "${DownloadDir}/cni-plugins-windows.tgz"
   mkdir -p "${DownloadDir}/cni-plugins-windows"
   tar zxf "${DownloadDir}/cni-plugins-windows.tgz" -C "${DownloadDir}/cni-plugins-windows"
@@ -188,7 +188,7 @@ function build_windows() {
   mkdir -p "${TempDir}"
 
   cp "${NSXOVS_PATH}" "${DownloadDir}/nsx-ovs.zip"
-  docker run --rm --user $(id -u):$(id -g) -v "${REPO_ROOT}":/tmp/windows -w /tmp/windows nsx-ujo-docker-local.artifactory.eng.vmware.com/interworking/busybox /bin/sh -c "unzip -q download/nsx-ovs.zip -d nsx-ovs-temp"
+  docker run --rm --user $(id -u):$(id -g) -v "${REPO_ROOT}":/tmp/windows -w /tmp/windows nsx-ujo-docker-local.packages.vcfd.broadcom.net/interworking/busybox /bin/sh -c "unzip -q download/nsx-ovs.zip -d nsx-ovs-temp"
   OVSDir="${TempDir}/openvswitch"
   OVSDriverDir="${OVSDir}/driver"
   cp -r "${TempDir}/include" "${OVSDir}"

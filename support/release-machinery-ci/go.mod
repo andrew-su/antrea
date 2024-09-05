@@ -47,3 +47,5 @@ require (
 	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 )
+
+replace gitlab.eng.vmware.com/core-build/tanzu-release-machinery => gitlab-vmw.devops.broadcom.net/core-build/tanzu-release-machinery v1.0.1-0.20240710162716-752b2cd0bb9f

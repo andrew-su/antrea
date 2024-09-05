@@ -56,13 +56,13 @@ kbld version
 ## Workaround till release-machinery carvel-package module starts  using crane go libraries
 ## Since GOPROXY is set to artifactory, this doesn't violate SRP requirements
 echo "... Getting crane cli ..."
-export GOPROXY="https://build-artifactory.eng.vmware.com/artifactory/proxy-golang-remote"
-export GOSUMDB="sum.golang.org https://build-artifactory.eng.vmware.com/artifactory/go-gosumdb-remote"
+export GOPROXY="https://packages.vcfd.broadcom.net/artifactory/proxy-golang-remote"
+export GOSUMDB="sum.golang.org https://packages.vcfd.broadcom.net/artifactory/go-gosumdb-remote"
 export GOPATH="${BUILDROOT}/go-path"
 export GOCACHE=$GOPATH/cache
 mkdir -p ${GOPATH}
-git config --global url.ssh://git@gitlab.eng.vmware.com/.insteadOf https://gitlab.eng.vmware.com/
-git clone https://gitlab.eng.vmware.com/zhongchengl/go-containerregistry.git
+git config --global url.ssh://git@gitlab-vmw.devops.broadcom.net/.insteadOf https://gitlab-vmw.devops.broadcom.net/
+git clone https://gitlab-vmw.devops.broadcom.net/zhongchengl/go-containerregistry.git
 pushd ./go-containerregistry && CGO_ENABLED=0 go install -mod=readonly ./cmd/crane && popd 
 #CGO_ENABLED=0 go install github.com/google/go-containerregistry/cmd/crane@latest
 
@@ -136,15 +136,16 @@ echo "=== GIT_SSH_COMMAND=${GIT_SSH_COMMAND}"
   # - Hence, known_hosts should be set along with GIT_SSH_COMMAND environment variable
   # - GIT_SSH_COMMAND is set in bootstrap.py
   ssh-keyscan -t rsa gitlab.eng.vmware.com >> ~/.ssh/known_hosts
+  ssh-keyscan -t rsa gitlab-vmw.devops.broadcom.net >> ~/.ssh/known_hosts
   cat ~/.ssh/known_hosts
 
   # Configure git to use 'ssh' instead of 'https'
   #
   # Maintainer Notes:
   # - ~/.ssh/known_hosts & GIT_SSH_COMMAND environment variable must be set to use below configuration
-  git config --global url.ssh://git@gitlab.eng.vmware.com/.insteadOf https://gitlab.eng.vmware.com/
-  export GOPRIVATE=gitlab.eng.vmware.com
-  export GOPROXY=https://build-artifactory.eng.vmware.com/artifactory/proxy-golang-remote
+  git config --global url.ssh://git@gitlab-vmw.devops.broadcom.net/.insteadOf https://gitlab-vmw.devops.broadcom.net/
+  export GOPRIVATE=gitlab-vmw.devops.broadcom.net
+  export GOPROXY=https://packages.vcfd.broadcom.net/artifactory/proxy-golang-remote
   export GOSUMDB=off
 
 

@@ -129,4 +129,3 @@ ANTREA_INTERWORKING_FILES = {
         "publish/VERSION"
     ]
 }
-
