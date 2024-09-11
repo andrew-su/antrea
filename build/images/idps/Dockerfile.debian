@@ -1,13 +1,19 @@
-FROM nsx-ujo-docker-local.artifactory.eng.vmware.com/interworking/debian:bullseye-slim
+FROM nsx-ujo-docker-local.packages.vcfd.broadcom.net/interworking/debian:bullseye-slim
 ARG BUILD_INFO
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
 LABEL description="The Docker image to deploy the IDPS."
 LABEL build-info="${BUILD_INFO}"
 
-RUN echo "deb http://build-artifactory.eng.vmware.com/debian-remote bullseye main" > /etc/apt/sources.list && \
-    echo "deb http://build-artifactory.eng.vmware.com/debian-remote bullseye-updates main" >> /etc/apt/sources.list && \
-    echo "deb http://build-artifactory.eng.vmware.com/debian-security-remote bullseye-security main" >> /etc/apt/sources.list
+# Disable SSL peer verification, host verification and allow unauthenticated packages
+# to fix build failure. This is usually not recommended, but should be Ok for a trusted
+# site from Broadcom.
+RUN echo 'Acquire::https::Verify-Peer "false";' > /etc/apt/apt.conf.d/99insecure && \
+    echo 'Acquire::https::Verify-Host "false";' >> /etc/apt/apt.conf.d/99insecure && \
+    echo 'APT::Get::AllowUnauthenticated "true";' >> /etc/apt/apt.conf.d/99insecure && \
+    echo "deb http://packages.vcfd.broadcom.net/debian-remote/debian bullseye main" > /etc/apt/sources.list && \
+    echo "deb http://packages.vcfd.broadcom.net/debian-remote/debian bullseye-updates main" >> /etc/apt/sources.list && \
+    echo "deb http://packages.vcfd.broadcom.net/debian-security-remote/debian-security bullseye-security main" >> /etc/apt/sources.list
 
 RUN apt-get update && \
     apt -y upgrade && \

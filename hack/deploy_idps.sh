@@ -105,7 +105,7 @@ IDPS_VERSION=""
 
 if [[ ${IDPS_BUILD_KIND} == "ob" ]] || [[ ${IDPS_BUILD_KIND} == "sb" ]] ;then
     IDPS_BUILD_KIND="bora"
-    IDPS_VERSION_STR=$(curl -s http://build-squid.eng.vmware.com/build/mts/release/"${IDPS_BUILD_KIND}"-"${IDPS_BUILD_NUMBER}"/publish/VERSION)
+    IDPS_VERSION_STR=$(curl -s http://build-squid.vcfd.broadcom.net/build/mts/release/"${IDPS_BUILD_KIND}"-"${IDPS_BUILD_NUMBER}"/publish/VERSION)
     IDPS_VERSION_PREFIX=$(echo "${IDPS_VERSION_STR}" | cut -d '_' -f 1)
     IDPS_VERSION_SUFFIX=$(echo "${IDPS_VERSION_STR}" | cut -d '_' -f 2)
     IDPS_VERSION="${IDPS_VERSION_PREFIX=$}+${IDPS_VERSION_SUFFIX}"
@@ -121,14 +121,14 @@ if [[ ${IDPS_BUILD_KIND} == "dev" ]];then
     make idps-image suricata-image
 
     mkdir -p "${WORKDIR}"/idps/images
-    docker save -o "${WORKDIR}"/idps/images/idps.tar projects.registry.vmware.com/antreainterworking/idps:latest
-    docker save -o "${WORKDIR}"/idps/images/suricata.tar projects.registry.vmware.com/antreainterworking/suricata:latest
+    docker save -o "${WORKDIR}"/idps/images/idps.tar projects.packages.broadcom.com/antreainterworking/idps:latest
+    docker save -o "${WORKDIR}"/idps/images/suricata.tar projects.packages.broadcom.com/antreainterworking/suricata:latest
     cp ./build/yamls/idps.yml "${WORKDIR}"/idps.yml
 else
     echo "======== Downloading Antrea IDPS images and manifests ========"
     mkdir -p "${WORKDIR}"/idps/images
     cd "${WORKDIR}"/idps
-    wget http://build-squid.eng.vmware.com/build/mts/release/"${IDPS_BUILD_KIND}"-"${IDPS_BUILD_NUMBER}"/publish/antrea-idps-debian-"${IDPS_VERSION#"v"}".zip -O antrea-idps-debian-"${IDPS_VERSION#"v"}".zip
+    wget http://build-squid.vcfd.broadcom.net/build/mts/release/"${IDPS_BUILD_KIND}"-"${IDPS_BUILD_NUMBER}"/publish/antrea-idps-debian-"${IDPS_VERSION#"v"}".zip -O antrea-idps-debian-"${IDPS_VERSION#"v"}".zip
 
     sudo apt install -y unzip
     unzip -o antrea-idps-debian-"${IDPS_VERSION#"v"}".zip

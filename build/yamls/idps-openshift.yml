@@ -423,7 +423,7 @@ spec:
       serviceAccountName: antrea-idps-agent
       initContainers:
         - name: init
-          image:  "projects.registry.vmware.com/antreainterworking/suricata:latest"
+          image:  "projects.packages.broadcom.com/antreainterworking/suricata:latest"
           imagePullPolicy: IfNotPresent
           command: ["/bin/bash"]
           args:
@@ -450,7 +450,7 @@ spec:
               mountPath: /etc/suricata
       containers:
         - name: antrea-idps-agent
-          image: "projects.registry.vmware.com/antreainterworking/idps:latest"
+          image: "projects.packages.broadcom.com/antreainterworking/idps:latest"
           imagePullPolicy: IfNotPresent
           command: ["antrea-idps-agent"]
           args:
@@ -479,7 +479,7 @@ spec:
           - name: empty-dir-signatures
             mountPath: /etc/suricata
         - name: suricata
-          image: "projects.registry.vmware.com/antreainterworking/suricata:latest"
+          image: "projects.packages.broadcom.com/antreainterworking/suricata:latest"
           imagePullPolicy: IfNotPresent
           resources:
             requests:
@@ -596,7 +596,7 @@ spec:
       serviceAccountName: antrea-idps-controller
       containers:
         - name: antrea-idps-controller
-          image: "projects.registry.vmware.com/antreainterworking/idps:latest"
+          image: "projects.packages.broadcom.com/antreainterworking/idps:latest"
           imagePullPolicy: IfNotPresent
           resources:
             requests:

@@ -1,12 +1,12 @@
 # -- Container image to use for Antrea IDPS components.
 idpsImage:
-  repository: "projects.registry.vmware.com/antreainterworking/idps"
+  repository: "projects.packages.broadcom.com/antreainterworking/idps"
   pullPolicy: "IfNotPresent"
   tag: "latest"
 
 # -- Container image to use for Antrea Suricata components.
 suricataImage:
-  repository: "projects.registry.vmware.com/antreainterworking/suricata"
+  repository: "projects.packages.broadcom.com/antreainterworking/suricata"
   pullPolicy: "IfNotPresent"
   tag: "latest"
 

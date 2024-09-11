@@ -1,5 +1,5 @@
 ARG GO_VERSION
-FROM nsx-ujo-docker-local.artifactory.eng.vmware.com/antrea/golang:${GO_VERSION} as antrea-idps-build
+FROM nsx-ujo-docker-local.packages.vcfd.broadcom.net/antrea/golang:${GO_VERSION} as antrea-idps-build
 
 WORKDIR /antrea
 
@@ -11,7 +11,7 @@ COPY . /antrea
 
 RUN make antrea-idps-agent antrea-idps-controller antrea-idps-agent-instr-binary antrea-idps-controller-instr-binary
 
-FROM nsx-ujo-docker-local.artifactory.eng.vmware.com/antrea/debian:12.5
+FROM nsx-ujo-docker-local.packages.vcfd.broadcom.net/antrea/debian:12.5
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
 LABEL description="The docker image for the Antrea IDPS with code coverage measurement enabled for testing purposes."

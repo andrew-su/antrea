@@ -181,13 +181,13 @@ NSX_MANAGER_USER="dummyUser"
 NSX_MANAGER_PASSWORD="dummyPasswd"
 DEPLOY_TYPE="k8s-docker" # k8s-docker or k8s-containerd
 
-wget http://build-squid.eng.vmware.com/build/mts/release/bora-$(echo "${ANTREA_IDPS_BUILD}" | cut -d - -f 2)/publish/antrea-interworking/scripts/deploy.sh
+wget http://build-squid.vcfd.broadcom.net/build/mts/release/bora-$(echo "${ANTREA_IDPS_BUILD}" | cut -d - -f 2)/publish/antrea-interworking/scripts/deploy.sh
 ./deploy.sh ${ANTREA_BUILD} ${ANTREA_INTERWORKING_BUILD} ${CLUSTER_NAME} ${NSX_MANAGER_IP} ${NSX_MANAGER_USER} ${NSX_MANAGER_PASSWORD} ${DEPLOY_TYPE}
 rm -rf ./deploy.sh
 ```
 
 Note that, please replace the dummy values in above script according to your environment. For more details, please refer
-to repo [antrea-interworking](https://gitlab.eng.vmware.com/core-build/antrea-interworking).
+to repo [antrea-interworking](https://gitlab-vmw.devops.broadcom.net/core-build/antrea-interworking).
 
 ### Step 2: Deploy Antrea IDPS
 
@@ -198,7 +198,7 @@ NSX_LICENSE="00000-00000-00000-00000-00000"
 ANTREA_IDPS_BUILD="ob-xxxxx"
 DEPLOY_TYPE="k8s-docker" # k8s-docker or k8s-containerd
 
-wget http://build-squid.eng.vmware.com/build/mts/release/bora-$(echo "${ANTREA_IDPS_BUILD}" | cut -d - -f 2)/publish/antrea-idps/scripts/deploy_idps.sh
+wget http://build-squid.vcfd.broadcom.net/build/mts/release/bora-$(echo "${ANTREA_IDPS_BUILD}" | cut -d - -f 2)/publish/antrea-idps/scripts/deploy_idps.sh
 ./deploy_idps.sh --idps-build ${ANTREA_IDPS_BUILD} --nsx-license ${LICENSE} --deploy-type ${DEPLOY_TYPE}
 rm -rf ./deploy_idps.sh
 ```

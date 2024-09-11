@@ -542,8 +542,8 @@ function deliver_antrea_idps {
     sed -i "s/--v=0/--v=4/g" build/yamls/idps.yml
 
     echo "====== Delivering Antrea IDPS to all the Nodes ======"
-    docker save -o antrea-suricata.tar projects.registry.vmware.com/antreainterworking/suricata:latest
-    docker save -o antrea-idps.tar projects.registry.vmware.com/antreainterworking/idps:latest
+    docker save -o antrea-suricata.tar projects.packages.broadcom.com/antreainterworking/suricata:latest
+    docker save -o antrea-idps.tar projects.packages.broadcom.com/antreainterworking/idps:latest
 
     if [[ $TESTBED_TYPE == "jumper" ]]; then
         kubectl get nodes -o wide --no-headers=true | awk '{print $6}' | while read IP; do

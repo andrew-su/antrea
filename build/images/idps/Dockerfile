@@ -1,5 +1,5 @@
 ARG GO_VERSION
-FROM nsx-ujo-docker-local.artifactory.eng.vmware.com/interworking/golang:${GO_VERSION}-buster as antrea-idps-build
+FROM nsx-ujo-docker-local.packages.vcfd.broadcom.net/interworking/golang:${GO_VERSION}-buster as antrea-idps-build
 
 WORKDIR /antrea
 
@@ -11,7 +11,7 @@ COPY . /antrea
 
 RUN make antrea-idps-agent antrea-idps-controller
 
-FROM nsx-ujo-docker-local.artifactory.eng.vmware.com/antrea/debian:12.5
+FROM nsx-ujo-docker-local.packages.vcfd.broadcom.net/antrea/debian:12.5
 
 RUN apt update && apt install curl ca-certificates -y
 

@@ -702,8 +702,8 @@ else
 	docker build --pull -t antreainterworking/suricata:$(DOCKER_IMG_VERSION) -f build/images/suricata/Dockerfile $(CAYMAN_DOCKER_BUILD_ARGS) .
 endif
 	docker tag antreainterworking/suricata:$(DOCKER_IMG_VERSION) antreainterworking/suricata
-	docker tag antreainterworking/suricata:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/suricata
-	docker tag antreainterworking/suricata:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/suricata:$(DOCKER_IMG_VERSION)
+	docker tag antreainterworking/suricata:$(DOCKER_IMG_VERSION) projects.packages.broadcom.com/antreainterworking/suricata
+	docker tag antreainterworking/suricata:$(DOCKER_IMG_VERSION) projects.packages.broadcom.com/antreainterworking/suricata:$(DOCKER_IMG_VERSION)
 
 .PHONY: idps-image
 idps-image:
@@ -714,8 +714,8 @@ else
 	docker build --pull -t antreainterworking/idps:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile $(DOCKER_BUILD_ARGS) .
 endif
 	docker tag antreainterworking/idps:$(DOCKER_IMG_VERSION) antreainterworking/idps
-	docker tag antreainterworking/idps:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/idps
-	docker tag antreainterworking/idps:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/idps:$(DOCKER_IMG_VERSION)
+	docker tag antreainterworking/idps:$(DOCKER_IMG_VERSION) projects.packages.broadcom.com/antreainterworking/idps
+	docker tag antreainterworking/idps:$(DOCKER_IMG_VERSION) projects.packages.broadcom.com/antreainterworking/idps:$(DOCKER_IMG_VERSION)
 
 .PHONY: idps-image-debian
 idps-image-debian:
@@ -726,8 +726,8 @@ else
 	docker build --pull -t antreainterworking/idps-debian:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile.debian $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
 endif
 	docker tag antreainterworking/idps-debian:$(DOCKER_IMG_VERSION) antreainterworking/idps-debian
-	docker tag antreainterworking/idps-debian:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/idps-debian
-	docker tag antreainterworking/idps-debian:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/idps-debian:$(DOCKER_IMG_VERSION)
+	docker tag antreainterworking/idps-debian:$(DOCKER_IMG_VERSION) projects.packages.broadcom.com/antreainterworking/idps-debian
+	docker tag antreainterworking/idps-debian:$(DOCKER_IMG_VERSION) projects.packages.broadcom.com/antreainterworking/idps-debian:$(DOCKER_IMG_VERSION)
 
 .PHONY: idps-image-ubi
 idps-image-ubi:
@@ -738,8 +738,8 @@ else
 	docker build --pull -t antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile.ubi $(DOCKER_BUILD_ARGS) $(CAYMAN_DOCKER_BUILD_ARGS) .
 endif
 	docker tag antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION) antreainterworking/idps-ubi
-	docker tag antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/idps-ubi
-	docker tag antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION)
+	docker tag antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION) projects.packages.broadcom.com/antreainterworking/idps-ubi
+	docker tag antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION) projects.packages.broadcom.com/antreainterworking/idps-ubi:$(DOCKER_IMG_VERSION)
 
 .PHONY: idps-coverage
 idps-coverage:
@@ -750,7 +750,7 @@ else
 	docker build --pull -t antreainterworking/idps-coverage:$(DOCKER_IMG_VERSION) -f build/images/idps/Dockerfile.coverage $(DOCKER_BUILD_ARGS) .
 endif
 	docker tag antreainterworking/idps-coverage:$(DOCKER_IMG_VERSION) antreainterworking/idps-coverage
-	docker tag antreainterworking/idps-coverage:$(DOCKER_IMG_VERSION) projects.registry.vmware.com/antreainterworking/idps-coverage
+	docker tag antreainterworking/idps-coverage:$(DOCKER_IMG_VERSION) projects.packages.broadcom.com/antreainterworking/idps-coverage
 
 .PHONY: verify
 verify:
