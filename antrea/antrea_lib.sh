@@ -265,7 +265,7 @@ function build_and_sign_windows_image() {
   checksum_filename="antrea-${antrea_deliverable_kind}-windows-${image_version}-image-checksums.txt"
   pushd "${image_dir}"
   sha256sum -- * > ${checksum_filename}
-  gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=${GPG_KEY_ID} ${GPGSIGNC_OPTS}
+  /build/apps/signing/gpgsign/gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=${GPG_KEY_ID} ${GPGSIGNC_OPTS}
   popd
   rm -rf ${container_files_path}
 }
@@ -337,7 +337,7 @@ function sign_binaries() {
   pushd "${output_dir}"
   sha256sum -- * > ${checksum_filename}
   # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
-  gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename_asc}" --hash=sha256 --keyid=${GPG_KEY_ID} ${GPGSIGNC_OPTS}
+  /build/apps/signing/gpgsign/gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename_asc}" --hash=sha256 --keyid=${GPG_KEY_ID} ${GPGSIGNC_OPTS}
   popd
 }
 

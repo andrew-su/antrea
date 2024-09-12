@@ -64,7 +64,7 @@ echo "localhost:5000/vmware.io/antrea/antrea-controller-photon@${controller_imag
 pushd "${PUBLISH_DIR}/photon/images"
 sha256sum -- * > ${checksum_filename}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
-gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=${GPG_KEY_ID} ${GPGSIGNC_OPTS}
+/build/apps/signing/gpgsign/gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=${GPG_KEY_ID} ${GPGSIGNC_OPTS}
 popd
 
 echo "====== Buildling OpenvSwitch Ubuntu Image ======"
@@ -103,7 +103,7 @@ echo "localhost:5000/vmware.io/antrea/antrea-controller-ubuntu@${controller_imag
 pushd "${PUBLISH_DIR}/ubuntu/images"
 sha256sum -- * > ${checksum_filename}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
-gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=${GPG_KEY_ID} ${GPGSIGNC_OPTS}
+/build/apps/signing/gpgsign/gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=${GPG_KEY_ID} ${GPGSIGNC_OPTS}
 popd
 
 echo "====== Saving TKGS Scripts ======"

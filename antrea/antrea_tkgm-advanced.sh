@@ -88,7 +88,7 @@ echo "antrea/antrea-advanced-controller-debian@${controller_image_id}" > "${OUTP
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${checksum_filename}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
-gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=${GPG_KEY_ID} ${GPGSIGNC_OPTS}
+/build/apps/signing/gpgsign/gpgsignc textsign -i ${checksum_filename} -o "${checksum_filename}.asc" --hash=sha256 --keyid=${GPG_KEY_ID} ${GPGSIGNC_OPTS}
 popd
 
 echo "====== Saving and Signing TKGm Executables ======"
@@ -100,7 +100,7 @@ pushd "${OUTPUT_DIR}/executables"
 BINARY_CHECKSUM_FILENAME="antctl-${BINARY_VERSION}-checksums.txt"
 sha256sum -- * > ${BINARY_CHECKSUM_FILENAME}
 # See other alternative keys in /build/toolchain/noarch/vmware/gpgsign/officialkey/
-gpgsignc textsign -i ${BINARY_CHECKSUM_FILENAME} -o "${BINARY_CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=${GPG_KEY_ID} ${GPGSIGNC_OPTS}
+/build/apps/signing/gpgsign/gpgsignc textsign -i ${BINARY_CHECKSUM_FILENAME} -o "${BINARY_CHECKSUM_FILENAME}.asc" --hash=sha256 --keyid=${GPG_KEY_ID} ${GPGSIGNC_OPTS}
 popd
 
 echo "====== Building Antrea Advanced Windows Deliverables ======"
