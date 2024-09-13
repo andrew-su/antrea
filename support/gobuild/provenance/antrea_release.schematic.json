@@ -50,10 +50,6 @@
             "$(gobuild:gobuild_component_cayman_antrea_tkgs_advanced_uid)": {
                 "incorporated": true,
                 "usages": ["building", "functionality"]
-            },
-            "$(gobuild:gobuild_component_lvn_sim_tools_uid)": {
-                "incorporated": false,
-                "usages": ["building"]
             }
         }
     },

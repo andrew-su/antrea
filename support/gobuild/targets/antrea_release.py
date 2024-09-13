@@ -12,7 +12,7 @@ PROJECT_DIR = "%s/antrea-release" % (BUILDROOT)
 PUBLISH_DIR = "%s/publish" %(BUILDROOT)
 BUILDNUMBER = "%(buildnumber)"
 
-@simulate_lvn_build
+#@simulate_lvn_build
 class AntreaRelease(helpers.target.Target):
     def GetBuildProductNames(self):
         return {
