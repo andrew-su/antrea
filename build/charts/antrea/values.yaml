@@ -11,6 +11,11 @@ controllerImage:
   repository: "antrea/antrea-controller-ubuntu"
   pullPolicy: "IfNotPresent"
   tag: ""
+# -- Container image to use for the antrea-ods component.
+odsImage:
+  repository: "antrea/antrea-ods-ubuntu"
+  pullPolicy: "IfNotPresent"
+  tag: ""
 
 # -- Determines how traffic is encapsulated. It must be one of "encap",
 # "noEncap", "hybrid", or "networkPolicyOnly".
@@ -57,6 +62,11 @@ transportInterface: ""
 # -- Network CIDRs of the interface on Node which is used for tunneling or
 # routing the traffic across Nodes.
 transportInterfaceCIDRs: []
+
+ods:
+  # -- Antrea will deploy an ODS Pod for executing runbooks for live debugging if
+  # "enable" is set to true.
+  enable: false
 
 multicast:
   # -- To enable Multicast, you need to set "enable" to true, and ensure that the

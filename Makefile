@@ -221,10 +221,12 @@ build: build-controller-ubuntu
 .PHONY: debian
 debian: agent-debian
 debian: controller-debian
+debian: build-ods-debian
 
 .PHONY: ubi
 ubi: agent-ubi
 ubi: controller-ubi
+ubi: build-ods-debian
 
 .PHONY: photon
 photon: agent-photon
@@ -646,6 +648,26 @@ flow-aggregator-ubuntu-coverage:
 	@echo "===> Building antrea/flow-aggregator-coverage Docker image <==="
 	docker build -t antrea/flow-aggregator-coverage:$(DOCKER_IMG_VERSION) -f build/images/flow-aggregator/Dockerfile.coverage $(DOCKER_BUILD_ARGS) .
 	docker tag antrea/flow-aggregator-coverage:$(DOCKER_IMG_VERSION) antrea/flow-aggregator-coverage
+
+.PHONY: build-ods
+build-ods:
+	@echo "===> Building Antrea ODS Docker image <==="
+ifneq ($(NO_PULL),)
+	docker build -t antrea/antrea-ods-ubuntu:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.build.ods.ubuntu .
+else
+	docker build --pull -t antrea/antrea-ods-ubuntu:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.build.ods.ubuntu .
+endif
+	docker tag antrea/antrea-ods-ubuntu:$(DOCKER_IMG_VERSION) antrea/antrea-ods-ubuntu
+
+.PHONY: build-ods-debian
+build-ods-debian:
+	@echo "===> Building Antrea ODS Docker image <==="
+ifneq ($(NO_PULL),)
+	docker build -t antrea/antrea-ods-debian:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.build.ods.debian .
+else
+	docker build --pull -t antrea/antrea-ods-debian:$(DOCKER_IMG_VERSION) -f build/images/Dockerfile.build.ods.debian .
+endif
+	docker tag antrea/antrea-ods-debian:$(DOCKER_IMG_VERSION) antrea/antrea-ods-debian
 
 .PHONY: verify
 verify:

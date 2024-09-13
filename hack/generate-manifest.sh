@@ -26,6 +26,8 @@ Generate a YAML manifest for Antrea using Helm and print it to stdout.
         --encap-mode (mode)           Traffic encapsulation mode (default is 'encap').
         --cloud                       Generate a manifest appropriate for running Antrea in Public Cloud.
         --ipsec                       Generate a manifest with IPsec encryption of tunnel traffic enabled.
+        --ods                         Generate a manifest with Antrea ODS deployment enabled.
+        --ods-only                    Generate a manifest that contains only the ODS deployment and related RBAC (no other Antrea components, which should be pre-installed).
         --feature-gates               A comma-separated list of key=value pairs that describe feature gates, e.g. TrafficControl=true,Egress=false.
                                       This option can be specified multiple times.
         --proxy-all                   Generate a manifest with Antrea proxy with all Service support enabled.
@@ -50,6 +52,7 @@ Generate a YAML manifest for Antrea using Helm and print it to stdout.
         --help, -h                    Print this message and exit.
 
 In 'release' mode, environment variables AGENT_IMG_NAME, CONTROLLER_IMG_NAME, and IMG_TAG must be set.
+In 'release' mode, environment variable ODS_IMG_NAME must be set if Antrea ODS deployment is to be enabled.
 
 In 'dev' mode, environment variables AGENT_IMG_NAME & CONTROLLER_IMG_NAME can be set to use a custom image.
 
@@ -73,6 +76,8 @@ PROXY_ALL=false
 ENCAP_MODE=""
 CLOUD=""
 TUN_TYPE="geneve"
+ODS=false
+ODS_ONLY=false
 VERBOSE_LOG=false
 ON_DELETE=false
 COVERAGE=false
@@ -112,6 +117,15 @@ case $key in
     ;;
     --ipsec)
     IPSEC=true
+    shift
+    ;;
+    --ods)
+    ODS=true
+    shift
+    ;;
+    --ods-only)
+    ODS=true
+    ODS_ONLY=true
     shift
     ;;
     --feature-gates)
@@ -216,10 +230,16 @@ if [ "$TUN_TYPE" != "geneve" ] && [ "$TUN_TYPE" != "vxlan" ] && [ "$TUN_TYPE" !=
     exit 1
 fi
 
-if ([ "$MODE" == "release" ] && ([ -z "$AGENT_IMG_NAME" ] || [ -z "$CONTROLLER_IMG_NAME" ])) then
+if [ "$MODE" == "release" ] && ([ -z "$AGENT_IMG_NAME" ] || [ -z "$CONTROLLER_IMG_NAME" ]) && [ "$ODS_ONLY" == false ]; then
     echoerr "In 'release' mode, environment variables AGENT_IMG_NAME and CONTROLLER_IMG_NAME must be set"
     print_help
     exit 1
+fi
+
+if [ "$MODE" == "release" ] && $ODS && [ -z "$ODS_IMG_NAME" ]; then
+   echoerr "In 'release' mode, environment variables ODS_IMG_NAME must be set if Antrea ODS deployment is to be enabled"
+   print_help
+   exit 1
 fi
 
 if [ "$MODE" == "release" ] && [ -z "$IMG_TAG" ]; then
@@ -375,6 +395,13 @@ if [ "$MODE" == "dev" ]; then
     if [ "$IMG_TAG" != "" ]; then
         HELM_VALUES+=("agentImage.tag=$IMG_TAG,controllerImage.tag=$IMG_TAG")
     fi
+    if $ODS; then
+      if [[ -z "$ODS_IMG_NAME" ]]; then
+         HELM_VALUES+=("ods.enable=true,odsImage.repository=antrea/antrea-ods-debian")
+      else
+         HELM_VALUES+=("ods.enable=true,odsImage.repository=$ODS_IMG_NAME")
+      fi
+    fi
 
     if $VERBOSE_LOG; then
         HELM_VALUES+=("logVerbosity=4")
@@ -390,6 +417,9 @@ fi
 
 if [ "$MODE" == "release" ]; then
     HELM_VALUES+=("agentImage.repository=$AGENT_IMG_NAME,agentImage.tag=$IMG_TAG,controllerImage.repository=$CONTROLLER_IMG_NAME,controllerImage.tag=$IMG_TAG")
+    if $ODS; then
+      HELM_VALUES+=("ods.enable=true,odsImage.repository=$ODS_IMG_NAME,odsImage.tag=$IMG_TAG")
+    fi
 fi
 
 delim=""
@@ -406,6 +436,9 @@ HELM_VALUES_FILES_OPTION=""
 for v in "${HELM_VALUES_FILES[@]}"; do
     HELM_VALUES_FILES_OPTION="$HELM_VALUES_FILES_OPTION -f $v"
 done
+if $ODS_ONLY; then
+  HELM_VALUES_FILES_OPTION="$HELM_VALUES_FILES_OPTION --show-only templates/controller/ods-deployment.yaml"
+fi
 
 ANTREA_CHART="$THIS_DIR/../build/charts/antrea"
 # Suppress potential Helm warnings about invalid permissions for Kubeconfig file

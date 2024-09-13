@@ -38,6 +38,16 @@
 {{- end }}
 {{- end -}}
 
+{{- define "antreaOdsImageTag" -}}
+{{- if .Values.odsImage.tag }}
+{{- .Values.odsImage.tag -}}
+{{- else if eq .Chart.AppVersion "latest" }}
+{{- print "latest" -}}
+{{- else }}
+{{- print "v" .Chart.AppVersion -}}
+{{- end }}
+{{- end -}}
+
 {{- define "antreaControllerImage" -}}
 {{- if .Values.image }}
 {{- print .Values.image.repository ":" (include "antreaImageTag" .) -}}
@@ -52,6 +62,10 @@
 {{- else }}
 {{- print .Values.agentImage.repository ":" (include "antreaAgentImageTag" .) -}}
 {{- end }}
+{{- end -}}
+
+{{- define "antreaOdsImage" -}}
+{{- print .Values.odsImage.repository ":" (include "antreaOdsImageTag" .) -}}
 {{- end -}}
 
 {{- define "antreaAgentImagePullPolicy" -}}
