@@ -520,7 +520,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.name
-        image: interworking-debian:1.1.0_vmware.1
+        image: nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/interworking-debian:1.1.0_vmware.1
         imagePullPolicy: IfNotPresent
         name: election-runner
         volumeMounts:
@@ -552,7 +552,7 @@ spec:
               fieldPath: metadata.namespace
         - name: CONTAINER_NAME
           value: mp-adapter
-        image: interworking-debian:1.1.0_vmware.1
+        image: nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/interworking-debian:1.1.0_vmware.1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -606,7 +606,7 @@ spec:
               fieldPath: metadata.name
         - name: CONTAINER_NAME
           value: tn-proxy
-        image: interworking-debian:1.1.0_vmware.1
+        image: nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/interworking-debian:1.1.0_vmware.1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           exec:
@@ -652,7 +652,7 @@ spec:
               fieldPath: metadata.name
         - name: CONTAINER_NAME
           value: ccp-adapter
-        image: interworking-debian:1.1.0_vmware.1
+        image: nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/interworking-debian:1.1.0_vmware.1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -777,7 +777,7 @@ spec:
         - --log_file_max_num=4
         command:
         - /usr/local/bin/cluster-registry
-        image: interworking-debian:1.1.0_vmware.1
+        image: nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/interworking-debian:1.1.0_vmware.1
         imagePullPolicy: IfNotPresent
         name: register
         volumeMounts:

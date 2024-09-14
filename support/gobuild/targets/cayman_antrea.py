@@ -448,7 +448,7 @@ class CaymanAntreaIDPS(_CaymanAntrea):
             'cayman_antrea/support/gobuild/provenance/build.schematic.json'
         ]
 
-#@simulate_lvn_build
+
 class CaymanAntreaPackage(_CaymanAntrea):
     """
     CaymanAntrea Open Source component

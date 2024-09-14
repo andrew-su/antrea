@@ -145,7 +145,7 @@ spec:
                     proxyLoadBalancerIPs:
                       type: boolean
                       description: Load-balance traffic destined to the External IPs of LoadBalancer services.
-                      default: true
+                      default: false
                     serviceProxyName:
                       type: string
                       description: AntreaProxy will only handle Services with the label that equals the provided value.

@@ -53,6 +53,7 @@ func configurePackageBundleOptions() {
 
 	// package versions.
 	version, suffix := getAntreaVersion()
+	registry := "nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/"
 
 	appendPackageBundleOptions(
 		[]packagebundle.PackageBundleOptionFunc{
@@ -62,19 +63,19 @@ func configurePackageBundleOptions() {
 			packagebundle.WithLocalRegistry(),
 			packagebundle.WithImages(
 				packagebundle.WithImageOverride(
-					packagebundle.WithImageAsRef("antrea/antrea-advanced-controller-debian:"+os.Getenv("ANTREA_IMAGE_VERSION")),
+					packagebundle.WithImageAsRef(registry+"antrea/antrea-advanced-controller-debian:"+os.Getenv("ANTREA_IMAGE_VERSION")),
 					packagebundle.WithImageAsFile(os.Getenv(antreaControllerImageFilePath)),
 				),
 				packagebundle.WithImageOverride(
-					packagebundle.WithImageAsRef("antrea/antrea-advanced-agent-debian:"+os.Getenv("ANTREA_IMAGE_VERSION")),
+					packagebundle.WithImageAsRef(registry+"antrea/antrea-advanced-agent-debian:"+os.Getenv("ANTREA_IMAGE_VERSION")),
 					packagebundle.WithImageAsFile(os.Getenv(antreaAgentImageFilePath)),
 				),
 				packagebundle.WithImageOverride(
-					packagebundle.WithImageAsRef("interworking-debian:"+os.Getenv("INTERWORKING_IMAGE_VERSION")),
+					packagebundle.WithImageAsRef(registry+"antrea/interworking-debian:"+os.Getenv("INTERWORKING_IMAGE_VERSION")),
 					packagebundle.WithImageAsFile(os.Getenv(antreaInterworkingImageFilePath)),
 				),
 				packagebundle.WithImageOverride(
-					packagebundle.WithImageAsRef("antrea/antrea-windows:"+os.Getenv("ANTREA_IMAGE_VERSION")),
+					packagebundle.WithImageAsRef(registry+"antrea/antrea-windows:"+os.Getenv("ANTREA_IMAGE_VERSION")),
 					packagebundle.WithImageAsFile(os.Getenv(antreaWindowsImageFilePath)),
 				),
 			),

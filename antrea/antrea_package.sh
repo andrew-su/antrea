@@ -117,36 +117,12 @@ mkdir -p ${BUILDROOT}/package-bundle/
 pushd "${PROJECT_DIR}/carvelpackage"
 echo "=== GIT_SSH_COMMAND=${GIT_SSH_COMMAND}"
 
-  mkdir -p ~/.ssh # create if not already available
-  cat ~/.ssh/known_hosts || touch ~/.ssh/known_hosts # create known_hosts if not available
-
-  # Maintainer Notes:
-  # - Setting GIT_SSH_COMMAND env & not setting known_hosts leads to following error:
-  #   - debug1: read_passphrase: can't open /dev/tty: No such device or address
-  #   - Host key verification failed
-  #   - fatal: Could not read from remote repository
-  #   - Please make sure you have the correct access rights and the repository exists
-  #
-  # - Setting only known_hosts gives following error:
-  #   - Warning: Permanently added the RSA host key for IP address '10.182.40.99' to the list of known hosts
-  #   - git@gitlab.eng.vmware.com: Permission denied (publickey,gssapi-keyex,gssapi-with-mic)
-  #   - fatal: Could not read from remote repository
-  #   - Please make sure you have the correct access rights and the repository exists
-  #
-  # - Hence, known_hosts should be set along with GIT_SSH_COMMAND environment variable
-  # - GIT_SSH_COMMAND is set in bootstrap.py
-  ssh-keyscan -t rsa gitlab.eng.vmware.com >> ~/.ssh/known_hosts
-  ssh-keyscan -t rsa gitlab-vmw.devops.broadcom.net >> ~/.ssh/known_hosts
-  cat ~/.ssh/known_hosts
-
   # Configure git to use 'ssh' instead of 'https'
-  #
-  # Maintainer Notes:
-  # - ~/.ssh/known_hosts & GIT_SSH_COMMAND environment variable must be set to use below configuration
-  git config --global url.ssh://git@gitlab-vmw.devops.broadcom.net/.insteadOf https://gitlab-vmw.devops.broadcom.net/
-  export GOPRIVATE=gitlab-vmw.devops.broadcom.net
-  export GOPROXY=https://packages.vcfd.broadcom.net/artifactory/proxy-golang-remote
+  git config --global url.ssh://git@gitlab.eng.vmware.com/.insteadOf https://gitlab.eng.vmware.com/
+  export GOPRIVATE=gitlab.eng.vmware.com
+  export GOPROXY=https://build-artifactory.eng.vmware.com/artifactory/proxy-golang-remote,direct
   export GOSUMDB=off
+
 
 
   CGO_ENABLED=0 \

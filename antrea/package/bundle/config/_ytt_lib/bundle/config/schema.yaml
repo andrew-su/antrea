@@ -51,7 +51,7 @@ antrea:
       skipServices:
         - ""
       #@schema/desc "Load-balance traffic destined to the External IPs of LoadBalancer services."
-      proxyLoadBalancerIPs: true
+      proxyLoadBalancerIPs: false
       #@schema/desc "AntreaProxy will only handle Services with the label that equals the provided value."
       serviceProxyName: ""
       #@schema/desc "Determines how external traffic is processed when it's load balanced across Nodes by default"

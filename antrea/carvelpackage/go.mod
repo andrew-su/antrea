@@ -11,5 +11,3 @@ require (
 	gitlab.eng.vmware.com/core-build/tanzu-release-machinery/core v0.0.0-20240508111244-867cb2b6b9ee // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace gitlab.eng.vmware.com/core-build/tanzu-release-machinery => gitlab-vmw.devops.broadcom.net/core-build/tanzu-release-machinery v0.0.0-20240530064030-b007fb414a24
