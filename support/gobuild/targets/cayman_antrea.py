@@ -108,7 +108,10 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
         # Have to disable ssl verification since gobuild machine doesn't have
         # embedded cert bundle.
         env["GIT_SSL_NO_VERIFY"] = "false"
-        del env["PYTHONDONTWRITEBYTECODE"]
+        try:
+            del env["PYTHONDONTWRITEBYTECODE"]
+        except KeyError:
+            pass
         env["PYTHONIOENCODING"] = "UTF-8"
         env["LANG"] = "en_US.UTF-8"
         env["PROJECT_DIR"] = PROJECT_DIR
