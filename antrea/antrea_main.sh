@@ -37,6 +37,19 @@ cp ${OVS_DIR}/openvswitch-${OVS_VER}.tar.gz .
 ./build.sh --distro debian
 popd
 
+echo "====== Building Antrea ODS Debian Image ======"
+ods_img_name=antrea/antrea-ods-debian
+ODS_DELIVERABLES_DIR=$(mktemp -d)
+ODS_MANIFESTS_DIR=$(mktemp -d)
+make build-ods-debian VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
+echo "====== Preparing Manifests for ODS ======"
+ODS_IMG_NAME=$ods_img_name IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --ods-only --mode release > "${ODS_MANIFESTS_DIR}/antrea-ods-${BINARY_VERSION}.yml"
+echo "====== Saving ODS Image ======"
+docker save ${ods_img_name}:${IMAGE_VERSION} | gzip -9 > "${ODS_DELIVERABLES_DIR}/antrea-ods-debian-${IMAGE_VERSION}.tar.gz"
+digest_filename_ods="antrea-ods-debian-${IMAGE_VERSION}-image-digests.txt"
+image_id_antrea_ods_debian="$(docker inspect -f '{{.ID}}' "${ods_img_name}:${IMAGE_VERSION}")"
+echo "${ods_img_name}@${image_id_antrea_ods_debian}" > "${ODS_DELIVERABLES_DIR}/${digest_filename_ods}"
+
 echo "====== Building Debian Base Image ======"
 pushd build/images/base
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
@@ -60,15 +73,13 @@ echo "${BUILD_NUMBER}" > "${PUBLISH_DIR}/${antrea_std_deliverables}/build_number
 MANIFESTS_DIR=$(mktemp -d)
 agent_img_name=antrea/antrea-standard-agent-debian
 controller_img_name=antrea/antrea-standard-controller-debian
-ods_img_name=antrea/antrea-standard-ods-debian
 # TODO: add --ods option in standard manifest generation if we want to enable ods deployment by default in later releases
 AGENT_IMG_NAME=$agent_img_name CONTROLLER_IMG_NAME=$controller_img_name IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
 AGENT_IMG_NAME=$agent_img_name CONTROLLER_IMG_NAME=$controller_img_name IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --feature-gates FlowExporter=true --extra-helm-values-file "${REPO_ROOT}/ci/kind/values-flow-exporter.yml" --mode release > "${MANIFESTS_DIR}"/antrea-flow-exporter-enabled.yml
-ODS_IMG_NAME=$ods_img_name IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --ods-only --mode release > "${MANIFESTS_DIR}"/antrea-ods.yml
 cp "${MANIFESTS_DIR}/antrea-standard.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-${BINARY_VERSION}.yml"
 cp "${MANIFESTS_DIR}/antrea-standard-fips.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-fips-${BINARY_VERSION}.yml"
 cp "${MANIFESTS_DIR}/antrea-standard-nponly.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-standard-nponly-${BINARY_VERSION}.yml"
-cp "${MANIFESTS_DIR}/antrea-ods.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-ods-${BINARY_VERSION}.yml"
+cp "${ODS_MANIFESTS_DIR}/antrea-ods-${BINARY_VERSION}.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/"
 cp "${FLOW_AGGREGATOR_MANIFESTS_DIR}/flow-aggregator-${BINARY_VERSION}.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/"
 cp "${MANIFESTS_DIR}/antrea-flow-exporter-enabled.yml" "${PUBLISH_DIR}/${antrea_std_deliverables}/manifests/antrea-flow-exporter-enabled-${BINARY_VERSION}.yml"
 cp "${REPO_ROOT}/hack/wavefront-metrics.sh" "${PUBLISH_DIR}/${antrea_std_deliverables}/scripts/"
@@ -86,26 +97,23 @@ OUTPUT_DIR="${BUILDROOT}/standard-output"
 echo "====== Saving and Signing Antrea Standard Product Images ======"
 agent_image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-agent-debian:${IMAGE_VERSION}")"
 controller_image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-controller-debian:${IMAGE_VERSION}")"
-ods_image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-ods-debian:${IMAGE_VERSION}")"
 agent_digest_filename="antrea-standard-agent-debian-${IMAGE_VERSION}-image-digests.txt"
 controller_digest_filename="antrea-standard-controller-debian-${IMAGE_VERSION}-image-digests.txt"
-ods_digest_filename="antrea-standard-ods-debian-${IMAGE_VERSION}-image-digests.txt"
 checksum_filename="antrea-standard-debian-${IMAGE_VERSION}-image-checksums.txt"
 mkdir -p "${OUTPUT_DIR}/images"
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
 # Just publish Antrea images.
 docker tag antrea/antrea-agent-debian:${IMAGE_VERSION} $agent_img_name:${IMAGE_VERSION}
 docker tag antrea/antrea-controller-debian:${IMAGE_VERSION} $controller_img_name:${IMAGE_VERSION}
-docker tag antrea/antrea-ods-debian:${IMAGE_VERSION} $ods_img_name:${IMAGE_VERSION}
 docker save $agent_img_name:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-standard-agent-debian-${IMAGE_VERSION}.tar.gz"
 docker save $controller_img_name:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-standard-controller-debian-${IMAGE_VERSION}.tar.gz"
-docker save $ods_img_name:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-standard-ods-debian-${IMAGE_VERSION}.tar.gz"
 echo "antrea/antrea-standard-agent-debian@${agent_image_id}" > "${OUTPUT_DIR}/images/${agent_digest_filename}"
 echo "antrea/antrea-standard-controller-debian@${controller_image_id}" > "${OUTPUT_DIR}/images/${controller_digest_filename}"
-echo "antrea/antrea-standard-ods-debian@${ods_image_id}" > "${OUTPUT_DIR}/images/${ods_digest_filename}"
 
 # Saving flow-aggregator image
 cp -rf "${FLOW_AGGREGATOR_DELIVERABLES_DIR}/." "${OUTPUT_DIR}/images/"
+# Saving ODS image
+cp -rf "${ODS_DELIVERABLES_DIR}/." "${OUTPUT_DIR}/images/"
 
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${checksum_filename}
@@ -172,15 +180,13 @@ echo "${BUILD_NUMBER}" > "${PUBLISH_DIR}/${antrea_adv_deliverables}/build_number
 MANIFESTS_DIR=$(mktemp -d)
 agent_img_name=antrea/antrea-advanced-agent-debian
 controller_img_name=antrea/antrea-advanced-controller-debian
-ods_img_name=antrea/antrea-ods-debian
 # TODO: add --ods option in standard manifest generation if we want to enable ods deployment by default in later releases
 AGENT_IMG_NAME=$agent_img_name CONTROLLER_IMG_NAME=$controller_img_name IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-standard-manifests.sh --mode release --out "${MANIFESTS_DIR}"
 AGENT_IMG_NAME=$agent_img_name CONTROLLER_IMG_NAME=$controller_img_name IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --feature-gates FlowExporter=true --extra-helm-values-file "${REPO_ROOT}/ci/kind/values-flow-exporter.yml" --mode release > "${MANIFESTS_DIR}"/antrea-flow-exporter-enabled.yml
-ODS_IMG_NAME=$ods_img_name IMG_TAG=${IMAGE_VERSION} ${REPO_ROOT}/hack/generate-manifest.sh --ods-only --mode release > "${MANIFESTS_DIR}"/antrea-ods.yml
 cp ${MANIFESTS_DIR}/antrea-advanced.yml "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-${BINARY_VERSION}.yml"
 cp ${MANIFESTS_DIR}/antrea-advanced-fips.yml "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-fips-${BINARY_VERSION}.yml"
 cp ${MANIFESTS_DIR}/antrea-advanced-nponly.yml "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-advanced-nponly-${BINARY_VERSION}.yml"
-cp ${MANIFESTS_DIR}/antrea-ods.yml "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-ods-${BINARY_VERSION}.yml"
+cp "${ODS_MANIFESTS_DIR}/antrea-ods-${BINARY_VERSION}.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/"
 cp "${FLOW_AGGREGATOR_MANIFESTS_DIR}/flow-aggregator-${BINARY_VERSION}.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/"
 cp "${MANIFESTS_DIR}/antrea-flow-exporter-enabled.yml" "${PUBLISH_DIR}/${antrea_adv_deliverables}/manifests/antrea-flow-exporter-enabled-${BINARY_VERSION}.yml"
 cp "${REPO_ROOT}/hack/wavefront-metrics.sh" "${PUBLISH_DIR}/${antrea_adv_deliverables}/scripts/"
@@ -198,26 +204,23 @@ OUTPUT_DIR="${BUILDROOT}/advanced-output"
 echo "====== Saving and Signing Antrea Advanced Product Images ======"
 agent_image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-agent-debian:${IMAGE_VERSION}")"
 controller_image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-controller-debian:${IMAGE_VERSION}")"
-ods_image_id="$(docker inspect -f '{{.ID}}' "antrea/antrea-ods-debian:${IMAGE_VERSION}")"
 agent_digest_filename="antrea-advanced-agent-debian-${IMAGE_VERSION}-image-digests.txt"
 controller_digest_filename="antrea-advanced-controller-debian-${IMAGE_VERSION}-image-digests.txt"
-ods_digest_filename="antrea-ods-debian-${IMAGE_VERSION}-image-digests.txt"
 checksum_filename="antrea-advanced-debian-${IMAGE_VERSION}-image-checksums.txt"
 mkdir -p "${OUTPUT_DIR}/images"
 # We don't need openvswitch image in all-in-one yaml deployment, so don't publish it
 # Just publish Antrea images.
 docker tag antrea/antrea-agent-debian:${IMAGE_VERSION} $agent_img_name:${IMAGE_VERSION}
 docker tag antrea/antrea-controller-debian:${IMAGE_VERSION} $controller_img_name:${IMAGE_VERSION}
-docker tag antrea/antrea-ods-debian:${IMAGE_VERSION} $ods_img_name:${IMAGE_VERSION}
 docker save $agent_img_name:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-advanced-agent-debian-${IMAGE_VERSION}.tar.gz"
 docker save $controller_img_name:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-advanced-controller-debian-${IMAGE_VERSION}.tar.gz"
-docker save $ods_img_name:${IMAGE_VERSION} | gzip -9 > "${OUTPUT_DIR}/images/antrea-ods-debian-${IMAGE_VERSION}.tar.gz"
 echo "antrea/antrea-advanced-agent-debian@${agent_image_id}" > "${OUTPUT_DIR}/images/${agent_digest_filename}"
 echo "antrea/antrea-advanced-controller-debian@${controller_image_id}" > "${OUTPUT_DIR}/images/${controller_digest_filename}"
-echo "antrea/antrea-ods-debian@${ods_image_id}" > "${OUTPUT_DIR}/images/${ods_digest_filename}"
 
 # Saving flow-aggregator image
 cp -rf "${FLOW_AGGREGATOR_DELIVERABLES_DIR}/." "${OUTPUT_DIR}/images/"
+# Saving ODS image
+cp -rf "${ODS_DELIVERABLES_DIR}/." "${OUTPUT_DIR}/images/"
 
 pushd "${OUTPUT_DIR}/images/"
 sha256sum -- * > ${checksum_filename}
