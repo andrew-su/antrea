@@ -11,9 +11,9 @@ LABEL build-info="${BUILD_INFO}"
 RUN echo 'Acquire::https::Verify-Peer "false";' > /etc/apt/apt.conf.d/99insecure && \
     echo 'Acquire::https::Verify-Host "false";' >> /etc/apt/apt.conf.d/99insecure && \
     echo 'APT::Get::AllowUnauthenticated "true";' >> /etc/apt/apt.conf.d/99insecure && \
-    echo "deb http://packages.vcfd.broadcom.net/debian-remote/debian bullseye main" > /etc/apt/sources.list && \
-    echo "deb http://packages.vcfd.broadcom.net/debian-remote/debian bullseye-updates main" >> /etc/apt/sources.list && \
-    echo "deb http://packages.vcfd.broadcom.net/debian-security-remote/debian-security bullseye-security main" >> /etc/apt/sources.list
+    echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bullseye main" > /etc/apt/sources.list && \
+    echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bullseye-updates main" >> /etc/apt/sources.list && \
+    echo "deb https://packages.vcfd.broadcom.net/debian-security-remote/debian-security bullseye-security main" >> /etc/apt/sources.list
 
 RUN apt-get update && \
     apt -y upgrade && \
