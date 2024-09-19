@@ -26,6 +26,23 @@ if [[ ${build_kind} == "sb" ]];then
   exit 1
 fi
 
+# Traverse all components of a build, and find the specific component name, and output the component build.
+find_component_build() {
+  local build=$1
+  local component=$2
+  local b
+
+  local component_builds=(`curl -s "https://buildapi.lvn.broadcom.net/ob/buildcomponent/?build=$build" | jq -r '._list[].component_buildid'`)
+
+  for b in "${component_builds[@]}"; do
+    p=$(curl -s https://buildapi.lvn.broadcom.net/ob/build/$b | jq -r .product)
+    if [ "$p" = "$component" ]; then
+      echo $b
+      break
+    fi
+  done
+}
+
 echo ====== Logging in to "${ARTIFACTORY_URL}" ======
 docker login -u "${artifactory_user}" -p "${artifactory_token}" "${ARTIFACTORY_URL}"
 
@@ -81,7 +98,7 @@ docker push "${ARTIFACTORY_REPO}/flow-aggregator-${base_os}:${antrea_version}"
 echo "${ARTIFACTORY_REPO}/flow-aggregator-${base_os}:${antrea_version}" >> publish_images.txt
 
 #### Antrea standard, advanced (debian)
-#### Flow-aggregator debian
+#### Flow-aggregator, ODS debian
 for flavor in standard advanced ; do
   echo === Downloading Antrea $flavor Zip File ===
   zip_file="$(curl -s "http://build-squid.vcfd.broadcom.net/build/mts/release/bora-${build_number}/publish/cayman_antrea/${flavor}-release/" | grep -o "antrea-${flavor}-${antrea_bin_version}\.zip")"
@@ -89,9 +106,9 @@ for flavor in standard advanced ; do
   unzip "${zip_file}" && rm -f "${zip_file}"
   zip_dir="${zip_file%.zip}"
   pushd "${zip_dir}/images"
-  for img in "antrea-${flavor}-controller-debian" "antrea-${flavor}-agent-debian" "flow-aggregator-debian" ; do
-    # flow-aggregator image is the same for Antrea standard and advaced. We just need to update it once.
-    if [ "$flavor" = "standard" -a "${img}" = "flow-aggregator-debian" ]; then continue; fi
+  for img in "antrea-${flavor}-controller-debian" "antrea-${flavor}-agent-debian" "flow-aggregator-debian" "antrea-ods-debian"; do
+    # flow-aggregator and ODS images are the same for Antrea standard and advanced. We just need to update it once.
+    if [ "$flavor" = "standard" -a "${img}" = "flow-aggregator-debian" ] || [ "$flavor" = "standard" -a "${img}" = "antrea-ods-debian" ]; then continue; fi
     docker load -i "${img}-${antrea_version}.tar.gz"
     docker tag "antrea/${img}:${antrea_version}" "${ARTIFACTORY_REPO}/${img}:${antrea_version}"
     echo === Pushing "${ARTIFACTORY_REPO}/${img}:${antrea_version}" ===
@@ -150,6 +167,27 @@ docker tag "localhost:5000/vmware.io/antrea/antrea-operator:${operator_version}"
 echo === Pushing "${ARTIFACTORY_REPO}/antrea-operator:${operator_version}" ===
 docker push "${ARTIFACTORY_REPO}/antrea-operator:${operator_version}"
 echo "${ARTIFACTORY_REPO}/antrea-operator:${operator_version}" >> publish_images.txt
+
+#### nsx-management-proxy-package
+
+proxy_build_number=$(find_component_build $build_number nsx-management-proxy-package)
+imgpkg_build_number=$(find_component_build $proxy_build_number cayman_imgpkg)
+echo "=== Installing imgpkg tool from official build ob-${imgpkg_build_number} ==="
+imgpkg_build_url="http://build-squid.vcfd.broadcom.net/build/mts/release/bora-${imgpkg_build_number}/publish/lin64/imgpkg/executables"
+imgpkg_linux_path=$(curl -s "https://buildapi.lvn.broadcom.net/ob/deliverable/?build=${imgpkg_build_number}&path__startswith=publish/lin64/imgpkg/executables/imgpkg-linux-amd64-" | jq -r '._list[0].path')
+wget -O imgpkg.gz "http://build-squid.vcfd.broadcom.net/build/mts/release/bora-${imgpkg_build_number}/${imgpkg_linux_path}"
+gzip -d -c imgpkg.gz > imgpkg && rm -f imgpkg.gz
+chmod +x imgpkg
+./imgpkg version
+
+wget "http://build-squid.vcfd.broadcom.net/build/mts/release/bora-${build_number}/publish/nsx-management-proxy-package/VERSION" -O proxy_version_file
+proxy_version="$(cat proxy_version_file)"
+echo ====== Publishing nsx-management-proxy-bundle "${proxy_version}" ======
+echo === Downloading nsx-management-proxy-bundle ===
+wget "http://build-squid.vcfd.broadcom.net/build/mts/release/bora-${build_number}/publish/nsx-management-proxy-package/images/nsx-management-proxy-bundle-${proxy_version}.tar" -O nsx-management-proxy.tar
+echo === Pushing "${ARTIFACTORY_REPO}/nsx-management-proxy-bundle:${proxy_version}" ===
+./imgpkg copy --tar nsx-management-proxy.tar --to-repo "${ARTIFACTORY_REPO}/nsx-management-proxy-bundle" && rm -f nsx-management-proxy.tar
+echo "${ARTIFACTORY_REPO}/nsx-management-proxy-bundle:${proxy_version}" >> publish_images.txt
 
 echo ====== Cleaning up All Antrea Releated Images ======
 docker images | grep -v '<none>' | grep antrea | awk '{print $1":"$2}' | xargs -r docker rmi || true
