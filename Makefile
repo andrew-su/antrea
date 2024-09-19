@@ -221,12 +221,10 @@ build: build-controller-ubuntu
 .PHONY: debian
 debian: agent-debian
 debian: controller-debian
-debian: build-ods-debian
 
 .PHONY: ubi
 ubi: agent-ubi
 ubi: controller-ubi
-ubi: build-ods-debian
 
 .PHONY: photon
 photon: agent-photon
