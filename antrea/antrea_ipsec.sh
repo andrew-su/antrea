@@ -116,6 +116,7 @@ function build_ipsec_zip_for_distro {
     MANIFESTS_DIR=$(mktemp -d)
     AGENT_IMG_NAME=${agent_image_name} CONTROLLER_IMG_NAME=${controller_image_name} IMG_TAG=${IMAGE_VERSION} "${REPO_ROOT}/hack/generate-standard-manifests.sh" --mode release --out "${MANIFESTS_DIR}"
     cp "${MANIFESTS_DIR}/antrea-advanced-ipsec.yml" "antrea-${distro}-ipsec-${BINARY_VERSION}.yml"
+    cp "${MANIFESTS_DIR}/antrea-advanced.yml" "antrea-${distro}-${BINARY_VERSION}.yml"
     save_image_and_digest ${agent_image_name} ${IMAGE_VERSION} .
     save_image_and_digest ${controller_image_name} ${IMAGE_VERSION} .
     sign_binaries antrea-${distro}-ipsec-${BINARY_VERSION}-checksums.txt .
