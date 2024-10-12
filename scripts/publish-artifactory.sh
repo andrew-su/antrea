@@ -5,14 +5,14 @@ antrea_release_build="$1"
 artifactory_user="$2"
 artifactory_token="$3"
 
-ARTIFACTORY_URL="antrea-docker-dev-local.packages.vcfd.broadcom.net"
+ARTIFACTORY_URL="antrea-docker-dev-local.artifactory.vcfd.broadcom.net"
 ARTIFACTORY_REPO="${ARTIFACTORY_URL}/antreainterworking"
 
 if [[ $# -ne 3 ]]; then
     echo "Usage: $0 antrea-release-build 'artifactory_user' 'artifactory_token'"
     echo "  antrea-release-build: antrea-release official build. Build can be found in https://buildweb.eng.vmware.com/ob/?product=antrea-release."
-    echo "  artifactory_user: packages.vcfd.broadcom.net user name (Broadcom ID without @broadcom.net)"
-    echo "  artifactory_token: user's token to login packages.vcfd.broadcom.net"
+    echo "  artifactory_user: artifactory.vcfd.broadcom.net user name (Broadcom ID without @broadcom.net)"
+    echo "  artifactory_token: user's token to login artifactory.vcfd.broadcom.net"
     echo "Example: $0 ob-xxxx 'ab12345678' '*****'"
     exit 1
 fi
@@ -142,6 +142,7 @@ for base_os in debian ubi; do
   wget "http://build-squid.vcfd.broadcom.net/build/mts/release/bora-${build_number}/publish/cayman_antrea/idps/${zip_file}"
   unzip "${zip_file}"
   docker load -i "${zip_dir}/images/antrea-idps-${antrea_version}.tar.gz"
+  docker tag projects.packages.broadcom.com/antreainterworking/idps-${base_os}:${antrea_version} ${ARTIFACTORY_URL}/antreainterworking/idps-${base_os}:${antrea_version}
   echo === Pushing "${ARTIFACTORY_REPO}/idps-${base_os}:${antrea_version}" ====
   docker push "${ARTIFACTORY_REPO}/idps-${base_os}:${antrea_version}"
   echo "${ARTIFACTORY_REPO}/idps-${base_os}:${antrea_version}" >> publish_images.txt
@@ -150,6 +151,7 @@ for base_os in debian ubi; do
     # suricata image is the same for idps-debian and idps-ubi zip, only need to upload it once.
     docker load -i "${zip_dir}/images/antrea-suricata-${antrea_version}.tar.gz"
     echo === Pushing "${ARTIFACTORY_REPO}/suricata:${antrea_version}" ====
+    docker tag projects.packages.broadcom.com/antreainterworking/suricata:${antrea_version} ${ARTIFACTORY_URL}/antreainterworking/suricata:${antrea_version}
     docker push "${ARTIFACTORY_REPO}/suricata:${antrea_version}"
     echo "${ARTIFACTORY_REPO}/suricata:${antrea_version}" >> publish_images.txt
   fi
