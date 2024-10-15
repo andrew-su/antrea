@@ -395,6 +395,11 @@ clean:
 .PHONY: codegen
 codegen:
 	@echo "===> Updating generated code <==="
+	$(CURDIR)/hack/update-codegen-dockerized.sh
+
+.PHONY: docker-codegen
+docker-codegen:
+	@echo "===> Updating generated code via docker codegen image <==="
 	$(CURDIR)/hack/update-codegen.sh
 
 .PHONY: mockgen

@@ -25,7 +25,7 @@ ANTREA_PKG="antrea.io/antrea"
 # We make a temporary working copy of the source repository using git clone. The
 # copy is in the container's writable layer, which is much faster than a bind
 # mount on non-Linux hosts (Docker Desktop, Colima).
-ANTREA_SRC_PATH=$(pwd)
+ANTREA_SRC_PATH="$(pwd)/.."
 ANTREA_CODEGEN_PATH=/go/src/antrea.io/antrea
 git clone ${ANTREA_SRC_PATH} ${ANTREA_CODEGEN_PATH}
 pushd ${ANTREA_CODEGEN_PATH}

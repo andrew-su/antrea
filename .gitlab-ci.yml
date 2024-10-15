@@ -1,4 +1,5 @@
----
+image: nsx-ujo-docker-local.packages.vcfd.broadcom.net/antrea/golang:1.21.7
+
 variables:
   GIT_CLEAN_FLAGS: -ffdx -e .cache
   DOCKER_BUILDKIT: 1
@@ -7,91 +8,52 @@ variables:
 default:
   before_script:
     - |
-      echo "Pulling golang image"
+      apt update
+      apt install -y jq
       export GO_VERSION=$(cat build/images/deps/go-version)
-      docker pull harbor-repo.vmware.com/dockerhub-proxy-cache/library/golang:${GO_VERSION}
-      docker tag harbor-repo.vmware.com/dockerhub-proxy-cache/library/golang:${GO_VERSION} golang:${GO_VERSION}
       echo "Ensuring go version"
       mkdir -p ~/.local/go/
       export GOPATH=~/.local/go/
-      go install golang.org/dl/go${GO_VERSION}@latest
-      ${GOPATH}/bin/go${GO_VERSION} download
-      ln -sf ${GOPATH}/bin/go${GO_VERSION} ${GOPATH}/bin/go
+      export GO_VERSION_FULL=$(curl "https://go.dev/dl/?mode=json&include=all" | jq --arg go_version_prefix go${GO_VERSION} -r '. | map(select(. | .version | startswith($go_version_prefix)))|first|.version')
+      go install golang.org/dl/${GO_VERSION_FULL}@latest
+      ${GOPATH}/bin/${GO_VERSION_FULL} download
+      ln -sf ${GOPATH}/bin/${GO_VERSION_FULL} ${GOPATH}/bin/go
       export PATH=${GOPATH}/bin:$PATH
       echo "Using $(go version)"
-    - |
-      echo "Cleaning up stale images"
-      docker images --format json | jq -r 'select( .Repository | startswith("antrea/antrea",
-                                                                            "antrea/openvswitch",
-                                                                            "antrea/base",
-                                                                            "antrea/cni"))
-                                          |select((now - (.CreatedAt | (strptime("%Y-%m-%d %H:%M:%S %z") | mktime))) > 86400)|.ID' \
-                                          |xargs -r docker rmi -f
-      docker system prune -f
-stages:
-  - test
-  - build
 
-sanity-check:
-  stage: test
-  script:
-    - echo "Check if we can build e2e tests"
-    - go test -c  -o /dev/null antrea.io/antrea/test/e2e
+stages:
+  - lint
+  - test
 
 test-unit:
   stage: test
   script:
-    - make docker-test-unit
+    - echo "Check if we can build e2e tests"
+    - go test -c  -o /dev/null antrea.io/antrea/test/e2e
+    - echo "Run unit tests"
+    - make test-unit
 
 check-codegen:
-  stage: test
+  before_script: []
+  image: dockerhub.artifactory.vcfd.broadcom.net/antrea/codegen:kubernetes-1.29.2-build.2
+  stage: lint
   script:
     - ./ci/check-codegen.sh
 
 check-manifest:
-  stage: test
+  before_script: []
+  stage: lint
   script:
     - ./ci/check-manifest.sh
 
-.build-script-common: &build-script-common
-  - |
-    pushd build/images/ovs
-    ./build.sh --distro ${DISTRO} --download-ovs ${EXTRA_BUILD_ARGS}
-    ./build.sh --distro ${DISTRO} --download-ovs --ipsec ${EXTRA_BUILD_ARGS}
-    popd
-    pushd build/images/base
-    ./build.sh --distro ${DISTRO} --download-cni-binaries ${EXTRA_BUILD_ARGS}
-    ./build.sh --distro ${DISTRO} --download-cni-binaries --ipsec ${EXTRA_BUILD_ARGS}
-    popd
-    make docker-bin
-    make ${DISTRO}
-    IPSEC=true make ${DISTRO}
+# TODO: Enable Golang lint check and fix the lint errors
+#check-lint:
+#  stage: lint
+#  script:
+#    - make golangci
 
-build-image-debian:
-  stage: build
-  variables:
-    DISTRO: debian
+build-bin:
+  stage: test
   script:
-    - *build-script-common
-
-build-image-ubi:
-  stage: build
-  variables:
-    DISTRO: ubi
-  script:
-    - *build-script-common
-
-build-image-ubuntu:
-  stage: build
-  variables:
-    DISTRO: ubuntu
-  script:
-    - *build-script-common
-
-build-image-photon:
-  stage: build
-  variables:
-    DISTRO: photon
-    EXTRA_BUILD_ARGS: --use-public-photon
-  script:
-    - *build-script-common
+    - make bin
+    - make windows-bin

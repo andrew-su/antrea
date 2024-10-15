@@ -91,6 +91,9 @@ controller-gen: ## Download controller-gen locally if necessary.
 	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.16.3)
 
 codegen:
+	./hack/update-codegen-dockerized.sh
+
+docker-codegen:
 	./hack/update-codegen.sh
 
 .PHONY: mockgen
