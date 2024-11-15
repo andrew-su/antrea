@@ -1,4 +1,4 @@
-image: nsx-ujo-docker-local.packages.vcfd.broadcom.net/antrea/golang:1.21.7
+image: dockerhub.artifactory.vcfd.broadcom.net/golang:1.23
 
 variables:
   GIT_CLEAN_FLAGS: -ffdx -e .cache
@@ -35,7 +35,7 @@ test-unit:
 
 check-codegen:
   before_script: []
-  image: dockerhub.artifactory.vcfd.broadcom.net/antrea/codegen:kubernetes-1.29.2-build.2
+  image: dockerhub.artifactory.vcfd.broadcom.net/antrea/codegen:kubernetes-1.31.1-build.1
   stage: lint
   script:
     - ./ci/check-codegen.sh
