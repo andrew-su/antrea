@@ -13,9 +13,10 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"gitlab.eng.vmware.com/core-build/tanzu-release-machinery/artifact/pkg/bwartifact"
-	"gitlab.eng.vmware.com/core-build/tanzu-release-machinery/ci-tooling/pkg/sdk/buildweb"
-	"gitlab.eng.vmware.com/core-build/tanzu-release-machinery/gitlab/pkg/sdk/gitlab"
+
+	"gitlab-vmw.devops.broadcom.net/core-build/tanzu-release-machinery/artifact/pkg/bwartifact"
+	"gitlab-vmw.devops.broadcom.net/core-build/tanzu-release-machinery/ci-tooling/pkg/sdk/buildweb"
+	"gitlab-vmw.devops.broadcom.net/core-build/tanzu-release-machinery/gitlab/pkg/sdk/gitlab"
 )
 
 const (
@@ -83,11 +84,7 @@ func main() {
 	gobuildTarget := "cayman_antrea_package" // same as the one found at support/gobuild/__init__.py
 	timeout := time.Hour * 2
 
-	bw, makeErr := buildweb.MakeBuildwebBuildOptions(
-		buildweb.WithVaultTokenFromEnv("VAULT_TOKEN"),
-		buildweb.WithVaultAddressAsRunwayVault(),
-		buildweb.WithBuildwebSecretPathsOfRunwayVault(),
-	)
+	bw, makeErr := buildweb.MakeBuildwebBuildOptions()
 	if makeErr != nil {
 		logErr(buildLogCtx, makeErr)
 		os.Exit(1)
@@ -139,7 +136,6 @@ func main() {
 	/*
 	  Step 2: Publish the build artifacts
 	*/
-	publishStartTime := time.Now()
 	logInfo(publishLogCtx, "build-squid artifact(s)", "started")
 
 	artifactoryBasePath := fmt.Sprintf("antrea/%s", buildResult.BuildIDDesc)
@@ -209,9 +205,9 @@ func main() {
 	publishOpts = append(publishOpts, bwartifact.WithBuildIDDesc(buildResult.BuildIDDesc))
 
 	if buildResult.IsOfficialBuild {
-		publishOpts = append(publishOpts, bwartifact.WithStagingArtifactory(artifactoryBasePath))
+		publishOpts = append(publishOpts, bwartifact.WithDevArtifactory2(artifactoryBasePath))
 	} else {
-		publishOpts = append(publishOpts, bwartifact.WithDevArtifactory(artifactoryBasePath))
+		publishOpts = append(publishOpts, bwartifact.WithDevArtifactory2(artifactoryBasePath))
 	}
 
 	pubResult, pubErr := bwartifact.Publish(publishOpts...)
@@ -242,7 +238,20 @@ func main() {
 		logInfoAndPost(publishLogCtx, "build-squid artifact(s)", "published", string(minimalPublishJson))
 	}
 
-	logInfoAndPost(publishLogCtx, "build-squid artifact(s)", "completed successfully", time.Since(publishStartTime).String())
+	// Post to Gitlab on successful publish
+	var pubComment strings.Builder
+	for _, item := range pubResult {
+		pubComment.WriteString(fmt.Sprintf("\n- id = %s", item.PublishIdentifier))
+		pubComment.WriteString(fmt.Sprintf("\n  status = %s", item.Status))
+		if item.DestinationURL != "" {
+			pubComment.WriteString(fmt.Sprintf("\n  url = %s", item.DestinationURL))
+		}
+		if item.DestinationURLDigest != "" {
+			pubComment.WriteString(fmt.Sprintf("\n  digest = %s", item.DestinationURLDigest))
+		}
+	}
+	postToGitlab(fmt.Sprintf("publish succeeded: %s", pubComment.String()))
+	log.Println(buildResult.String())
 
 	os.Exit(0)
 }
@@ -285,8 +294,9 @@ func logInfo(msgCtx, msg string, info ...string) string {
 //
 // Returns the formulated log message.
 func logErr(msgCtx string, err error) string {
-	logMsg := fmt.Sprintf("ERROR: %s: %s: (%+v)", relMachLogCtx, msgCtx, err)
+	logMsg := fmt.Sprintf("ERROR: %s: %s: %s", relMachLogCtx, msgCtx, err)
 	log.Println(logMsg)
+	postToGitlab("ci failed: check jenkins logs to find the error(s)")
 	return logMsg
 }
 
@@ -298,7 +308,7 @@ func postToGitlab(msg string) {
 			gitlab.WithProjectIDFromEnvKey(gitlab.EnvKeyGitlabMergeRequestTargetProjectId),
 			gitlab.WithMRIidFromEnvKey(gitlab.EnvKeyGitlabMergeRequestIid),
 			gitlab.WithAccessTokenFromRMCIEnvKey(),
-			gitlab.WithBaseURL(gitlab.GitlabEngVMwareCom),
+			gitlab.WithBaseURL(gitlab.GitlabVMWBroadcomNet),
 		),
 		gitlab.WithComment(msg),
 	)

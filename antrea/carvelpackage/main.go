@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
-	packagebundle "gitlab.eng.vmware.com/core-build/tanzu-release-machinery/carvel-package/pkg/sdk/package-bundle"
+	packagebundle "gitlab-vmw.devops.broadcom.net/core-build/tanzu-release-machinery/carvel-package/pkg/sdk/package-bundle"
 )
 
 /*
@@ -19,6 +20,8 @@ const (
 	antreaControllerImageFilePath   = "IMAGE_FILEPATH_ANTREA_CONTROLLER"
 	antreaInterworkingImageFilePath = "IMAGE_FILEPATH_ANTREA_INTERWORKING"
 	antreaWindowsImageFilePath      = "IMAGE_FILEPATH_ANTREA_WINDOWS"
+
+	envKeyGobuildProjectPath = "PROJECT_DIR"
 )
 
 /*
@@ -55,12 +58,15 @@ func configurePackageBundleOptions() {
 	version, suffix := getAntreaVersion()
 	registry := "nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/"
 
+	gobuildProjectPath := os.Getenv(envKeyGobuildProjectPath)
+
 	appendPackageBundleOptions(
 		[]packagebundle.PackageBundleOptionFunc{
 			packagebundle.WithPackageName("antrea"),
 			packagebundle.WithVersion(version),
 			packagebundle.WithSubVersion(suffix + "-" + os.Getenv("PACKAGE_VERSION_SUFFIX")),
 			packagebundle.WithLocalRegistry(),
+			packagebundle.WithPackageDirectoryPath(filepath.Join(gobuildProjectPath, "package")),
 			packagebundle.WithImages(
 				packagebundle.WithImageOverride(
 					packagebundle.WithImageAsRef(registry+"antrea/antrea-advanced-controller-debian:"+os.Getenv("ANTREA_IMAGE_VERSION")),
