@@ -15,6 +15,7 @@
 package main
 
 import (
+	_ "crypto/tls/fipsonly"
 	"os"
 	"path"
 

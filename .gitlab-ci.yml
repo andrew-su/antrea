@@ -1,28 +1,11 @@
-image: dockerhub.artifactory.vcfd.broadcom.net/golang:1.23
+image: gobuild-container-registry.lvn.broadcom.net/cayman_go/vmware-go1.23-unified/9365edac4f02869d784100b5c5a8c52fd500bbfe/release/publish/infra/docker/ubuntu-amd64/1.23.2:ob-24343099
 
 variables:
   GIT_CLEAN_FLAGS: -ffdx -e .cache
   DOCKER_BUILDKIT: 1
   NO_PULL: 1
 
-default:
-  before_script:
-    - |
-      apt update
-      apt install -y jq
-      export GO_VERSION=$(cat build/images/deps/go-version)
-      echo "Ensuring go version"
-      mkdir -p ~/.local/go/
-      export GOPATH=~/.local/go/
-      export GO_VERSION_FULL=$(curl "https://go.dev/dl/?mode=json&include=all" | jq --arg go_version_prefix go${GO_VERSION} -r '. | map(select(. | .version | startswith($go_version_prefix)))|first|.version')
-      go install golang.org/dl/${GO_VERSION_FULL}@latest
-      ${GOPATH}/bin/${GO_VERSION_FULL} download
-      ln -sf ${GOPATH}/bin/${GO_VERSION_FULL} ${GOPATH}/bin/go
-      export PATH=${GOPATH}/bin:$PATH
-      echo "Using $(go version)"
-
 stages:
-  - lint
   - test
 
 test-unit:
@@ -36,13 +19,13 @@ test-unit:
 check-codegen:
   before_script: []
   image: dockerhub.artifactory.vcfd.broadcom.net/antrea/codegen:kubernetes-1.31.1-build.1
-  stage: lint
+  stage: test
   script:
     - ./ci/check-codegen.sh
 
 check-manifest:
   before_script: []
-  stage: lint
+  stage: test
   script:
     - ./ci/check-manifest.sh
 
@@ -56,4 +39,10 @@ build-bin:
   stage: test
   script:
     - make bin
+    - ci/check-fips.sh bin/*
+
+build-bin-windows:
+  image: nsx-ujo-docker-local.packages.vcfd.broadcom.net/microsoft/golang:1.23-fips-bookworm-e96f8bcd
+  stage: test
+  script:
     - make windows-bin

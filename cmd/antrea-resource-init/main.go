@@ -18,6 +18,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	_ "crypto/tls/fipsonly"
 	"errors"
 	"fmt"
 	"io"

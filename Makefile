@@ -7,12 +7,16 @@ GO                 ?= go
 # paths.
 # To build binaries (standalone or embedded inside container images) with debugging information,
 # edit LDFLAGS and GOFLAGS.
-LDFLAGS            := -s -w
-GOFLAGS            ?= -trimpath
-# By default, disable cgo for all Go binaries.
-# For binaries meant to be published as release assets or copied to a different host, cgo should
-# always be disabled.
-CGO_ENABLED        ?= 0
+LDFLAGS            := -s -w -linkmode external
+GOFLAGS            := -trimpath -buildmode=pie
+
+# FIPS requires CGO to be enabled in linux
+CGO_ENABLED        := 1
+CC                 ?= x86_64-linux-gnu-gcc
+GOEXPERIMENT       ?= boringcrypto
+CGO_CFLAGS         := -Os -mtune=generic -D_FORTIFY_SOURCE=2 -D_REENTRANT -Wformat -Wformat-security -Wl,-z,relro -Wl,-z,now -Wl,-pie -Wl,--hash-style=gnu -Wl,--no-copy-dt-needed-entries -Wl,--as-needed
+CGO_LDFLAGS        := -Os -g
+
 IPSEC              ?= n
 BINDIR             ?= $(CURDIR)/bin
 GO_FILES           := $(shell find . -type d -name '.cache' -prune -o -type f -name '*.go' -print)
@@ -25,6 +29,11 @@ CNI_BINARIES_VERSION := $(shell head -n 1 build/images/deps/cni-binaries-version
 GIT_HOOKS          := $(shell find hack/git_client_side_hooks -type f -print)
 DOCKER_NETWORK     ?= default
 TRIVY_TARGET_IMAGE ?=
+
+# cayman-go image with FIPS support.
+GOLANG_IMAGE          ?= $(shell head -n 1 build/images/deps/cayman-go-image)
+# microsoft-go image with FIPS support.
+GOLANG_IMAGE_WINDOWS  ?= $(shell head -n 1 build/images/deps/microsoft-go-image)
 
 GOLANGCI_LINT_VERSION := v1.60.3
 GOLANGCI_LINT_BINDIR  := $(CURDIR)/.golangci-bin
@@ -205,9 +214,10 @@ antctl-instr-binary:
 	GOOS=linux $(GO) build -cover -o $(BINDIR)/antctl-coverage -coverpkg=antrea.io/antrea/cmd/antctl,antrea.io/antrea/pkg/... $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/cmd/antctl
 
 .PHONY: windows-bin
+windows-bin: LDFLAGS := -s -w $(VERSION_LDFLAGS)
 windows-bin:
 	@mkdir -p $(BINDIR)
-	GOOS=windows $(GO) build -o $(BINDIR) $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/cmd/antrea-cni antrea.io/antrea/cmd/antrea-agent antrea.io/antrea/cmd/antctl
+	GOEXPERIMENT=systemcrypto GOFIPS=1 CGO_ENABLED=0 GOOS=windows $(GO) build -o $(BINDIR) $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/cmd/antrea-cni antrea.io/antrea/cmd/antrea-agent antrea.io/antrea/cmd/antctl
 
 .PHONY: flow-aggregator
 flow-aggregator:
@@ -266,7 +276,7 @@ $(DOCKER_CACHE):
 
 # Since the WORKDIR is mounted from host, the $(id -u):$(id -g) user can access it.
 # Inside the docker, the user is nameless and does not have a home directory. This is ok for our use case.
-DOCKER_ENV := \
+DOCKER_ENV = \
 	@docker run $(INTERACTIVE_ARGS) --rm -u $$(id -u):$$(id -g) \
 		-e "GOCACHE=/tmp/gocache" \
 		-e "GOPATH=/tmp/gopath" \
@@ -274,12 +284,13 @@ DOCKER_ENV := \
 		-e "GOFLAGS=$(GOFLAGS)" \
 		-e "GIT_SHA=$(GIT_SHA)" \
 		-e "GIT_TAG=$(GIT_TAG)" \
+		-e "CC=$(CC)" \
 		-e "GIT_TREE_STATE=$(GIT_TREE_STATE)" \
 		-w /usr/src/antrea.io/antrea \
 		-v $(DOCKER_CACHE)/gopath:/tmp/gopath \
 		-v $(DOCKER_CACHE)/gocache:/tmp/gocache \
 		-v $(CURDIR):/usr/src/antrea.io/antrea \
-		golang:$(GO_VERSION)
+		$(GOLANG_IMAGE)
 
 .PHONY: docker-bin
 docker-bin: $(DOCKER_CACHE)
@@ -287,6 +298,7 @@ docker-bin: $(DOCKER_CACHE)
 	@chmod -R 0755 $<
 
 .PHONY: docker-windows-bin
+docker-windows-bin: GOLANG_IMAGE := $(GOLANG_IMAGE_WINDOWS)
 docker-windows-bin: $(DOCKER_CACHE)
 	$(DOCKER_ENV) make windows-bin
 

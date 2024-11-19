@@ -18,6 +18,7 @@
 package main
 
 import (
+	_ "crypto/tls/fipsonly"
 	"os"
 
 	"github.com/spf13/cobra"
