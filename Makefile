@@ -123,6 +123,12 @@ bin:
 	@mkdir -p $(BINDIR)
 	GOOS=linux $(GO) build -o $(BINDIR) $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/cmd/...
 
+.PHONY: e2e-bin
+e2e-bin:
+	@mkdir -p $(BINDIR)
+	GOOS=linux $(GO) test -c -v -o $(BINDIR)/multicluster-e2e $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/multicluster/test/e2e
+	GOOS=linux $(GO) test -c -v -o $(BINDIR)/e2e $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/test/e2e
+
 .trivy-bin:
 	curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b $@ v0.56.2
 
@@ -295,6 +301,11 @@ DOCKER_ENV = \
 .PHONY: docker-bin
 docker-bin: $(DOCKER_CACHE)
 	$(DOCKER_ENV) make bin
+	@chmod -R 0755 $<
+
+.PHONY: docker-e2e-bin
+docker-e2e-bin: $(DOCKER_CACHE)
+	$(DOCKER_ENV) make e2e-bin
 	@chmod -R 0755 $<
 
 .PHONY: docker-windows-bin
