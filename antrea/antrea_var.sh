@@ -20,6 +20,10 @@ export OSS_UBUNTU_BUILD=n
 # Buildkit is required to skip unused stages in Dockerfile
 export DOCKER_BUILDKIT=1
 
+# FIPS requirements for building linux executables
+export CC=x86_64-linux-gnu-gcc
+export GOEXPERIMENT=boringcrypto
+
 # BRANCH_NAME can be
 # vmware-master # In this case ANTREA_TARGET=main
 # vmware-master-$ANTREA_TARGET

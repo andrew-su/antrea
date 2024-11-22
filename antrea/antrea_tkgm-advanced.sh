@@ -2,6 +2,9 @@
 echo "====== Disabling --pull in All Makefile Docker Build Target ======"
 export NO_PULL=1
 
+echo "====== Preparing golang docker images ======"
+prepare_docker_image
+
 echo "====== Archiving OpenvSwitch Source Code ======"
 archive_ovs_source
 
@@ -9,15 +12,14 @@ echo "====== Generating version Files for CI and Consumers ======"
 publish_version_files
 
 echo "====== Checkout Features Branch ======"
-git reset --hard origin/topic/${ANTREA_VERSION_DIGIT}-features
 check_manifests
 
 echo "===== Compile antrea e2e testcases ======"
-compile_e2e "noipsec" "tkgm"
-git status
+make docker-e2e-bin
 
 echo "====== Building Binaries for TKGm advanced ======"
-fips_make
+make docker-bin
+mv bin/e2e bin/e2e-tkgm-${ANTREA_VERSION}
 
 echo "====== Building OpenvSwitch Debian Image ======"
 pushd build/images/ovs

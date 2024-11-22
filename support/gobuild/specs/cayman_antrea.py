@@ -37,15 +37,16 @@ CAYMAN_CNI_PLUGINS_FILES = {
         "publish/lin64/cni_plugins/executables/.*"]
 }
 
-CAYMAN_GO_BRANCH = "vmware-go1.21-boringcrypto"
-CAYMAN_GO_CLN = "a7036facf2603cda735da92456877af62232e8b3"
+CAYMAN_GO_BRANCH = "vmware-go1.23-unified"
+CAYMAN_GO_CLN = "9365edac4f02869d784100b5c5a8c52fd500bbfe"
 CAYMAN_GO_BUILDTYPE = "release"
 CAYMAN_GO_FILES = {
     LINUX_HOSTTYPE: [
-        "publish/lin64/bin/.*",
-        "publish/lin64/src/.*",
-        "publish/lin64/pkg/.*",
-        "publish/lin64/go.env"]
+        "publish/lin64/amd64/bin/.*",
+        "publish/lin64/amd64/src/.*",
+        "publish/lin64/amd64/pkg/.*",
+        "publish/lin64/amd64/go.env",
+        "publish/lin64/amd64/ubuntu-docker-image-amd64.tar"]
 }
 
 NSX_OVS_BUILD_BRANCH = "nsx-keeper-412-rel"

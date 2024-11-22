@@ -28,8 +28,8 @@ echo "... Installing carvel tools ..."
 CARVEL_TOOLS_BIN="${BUILDROOT}/carvel_tools"
 mkdir -p ${CARVEL_TOOLS_BIN}
 export PATH=${CARVEL_TOOLS_BIN}:$PATH
-export PATH=${GOBUILD_CAYMAN_GO_ROOT}/lin64/bin/:$PATH
-chmod +x ${GOBUILD_CAYMAN_GO_ROOT}/lin64/bin/go ${GOBUILD_CAYMAN_GO_ROOT}/lin64/pkg/tool/linux_amd64/*
+export PATH=${GOBUILD_CAYMAN_GO_ROOT}/lin64/amd64/bin/:$PATH
+chmod +x ${GOBUILD_CAYMAN_GO_ROOT}/lin64/amd64/bin/go ${GOBUILD_CAYMAN_GO_ROOT}/lin64/amd64/pkg/tool/linux_amd64/*
 
 
 # build binary

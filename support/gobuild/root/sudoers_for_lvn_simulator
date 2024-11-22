@@ -1,3 +1,0 @@
-mts ALL=(root) NOPASSWD: /usr/sbin/iptables-save *
-mts ALL=(root) NOPASSWD: /usr/sbin/iptables-restore *
-mts ALL=(root) NOPASSWD: /usr/sbin/iptables *

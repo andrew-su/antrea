@@ -11,9 +11,17 @@ function check_manifests() {
   fi
 }
 
+function prepare_docker_image() {
+  load_image_output=$(docker load -i "${GOBUILD_CAYMAN_GO_ROOT}/lin64/amd64/ubuntu-docker-image-amd64.tar")
+  go_image_full=$(echo "$load_image_output" | grep -oP '(?<=Loaded image: )[^ ]+')
+  export GOLANG_IMAGE="${go_image_full}"
+
+  microsoft_go_image="$(head -n 1 ${REPO_ROOT}/build/images/deps/microsoft-go-image)"
+  export GOLANG_IMAGE_WIN="${microsoft_go_image}"
+}
+
 function fips_make() {
-  chmod +x ${GOBUILD_CAYMAN_GO_ROOT}/lin64/bin/go
-  chmod +x -R ${GOBUILD_CAYMAN_GO_ROOT}/lin64/pkg/tool/linux_amd64
+
   mkdir -p "${REPO_ROOT}/gopath"
   mkdir -p "${REPO_ROOT}/gocache"
   mkdir -p "${REPO_ROOT}/goenv"
@@ -38,12 +46,8 @@ function fips_make() {
 		-v "${REPO_ROOT}/gopath":/tmp/gopath \
 		-v "${REPO_ROOT}/gocache":/tmp/gocache \
 		-v "${REPO_ROOT}/goenv":/.config/go \
-		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/src:/usr/local/go/src \
-		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/pkg:/usr/local/go/pkg \
-		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/bin:/usr/local/go/bin \
-		-v ${GOBUILD_CAYMAN_GO_ROOT}/lin64/go.env:/usr/local/go/go.env \
 		-v ${REPO_ROOT}:/usr/src/${ANTREA_DOMAIN} \
-		golang:1.19 /bin/bash -c "${cmd}"
+	  ${go_image_full} /bin/bash -c "${cmd}"
   chmod -R 0755 bin
 }
 
@@ -148,10 +152,8 @@ function build_windows() {
   cp build/charts/antrea-windows/conf/antrea-cni.conflist "${PUBLISH_DIR}/windows/etc/antrea-cni.conflist"
 
   mkdir -p "${PUBLISH_DIR}/windows/bin"
-  # antrea/src is a gitsubmodule, the .git file under is a text file containing a path to parent .git/modules/antrea/src.
-  # We don't map parent .git/modules/antrea/src to Golang container, so go build fails to get VCS information from .git.
-  # We add -buildvcs=false in GOFLAGS to disable this go build behavior.
-  fips_make windows-bin
+  make docker-windows-bin
+
   cp bin/antrea-agent.exe "${PUBLISH_DIR}/windows/bin/antrea-agent.exe"
   cp bin/antrea-cni.exe "${PUBLISH_DIR}/windows/bin/antrea-cni.exe"
   cp bin/antctl.exe "${PUBLISH_DIR}/windows/bin/antctl.exe"
