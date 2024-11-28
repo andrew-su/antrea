@@ -17,9 +17,7 @@ archive_ovs_source
 echo "====== Generating version Files for CI and Consumers ======"
 publish_version_files
 
-echo "====== Checkout Features Branch ======"
-git reset --hard origin/topic/${ANTREA_VERSION_DIGIT}-features
-#check_manifests
+
 
 # Build antrea packages
 # how GOBUILD-<component>-ROOT is populated: https://wiki.eng.vmware.com/Build/Gobuild/Deliverables
