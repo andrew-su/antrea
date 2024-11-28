@@ -56,7 +56,9 @@ func configurePackageBundleOptions() {
 
 	// package versions.
 	version, suffix := getAntreaVersion()
-	registry := "nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/"
+	// no pull required during the build, so we keep the origin image url as it is
+	interworkingRegistry := "vmware.io/"
+	registry := ""
 
 	gobuildProjectPath := os.Getenv(envKeyGobuildProjectPath)
 
@@ -77,7 +79,7 @@ func configurePackageBundleOptions() {
 					packagebundle.WithImageAsFile(os.Getenv(antreaAgentImageFilePath)),
 				),
 				packagebundle.WithImageOverride(
-					packagebundle.WithImageAsRef(registry+"antrea/interworking-debian:"+os.Getenv("INTERWORKING_IMAGE_VERSION")),
+					packagebundle.WithImageAsRef(interworkingRegistry+"antrea/interworking:"+os.Getenv("INTERWORKING_IMAGE_VERSION")),
 					packagebundle.WithImageAsFile(os.Getenv(antreaInterworkingImageFilePath)),
 				),
 				packagebundle.WithImageOverride(

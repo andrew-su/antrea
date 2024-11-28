@@ -246,7 +246,7 @@ data:
       # To disable AntreaProxy, set this to false. It should be enabled on Windows, otherwise NetworkPolicy will
       # not take effect on Service traffic.
       enable: true
-      # ProxyAll tells antrea-agent to proxy ClusterIP Service traffic, regardless of where they come from.
+      # proxyAll tells antrea-agent to proxy ClusterIP Service traffic, regardless of where they come from.
       # Therefore, running kube-proxy is no longer required. This requires the AntreaProxy feature to be enabled.
       # Note that this option is experimental. If kube-proxy is removed, option kubeAPIServerOverride must be used to access
       # apiserver directly.
@@ -306,7 +306,7 @@ spec:
     metadata:
       annotations:
         checksum/agent-windows: 86f999cb18501659a52d982f20b3df5cdf666ffd849f50ed183c366e75d01ac5
-        checksum/windows-config: 10ad2be0a04b1752abc224fed0124f7b1da36efc5e7323e193eb38e11b25e798
+        checksum/windows-config: 4f07164f32afc61e20b4aef984a8781142e5d99f7c58f7581e4ccfeabb34855f
         microsoft.com/hostprocess-inherit-user: "true"
       labels:
         app: antrea
@@ -331,7 +331,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-        image: nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/antrea-windows:v2.1.0_vmware.3
+        image: antrea/antrea-windows:v2.2.0_vmware.1
         imagePullPolicy: IfNotPresent
         lifecycle:
           postStart:
@@ -363,7 +363,7 @@ spec:
         - $env:CONTAINER_SANDBOX_MOUNT_POINT/var/lib/antrea-windows/Run-AntreaOVS.ps1
         command:
         - powershell
-        image: nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/antrea-windows:v2.1.0_vmware.3
+        image: antrea/antrea-windows:v2.2.0_vmware.1
         imagePullPolicy: IfNotPresent
         name: antrea-ovs
         volumeMounts:
@@ -379,7 +379,7 @@ spec:
         - $env:CONTAINER_SANDBOX_MOUNT_POINT/var/lib/antrea-windows/Install-WindowsCNI.ps1
         command:
         - powershell
-        image: nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/antrea-windows:v2.1.0_vmware.3
+        image: antrea/antrea-windows:v2.2.0_vmware.1
         imagePullPolicy: IfNotPresent
         name: install-cni
         volumeMounts:
@@ -393,7 +393,7 @@ spec:
         - $env:CONTAINER_SANDBOX_MOUNT_POINT/var/lib/antrea-windows/Install-OVSDriver.ps1
         command:
         - powershell
-        image: nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/antrea-windows:v2.1.0_vmware.3
+        image: antrea/antrea-windows:v2.2.0_vmware.1
         imagePullPolicy: IfNotPresent
         name: install-ovs-driver
         volumeMounts:

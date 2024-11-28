@@ -1,5 +1,5 @@
 ---
-# Source: crds/antreaagentinfo.yaml
+# Source: antrea/crds/antreaagentinfo.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -152,7 +152,7 @@ spec:
       - aai
 
 ---
-# Source: crds/antreacontrollerinfo.yaml
+# Source: antrea/crds/antreacontrollerinfo.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -301,7 +301,7 @@ spec:
       - aci
 
 ---
-# Source: crds/bgppolicy.yaml
+# Source: antrea/crds/bgppolicy.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -430,7 +430,7 @@ spec:
     kind: BGPPolicy
 
 ---
-# Source: crds/clusternetworkpolicy.yaml
+# Source: antrea/crds/clusternetworkpolicy.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -834,6 +834,11 @@ spec:
                                 cidr:
                                   type: string
                                   format: cidr
+                                except:
+                                  type: array
+                                  items:
+                                    type: string
+                                    format: cidr
                             group:
                               type: string
                             serviceAccount:
@@ -1116,6 +1121,11 @@ spec:
                                 cidr:
                                   type: string
                                   format: cidr
+                                except:
+                                  type: array
+                                  items:
+                                    type: string
+                                    format: cidr
                             group:
                               type: string
                             fqdn:
@@ -1216,7 +1226,7 @@ spec:
       - acnp
 
 ---
-# Source: crds/egress.yaml
+# Source: antrea/crds/egress.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -1382,7 +1392,7 @@ spec:
       - eg
 
 ---
-# Source: crds/externalentity.yaml
+# Source: antrea/crds/externalentity.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -1437,7 +1447,7 @@ spec:
       - ee
 
 ---
-# Source: crds/externalippool.yaml
+# Source: antrea/crds/externalippool.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -1565,7 +1575,7 @@ spec:
       - eip
 
 ---
-# Source: crds/externalnode.yaml
+# Source: antrea/crds/externalnode.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -1617,7 +1627,7 @@ spec:
       - en
 
 ---
-# Source: crds/group.yaml
+# Source: antrea/crds/group.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -1716,6 +1726,11 @@ spec:
                       cidr:
                         type: string
                         format: cidr
+                      except:
+                        type: array
+                        items:
+                          type: string
+                          format: cidr
                 serviceReference:
                   type: object
                   properties:
@@ -1748,7 +1763,7 @@ spec:
       - grp
 
 ---
-# Source: crds/ippool.yaml
+# Source: antrea/crds/ippool.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -2008,7 +2023,7 @@ spec:
       - ipp
 
 ---
-# Source: crds/networkpolicy.yaml
+# Source: antrea/crds/networkpolicy.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -2332,6 +2347,11 @@ spec:
                                 cidr:
                                   type: string
                                   format: cidr
+                                except:
+                                  type: array
+                                  items:
+                                    type: string
+                                    format: cidr
                             nodeSelector:
                               type: object
                               properties:
@@ -2581,6 +2601,11 @@ spec:
                                 cidr:
                                   type: string
                                   format: cidr
+                                except:
+                                  type: array
+                                  items:
+                                    type: string
+                                    format: cidr
                             fqdn:
                               type: string
                             nodeSelector:
@@ -2671,7 +2696,7 @@ spec:
       - anp
 
 ---
-# Source: crds/nodelatencymonitor.yaml
+# Source: antrea/crds/nodelatencymonitor.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -2722,7 +2747,204 @@ spec:
       - nlm
 
 ---
-# Source: crds/supportbundlecollection.yaml
+# Source: antrea/crds/packetcapture.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: packetcaptures.crd.antrea.io
+  labels:
+    app: antrea
+spec:
+  group: crd.antrea.io
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      additionalPrinterColumns:
+        - jsonPath: .spec.source.pod
+          description: The name of the source Pod.
+          name: Source-Pod
+          type: string
+          priority: 10
+        - jsonPath: .spec.destination.pod
+          description: The name of the destination Pod.
+          name: Destination-Pod
+          type: string
+          priority: 10
+        - jsonPath: .spec.source.ip
+          description: The IP address of the source.
+          name: Source-IP
+          type: string
+          priority: 10
+        - jsonPath: .spec.destination.ip
+          description: The IP address of the destination.
+          name: Destination-IP
+          type: string
+          priority: 10
+        - jsonPath: .spec.timeout
+          description: Timeout in seconds.
+          name: Timeout
+          type: integer
+          priority: 10
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+            - spec
+          properties:
+            spec:
+              type: object
+              required:
+                - source
+                - captureConfig
+                - destination
+              anyOf:
+                - properties:
+                    source:
+                      required: [pod]
+                - properties:
+                    destination:
+                      required: [pod]
+              properties:
+                source:
+                  type: object
+                  oneOf:
+                    - required:
+                      - pod
+                    - required:
+                      - ip
+                  properties:
+                    pod:
+                      type: object
+                      required:
+                        - name
+                      properties:
+                        namespace:
+                          type: string
+                          default: default
+                        name:
+                          type: string
+                    ip:
+                      type: string
+                      format: ipv4
+                destination:
+                  type: object
+                  oneOf:
+                    - required:
+                      - pod
+                    - required:
+                      - ip
+                  properties:
+                    pod:
+                      type: object
+                      required:
+                        - name
+                      properties:
+                        namespace:
+                          type: string
+                          default: default
+                        name:
+                          type: string
+                    ip:
+                      type: string
+                      format: ipv4
+                packet:
+                  type: object
+                  properties:
+                    ipFamily:
+                      type: string
+                      enum: [IPv4]
+                      default: IPv4
+                    protocol:
+                      x-kubernetes-int-or-string: true
+                    transportHeader:
+                      type: object
+                      properties:
+                        udp:
+                          type: object
+                          properties:
+                            srcPort:
+                              type: integer
+                              minimum: 1
+                              maximum: 65535
+                            dstPort:
+                              type: integer
+                              minimum: 1
+                              maximum: 65535
+                        tcp:
+                          type: object
+                          properties:
+                            srcPort:
+                              type: integer
+                              minimum: 1
+                              maximum: 65535
+                            dstPort:
+                              type: integer
+                              minimum: 1
+                              maximum: 65535
+
+                timeout:
+                  type: integer
+                  minimum: 1
+                  maximum: 300
+                  default: 60
+                captureConfig:
+                  type: object
+                  oneOf:
+                    - required:
+                      - firstN
+                  properties:
+                    firstN:
+                      type: object
+                      required:
+                        - number
+                      properties:
+                        number:
+                          type: integer
+                          format: int32
+                fileServer:
+                  type: object
+                  properties:
+                    url:
+                      type: string
+                      pattern: 'sftp:\/\/[\w-_./]+:\d+'
+            status:
+              type: object
+              properties:
+                numberCaptured:
+                  type: integer
+                filePath:
+                  type: string
+                conditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      status:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                      reason:
+                        type: string
+                      message:
+                        type: string
+      subresources:
+        status: {}
+  scope: Cluster
+  names:
+    plural: packetcaptures
+    singular: packetcapture
+    kind: PacketCapture
+    shortNames:
+      - pcap
+
+---
+# Source: antrea/crds/supportbundlecollection.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -2871,7 +3093,7 @@ spec:
       - sbc
 
 ---
-# Source: crds/tier.yaml
+# Source: antrea/crds/tier.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -2916,7 +3138,7 @@ spec:
       - tr
 
 ---
-# Source: crds/traceflow.yaml
+# Source: antrea/crds/traceflow.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -3226,7 +3448,7 @@ spec:
       - tf
 
 ---
-# Source: crds/trafficcontrol.yaml
+# Source: antrea/crds/trafficcontrol.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -3601,12 +3823,19 @@ data:
     # enabled, otherwise this flag will not take effect.
     #  TopologyAwareHints: true
 
+    # Enable ServiceTrafficDistribution in AntreaProxy. This requires AntreaProxy and EndpointSlice to be
+    # enabled, otherwise this flag will not take effect.
+    #  ServiceTrafficDistribution: true
+
     # Enable support for cleaning up stale UDP Service conntrack connections in AntreaProxy. This requires AntreaProxy to
     # be enabled, otherwise this flag will not take effect.
     #  CleanupStaleUDPSvcConntrack: true
 
-    # Enable traceflow which provides packet tracing feature to diagnose network issue.
+    # Enable Traceflow which provides packet tracing feature to diagnose network issue.
     #  Traceflow: true
+
+    # Enable PacketCapture feature which supports capturing packets to diagnose network issues.
+    #  PacketCapture: false
 
     # Enable NodePortLocal feature to make the Pods reachable externally through NodePort
     #  NodePortLocal: true
@@ -3676,6 +3905,10 @@ data:
     # Enable NodeLatencyMonitor to monitor the latency between Nodes.
     #  NodeLatencyMonitor: false
 
+    # Allow users to initiate BGP process on selected Kubernetes Nodes and advertise Service IPs, Pod IPs and Egress IPs to
+    # remote BGP peers.
+    #  BGPPolicy: false
+
     # Name of the OpenVSwitch bridge antrea-agent will create and use.
     # Make sure it doesn't conflict with your existing OpenVSwitch bridges.
     ovsBridge: "br-int"
@@ -3706,6 +3939,10 @@ data:
     # the external network needs not be SNAT'd. In the networkPolicyOnly mode, antrea-agent never
     # performs SNAT and this option will be ignored; for other modes it must be set to false.
     noSNAT: false
+
+    # Fully randomize source port mapping in SNAT rules used for egress traffic from Pods to the
+    # external network.
+    snatFullyRandomPorts: false
 
     # Tunnel protocols used for encapsulating traffic across Nodes. If WireGuard is enabled in trafficEncryptionMode,
     # this option will not take effect. Supported values:
@@ -3756,6 +3993,7 @@ data:
     # Default MTU to use for the host gateway interface and the network interface of each Pod.
     # If omitted, antrea-agent will discover the MTU of the Node's primary interface and
     # also adjust MTU to accommodate for tunnel encapsulation overhead (if applicable).
+    # If the MTU is updated, the new value will only be applied to new workloads.
     defaultMTU: 0
 
     # packetInRate defines the OVS controller packet rate limits for different
@@ -3776,6 +4014,10 @@ data:
       # The maximum number of Egress IPs that can be assigned to a Node. It's useful when the Node network restricts
       # the number of secondary IPs a Node can have, e.g. EKS. It must not be greater than 255.
       maxEgressIPsPerNode: 255
+      # Fully randomize source port mapping in Egress SNAT rules. This has no impact on the default SNAT
+      # rules enforced by each Node for local Pod traffic. By default, we use the same value as for the
+      # top-level snatFullyRandomPorts configuration, but this field can be used as an override.
+      snatFullyRandomPorts:
 
     # ClusterIP CIDR range for Services. It's required when AntreaProxy is not enabled, and should be
     # set to the same value as the one specified by --service-cluster-ip-range for kube-apiserver. When
@@ -3907,7 +4149,7 @@ data:
     antreaProxy:
       # To disable AntreaProxy, set this to false.
       enable: true
-      # ProxyAll tells antrea-agent to proxy all Service traffic, including NodePort, LoadBalancer, and ClusterIP traffic,
+      # proxyAll tells antrea-agent to proxy all Service traffic, including NodePort, LoadBalancer, and ClusterIP traffic,
       # regardless of where they come from. Therefore, running kube-proxy is no longer required.
       # Note that this option is experimental. If kube-proxy is removed, option kubeAPIServerOverride must be used to access
       # apiserver directly.
@@ -3924,7 +4166,7 @@ data:
       # External IPs of LoadBalancer Services. This is useful when the external LoadBalancer provides additional
       # capabilities (e.g. TLS termination) and it is desirable for Pod-to-ExternalIP traffic to be sent to the
       # external LoadBalancer instead of being load-balanced to an Endpoint directly by AntreaProxy.
-      # Note that setting ProxyLoadBalancerIPs to false usually only makes sense when ProxyAll is set to true and
+      # Note that setting ProxyLoadBalancerIPs to false usually only makes sense when proxyAll is set to true and
       # kube-proxy is removed from the cluster, otherwise kube-proxy will still load-balance this traffic.
       proxyLoadBalancerIPs: true
       # The value of the "service.kubernetes.io/service-proxy-name" label for AntreaProxy to match. If it is set,
@@ -4063,6 +4305,9 @@ data:
     # Enable the use of Network Policy APIs (https://network-policy-api.sigs.k8s.io/api-overview) which helps administrators
     # set security postures for their clusters.
     #  AdminNetworkPolicy: false
+
+    # Enable Egress RBAC features.
+    #  EgressRBAC: false
 
     # The port for the antrea-controller APIServer to serve on.
     # Note that if it's set to another value, the `containerPort` of the `api` port of the
@@ -4257,6 +4502,11 @@ spec:
                       cidr:
                         type: string
                         format: cidr
+                      except:
+                        type: array
+                        items:
+                          type: string
+                          format: cidr
                 serviceReference:
                   type: object
                   properties:
@@ -4287,6 +4537,124 @@ spec:
     kind: ClusterGroup
     shortNames:
       - cg
+---
+# Source: antrea/templates/crds/egressentitlement.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: egressentitlements.crd.antrea.io
+  labels:
+    app: antrea
+spec:
+  group: crd.antrea.io
+  versions:
+    - name: v1beta1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              required:
+                - externalIPPools
+                - egressIPs
+                - appliedToScope
+              type: object
+              properties:
+                externalIPPools:
+                  type: array
+                  items:
+                    type: string
+                egressIPs:
+                  type: array
+                  items:
+                    type: string
+                    oneOf:
+                    - format: ipv4
+                    - format: ipv6
+                    - pattern: '^\*$'
+                appliedToScope:
+                  type: object
+                  properties:
+                    namespaceSelector:
+                      type: object
+                      properties:
+                        matchExpressions:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              key:
+                                type: string
+                              operator:
+                                enum:
+                                  - In
+                                  - NotIn
+                                  - Exists
+                                  - DoesNotExist
+                                type: string
+                              values:
+                                type: array
+                                items:
+                                  type: string
+                                  pattern: "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$"
+                        matchLabels:
+                          type: object
+                          additionalProperties:
+                            type: string
+                            pattern: "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$"  
+  scope: Cluster
+  names:
+    plural: egressentitlements
+    singular: egressentitlement
+    kind: EgressEntitlement
+---
+# Source: antrea/templates/crds/egressentitlementbinding.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: egressentitlementbindings.crd.antrea.io
+  labels:
+    app: antrea
+spec:
+  group: crd.antrea.io
+  versions:
+    - name: v1beta1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              required:
+                - egressEntitlement
+                - subjects
+              type: object
+              properties:
+                egressEntitlement:
+                  type: string
+                subjects:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      kind:
+                        type: string
+                        enum: ['User', 'Group', 'ServiceAccount']
+                      apiGroup:
+                        type: string
+                        enum: ['rbac.authorization.k8s.io']
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+  scope: Cluster
+  names:
+    plural: egressentitlementbindings
+    singular: egressentitlementbinding
+    kind: EgressEntitlementBinding
 ---
 # Source: antrea/templates/crds/tierentitlement.yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -4540,6 +4908,20 @@ rules:
   - apiGroups:
       - crd.antrea.io
     resources:
+      - packetcaptures
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - crd.antrea.io
+    resources:
+      - packetcaptures/status
+    verbs:
+      - update
+  - apiGroups:
+      - crd.antrea.io
+    resources:
       - egresses
     verbs:
       - get
@@ -4554,6 +4936,7 @@ rules:
   - apiGroups:
       - crd.antrea.io
     resources:
+      - bgppolicies
       - externalippools
       - ippools
       - trafficcontrols
@@ -4611,6 +4994,17 @@ rules:
       - create
       - patch
       - update
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    resourceNames:
+      - antrea-bgp-passwords
+      - antrea-packetcapture-fileserver-auth
+    verbs:
+      - get
+      - list
+      - watch
 ---
 # Source: antrea/templates/antctl/clusterrole.yaml
 kind: ClusterRole
@@ -5060,6 +5454,16 @@ rules:
       - get
       - watch
       - list
+  - apiGroups:
+      - crd.antrea.io
+    resources:
+      - egressentitlements
+      - egressentitlementbindings
+    verbs:
+      - get
+      - watch
+      - list
+      - create
 ---
 # Source: antrea/templates/crds-rbac/clusterroles.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -5237,7 +5641,7 @@ spec:
         kubectl.kubernetes.io/default-container: antrea-agent
         # Automatically restart Pods with a RollingUpdate if the ConfigMap changes
         # See https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
-        checksum/config: 757ebe074a79113952e2498e888217058b152bc088327ad8869be283dfde2c40
+        checksum/config: 5cfda261c695c98ad42b4b8a77376e038ee3721ab5f446b82ebcd6847c16b3cc
         checksum/tweaker-config: 2d2c4693a82ee4f18de916ab3a50276d064eb8058a673f7e6b7719b9e5c21190
         # Adding annotations to allow Wavefront Collectors to scrape metrics
         prometheus.io/scheme: "https"
@@ -5262,7 +5666,7 @@ spec:
       serviceAccountName: antrea-agent
       initContainers:
         - name: antrea-agent-tweaker
-          image: "nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/antrea-advanced-agent-debian:v2.1.0_vmware.3"
+          image: "antrea/antrea-advanced-agent-debian:v2.2.0_vmware.1"
           imagePullPolicy: IfNotPresent
           resources:
             requests:
@@ -5283,7 +5687,7 @@ spec:
             mountPath: /etc/antrea/antrea-agent-tweaker.conf
             subPath: antrea-agent-tweaker.conf
         - name: install-cni
-          image: "nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/antrea-advanced-agent-debian:v2.1.0_vmware.3"
+          image: "antrea/antrea-advanced-agent-debian:v2.2.0_vmware.1"
           imagePullPolicy: IfNotPresent
           resources:
             requests:
@@ -5316,7 +5720,7 @@ spec:
             mountPath: /var/run/antrea
       containers:
         - name: antrea-agent
-          image: "nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/antrea-advanced-agent-debian:v2.1.0_vmware.3"
+          image: "antrea/antrea-advanced-agent-debian:v2.2.0_vmware.1"
           imagePullPolicy: IfNotPresent
           command: ["antrea-agent"]
           # Log to both "/var/log/antrea/" and stderr (so "kubectl logs" can work).-
@@ -5407,7 +5811,7 @@ spec:
           - name: xtables-lock
             mountPath: /run/xtables.lock
         - name: antrea-ovs
-          image: "nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/antrea-advanced-agent-debian:v2.1.0_vmware.3"
+          image: "antrea/antrea-advanced-agent-debian:v2.2.0_vmware.1"
           imagePullPolicy: IfNotPresent
           resources:
             requests:
@@ -5503,7 +5907,7 @@ spec:
       annotations:
         # Automatically restart Pod if the ConfigMap changes
         # See https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
-        checksum/config: 757ebe074a79113952e2498e888217058b152bc088327ad8869be283dfde2c40
+        checksum/config: 5cfda261c695c98ad42b4b8a77376e038ee3721ab5f446b82ebcd6847c16b3cc
         # Adding annotations to allow Wavefront Collectors to scrape metrics
         prometheus.io/scheme: "https"
         prometheus.io/scrape: "true"
@@ -5531,7 +5935,7 @@ spec:
       serviceAccountName: antrea-controller
       containers:
         - name: antrea-controller
-          image: "nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/antrea-advanced-controller-debian:v2.1.0_vmware.3"
+          image: "antrea/antrea-advanced-controller-debian:v2.2.0_vmware.1"
           imagePullPolicy: IfNotPresent
           resources:
             requests:
@@ -5839,7 +6243,7 @@ webhooks:
         namespace: kube-system
         path: "/validate/egress"
     rules:
-      - operations: ["CREATE", "UPDATE"]
+      - operations: ["CREATE", "UPDATE", "DELETE"]
         apiGroups: ["crd.antrea.io"]
         apiVersions: ["v1beta1"]
         resources: ["egresses"]
@@ -5888,6 +6292,21 @@ webhooks:
         apiGroups: ["crd.antrea.io"]
         apiVersions: ["v1beta1"]
         resources: ["traceflows"]
+        scope: "Cluster"
+    admissionReviewVersions: ["v1", "v1beta1"]
+    sideEffects: None
+    timeoutSeconds: 5
+  - name: "egressentitlementvalidator.antrea.io"
+    clientConfig:
+      service:
+        name: "antrea"
+        namespace: kube-system
+        path: "/validate/egressentitlement"
+    rules:
+      - operations: ["DELETE"]
+        apiGroups: ["crd.antrea.io"]
+        apiVersions: ["v1beta1"]
+        resources: ["egressentitlements"]
         scope: "Cluster"
     admissionReviewVersions: ["v1", "v1beta1"]
     sideEffects: None

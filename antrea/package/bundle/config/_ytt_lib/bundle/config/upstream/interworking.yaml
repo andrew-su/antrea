@@ -345,6 +345,20 @@ rules:
   - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app: antrea-interworking
+  name: register
+rules:
+- apiGroups:
+  - crd.antrea.io
+  resources:
+  - antreacontrollerinfos
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   labels:
@@ -403,6 +417,21 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: interworking
+  namespace: vmware-system-antrea
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app: antrea-interworking
+  name: register
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: register
+subjects:
+- kind: ServiceAccount
+  name: register
   namespace: vmware-system-antrea
 ---
 apiVersion: v1
@@ -520,7 +549,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.name
-        image: nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/interworking-debian:1.1.0_vmware.1
+        image: vmware.io/antrea/interworking:1.2.0_vmware.1
         imagePullPolicy: IfNotPresent
         name: election-runner
         volumeMounts:
@@ -552,7 +581,7 @@ spec:
               fieldPath: metadata.namespace
         - name: CONTAINER_NAME
           value: mp-adapter
-        image: nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/interworking-debian:1.1.0_vmware.1
+        image: vmware.io/antrea/interworking:1.2.0_vmware.1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -606,7 +635,7 @@ spec:
               fieldPath: metadata.name
         - name: CONTAINER_NAME
           value: tn-proxy
-        image: nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/interworking-debian:1.1.0_vmware.1
+        image: vmware.io/antrea/interworking:1.2.0_vmware.1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           exec:
@@ -652,7 +681,7 @@ spec:
               fieldPath: metadata.name
         - name: CONTAINER_NAME
           value: ccp-adapter
-        image: nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/interworking-debian:1.1.0_vmware.1
+        image: vmware.io/antrea/interworking:1.2.0_vmware.1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -777,9 +806,11 @@ spec:
         - --log_file_max_num=4
         command:
         - /usr/local/bin/cluster-registry
-        image: nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/interworking-debian:1.1.0_vmware.1
+        image: vmware.io/antrea/interworking:1.2.0_vmware.1
         imagePullPolicy: IfNotPresent
         name: register
+        terminationMessagePath: /var/log/interworking/cluster-registry.FATAL
+        terminationMessagePolicy: FallbackToLogsOnError
         volumeMounts:
         - mountPath: /etc/antrea
           name: projected-configs
