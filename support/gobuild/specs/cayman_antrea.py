@@ -59,7 +59,7 @@ NSX_OVS_BUILD_FILES = {
 
 # helm without the kubeVersion<=1.20 limitation
 CAYMAN_HELM_BRANCH = "vmware-3.15.2-antrea"
-CAYMAN_HELM_CLN = "7133ea4669149931b29850e8ba5dc8be16342545"
+CAYMAN_HELM_CLN = '27dda691b0bd65f494ac1ccf675ae2ad542df468'
 CAYMAN_HELM_BUILDTYPE = "release"
 CAYMAN_HELM_FILES = {
     LINUX_HOSTTYPE: [
