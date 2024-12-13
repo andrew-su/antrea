@@ -1,7 +1,7 @@
 LINUX_HOSTTYPE = 'linux-rocky8-vm-fw'
 
 CAYMAN_BRANCH = 'master'
-CAYMAN_CLN = '1f2aa6974a3eee09ae08b03f7a52fe0349a27be4'
+CAYMAN_CLN = 'ab7ca2e739ae56146e707804d4ed1f1cf05ec7a7'
 CAYMAN_BUILDTYPE = 'release'
 CAYMAN_HOSTTYPES = {
     LINUX_HOSTTYPE: 'linux',
