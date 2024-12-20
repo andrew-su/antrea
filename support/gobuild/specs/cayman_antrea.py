@@ -22,7 +22,7 @@ CAYMAN_OPENSSL_HOSTTYPES = {
 }
 
 CSC_PHOTON_BRANCH = "photon5-vmw-updates"
-CSC_PHOTON_CLN = 14774609
+CSC_PHOTON_CLN = 14780054
 CSC_PHOTON_BUILDTYPE = 'release'
 CSC_PHOTON_FILES = {
     LINUX_HOSTTYPE: ["publish/docker-image/photon-rootfs.tar.gz",
