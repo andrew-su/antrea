@@ -657,6 +657,15 @@ spec:
   template:
     spec:
       restartPolicy: Never
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - effect: NoSchedule
+          operator: Exists
+        - effect: NoExecute
+          operator: Exists
       containers:
       - command: ["/bin/sh", "-c"]
         args: ["/usr/local/bin/antctl upgrade api-storage --dry-run && /usr/local/bin/antctl upgrade api-storage"]
