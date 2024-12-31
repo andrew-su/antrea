@@ -75,6 +75,7 @@ featureGates:
   #! Enable NodeLatencyMonitor to monitor the latency between Nodes.
   #@ if not values.antrea.config.featureGates.NodeLatencyMonitor:
   #!NodeLatencyMonitor: false
+  #@ else:
   NodeLatencyMonitor: #@ values.antrea.config.featureGates.NodeLatencyMonitor
   #@ end
 
