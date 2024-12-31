@@ -672,7 +672,7 @@ spec:
         args: ["/usr/local/bin/antctl upgrade api-storage --dry-run && /usr/local/bin/antctl upgrade api-storage"]
         name: antctl
         imagePullPolicy: IfNotPresent
-        image: "antrea/antrea-advanced-controller-debian:v2.2.0_vmware.1"
+        image: "antrea/antrea-advanced-controller-debian:v2.2.0_vmware.2"
       serviceAccount: antrea-pre-upgrade-job
 ---
 apiVersion: v1

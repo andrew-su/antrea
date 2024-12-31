@@ -5666,7 +5666,7 @@ spec:
       serviceAccountName: antrea-agent
       initContainers:
         - name: antrea-agent-tweaker
-          image: "antrea/antrea-advanced-agent-debian:v2.2.0_vmware.1"
+          image: "antrea/antrea-advanced-agent-debian:v2.2.0_vmware.2"
           imagePullPolicy: IfNotPresent
           resources:
             requests:
@@ -5687,7 +5687,7 @@ spec:
             mountPath: /etc/antrea/antrea-agent-tweaker.conf
             subPath: antrea-agent-tweaker.conf
         - name: install-cni
-          image: "antrea/antrea-advanced-agent-debian:v2.2.0_vmware.1"
+          image: "antrea/antrea-advanced-agent-debian:v2.2.0_vmware.2"
           imagePullPolicy: IfNotPresent
           resources:
             requests:
@@ -5720,7 +5720,7 @@ spec:
             mountPath: /var/run/antrea
       containers:
         - name: antrea-agent
-          image: "antrea/antrea-advanced-agent-debian:v2.2.0_vmware.1"
+          image: "antrea/antrea-advanced-agent-debian:v2.2.0_vmware.2"
           imagePullPolicy: IfNotPresent
           command: ["antrea-agent"]
           # Log to both "/var/log/antrea/" and stderr (so "kubectl logs" can work).-
@@ -5811,7 +5811,7 @@ spec:
           - name: xtables-lock
             mountPath: /run/xtables.lock
         - name: antrea-ovs
-          image: "antrea/antrea-advanced-agent-debian:v2.2.0_vmware.1"
+          image: "antrea/antrea-advanced-agent-debian:v2.2.0_vmware.2"
           imagePullPolicy: IfNotPresent
           resources:
             requests:
@@ -5935,7 +5935,7 @@ spec:
       serviceAccountName: antrea-controller
       containers:
         - name: antrea-controller
-          image: "antrea/antrea-advanced-controller-debian:v2.2.0_vmware.1"
+          image: "antrea/antrea-advanced-controller-debian:v2.2.0_vmware.2"
           imagePullPolicy: IfNotPresent
           resources:
             requests:
