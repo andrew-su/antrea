@@ -161,7 +161,7 @@ function build_windows() {
   DownloadDir="${REPO_ROOT}/download"
   rm -rf "${DownloadDir}"
   mkdir -p "${DownloadDir}"
-  CNI_WINDOWS_URL="https://packages.vcfd.broadcom.net/artifactory/nsx-ujo-local/cayman_antrea/cni-plugins-windows-amd64-v1.1.1.tgz"
+  CNI_WINDOWS_URL="https://packages.vcfd.broadcom.net/artifactory/nsx-ujo-local/cayman_antrea/cni-plugins-windows-amd64-v1.5.1.tgz"
   wget -q "${CNI_WINDOWS_URL}" -O "${DownloadDir}/cni-plugins-windows.tgz"
   mkdir -p "${DownloadDir}/cni-plugins-windows"
   tar zxf "${DownloadDir}/cni-plugins-windows.tgz" -C "${DownloadDir}/cni-plugins-windows"
