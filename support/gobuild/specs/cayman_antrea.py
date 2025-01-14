@@ -49,8 +49,8 @@ CAYMAN_GO_FILES = {
         "publish/lin64/amd64/ubuntu-docker-image-amd64.tar"]
 }
 
-NSX_OVS_BUILD_BRANCH = "nsx-keeper-412-rel"
-NSX_OVS_BUILD_CLN = "1defe6a8e2fcb760f84c2c9b8f9d6c45aa82252b"
+NSX_OVS_BUILD_BRANCH = "nsx-magnus"
+NSX_OVS_BUILD_CLN = "65e2b3556aeff10e3bb109722c909b750e107635"
 NSX_OVS_BUILD_BUILDTYPE = "release"
 NSX_OVS_BUILD_FILES = {
     LINUX_HOSTTYPE: [
