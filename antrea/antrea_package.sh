@@ -96,6 +96,10 @@ export "IMAGE_FILEPATH_ANTREA_INTERWORKING"="${OUTPUT_DIR}/images/interworking-d
 cp "${IMAGE_FILEPATH_ANTREA_WINDOWS}" "${OUTPUT_DIR}"/images
 
 
+# export antctl for antrea
+mkdir -p ${OUTPUT_DIR}/executables/
+cp ${GOBUILD_CAYMAN_ANTREA_TKGM_ADVANCED_ROOT}/lin64/antrea/executables/antctl* "${OUTPUT_DIR}/executables/"
+
 # Build carvel package
 # package metadata. version format example: 2.1.0+vmware.1-tkg.1
 mkdir -p ${OUTPUT_DIR}/package-crs
