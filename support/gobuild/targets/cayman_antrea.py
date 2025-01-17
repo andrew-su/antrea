@@ -493,10 +493,10 @@ class CaymanAntreaPackage(_CaymanAntrea):
             'files': specs.cayman_antrea.CAYMAN_IMGPKG_FILES,
         }
         comps['cayman_k14s_ytt'] = {
-            'branch': specs.cayman_antrea.CAYMAN_YTT_BRANCH,
-            'change': specs.cayman_antrea.CAYMAN_YTT_CLN,
-            'buildtype': specs.cayman_antrea.CAYMAN_YTT_BUILDTYPE,
-            'files': specs.cayman_antrea.CAYMAN_YTT_FILES,
+            'branch': specs.cayman_antrea.CAYMAN_K14S_YTT_BRANCH,
+            'change': specs.cayman_antrea.CAYMAN_K14S_YTT_CLN,
+            'buildtype': specs.cayman_antrea.CAYMAN_K14S_YTT_BUILDTYPE,
+            'files': specs.cayman_antrea.CAYMAN_K14S_YTT_FILES,
         }
         comps['cayman_kbld'] = {
             'branch': specs.cayman_antrea.CAYMAN_KBLD_BRANCH,

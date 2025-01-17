@@ -10,7 +10,7 @@
                 "home_page": "https://gitlab-vmw.devops.broadcom.net/core-build/cayman_antrea",
                 "short_summary": "Antrea Carvel Package",
                 "detailed_description": "",
-		"version": "2.2.0"
+                "version": "2.2.0"
             }
         }
     },
