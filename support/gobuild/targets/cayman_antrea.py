@@ -278,6 +278,69 @@ class CaymanAntreaTKGMAdv(_CaymanAntrea):
     def GetComponentPath(self):
         return '%(buildroot)/publish'
 
+    def GetComponentDependencies(self):
+        buildtype = self.options.get('buildtype')
+        comps = {
+            'cayman': {
+                'branch': specs.cayman_antrea.CAYMAN_BRANCH,
+                'change': specs.cayman_antrea.CAYMAN_CLN,
+                'buildtype': specs.cayman_antrea.CAYMAN_BUILDTYPE,
+                'hosttypes': specs.cayman_antrea.CAYMAN_HOSTTYPES},
+            "cayman_python": {
+                "branch": specs.cayman_antrea.CAYMAN_PYTHON_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_PYTHON_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_PYTHON_BUILDTYPE,
+                "hosttypes": specs.cayman_antrea.CAYMAN_PYTHON_HOSTTYPES},
+            "cayman_openssl": {
+                "branch": specs.cayman_antrea.CAYMAN_OPENSSL_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_OPENSSL_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_OPENSSL_BUILDTYPE,
+                "hosttypes": specs.cayman_antrea.CAYMAN_OPENSSL_HOSTTYPES},
+            "cayman_cni_plugins": {
+                "branch": specs.cayman_antrea.CAYMAN_CNI_PLUGINS_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_CNI_PLUGINS_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_CNI_PLUGINS_BUILDTYPE,
+                "files": specs.cayman_antrea.CAYMAN_CNI_PLUGINS_FILES},
+            "cayman_go": {
+                "branch": specs.cayman_antrea.CAYMAN_GO_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_GO_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_GO_BUILDTYPE,
+                "files": specs.cayman_antrea.CAYMAN_GO_FILES},
+            "nsx-ovs-build": {
+                "branch": specs.cayman_antrea.NSX_OVS_BUILD_BRANCH,
+                "change": specs.cayman_antrea.NSX_OVS_BUILD_CLN,
+                "buildtype": specs.cayman_antrea.NSX_OVS_BUILD_BUILDTYPE,
+                "files": specs.cayman_antrea.NSX_OVS_BUILD_FILES},
+            "cayman_helm": {
+                "branch": specs.cayman_antrea.CAYMAN_HELM_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_HELM_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_HELM_BUILDTYPE,
+                "files": specs.cayman_antrea.CAYMAN_HELM_FILES},
+            "cayman_kubernetes-sigs_kustomize": {
+                "branch": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_BUILDTYPE,
+                "files": specs.cayman_antrea.CAYMAN_KUBERNETES_SIGS_KUSTOMIZE_FILES},
+            "cayman_suricata": {
+                "branch": specs.cayman_antrea.CAYMAN_SURICATA_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_SURICATA_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_SURICATA_BUILDTYPE,
+                "files": specs.cayman_antrea.CAYMAN_SURICATA_FILES},
+            "cayman_msvc_redists": {
+                "branch": specs.cayman_antrea.CAYMAN_MSVC_REDISTS_BRANCH,
+                "change": specs.cayman_antrea.CAYMAN_MSVC_REDISTS_CLN,
+                "buildtype": specs.cayman_antrea.CAYMAN_MSVC_REDISTS_BUILDTYPE,
+                "files": specs.cayman_antrea.CAYMAN_MSVC_REDISTS_FILES},
+        }
+
+        return comps
+
+    def GetProvenanceSchematics(self, hosttype):
+        return [
+            'cayman_antrea/support/gobuild/provenance/cayman_antrea_tkgm-advanced.schematic.json',
+            'cayman_antrea/support/gobuild/provenance/build.schematic.json'
+        ]
+
 class CaymanAntreaTKGSAdv(_CaymanAntrea):
     """
     CaymanAntrea Open Source component
