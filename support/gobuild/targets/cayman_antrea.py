@@ -528,7 +528,7 @@ class CaymanAntreaPackage(_CaymanAntrea):
         return '%(buildroot)/publish'
 
     def GetComponentDependencies(self):
-        comps = super(CaymanAntreaPackage, self).GetComponentDependencies()
+        comps = {}
         comps['cayman'] = {
             'branch':    specs.cayman_antrea.CAYMAN_BRANCH,
             'change':    specs.cayman_antrea.CAYMAN_CLN,
