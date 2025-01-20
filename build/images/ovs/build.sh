@@ -23,7 +23,7 @@ THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 source $THIS_DIR/../build-utils.sh
 
-_usage="Usage: $0 [--pull] [--push] [--platform <PLATFORM>] [--distro [ubuntu|ubi|windows]]
+_usage="Usage: $0 [--pull] [--push] [--platform <PLATFORM>] [--distro [ubuntu|ubi|debian|photon|windows]]
 Build the antrea openvswitch image.
         --pull                  Always attempt to pull a newer version of the base images
         --push                  Push the built image to the registry
@@ -203,7 +203,11 @@ fi
 function docker_build_and_push() {
     local image="$1"
     local dockerfile="$2"
+    local extra_args="$3"
     local build_args="--build-arg OVS_VERSION=$OVS_VERSION --build-arg IPSEC=$IPSEC"
+    if [ -n "$extra_args" ]; then
+        build_args="$build_args $extra_args"
+    fi
     local cache_args=""
     if $PUSH; then
         cache_args="$cache_args --cache-to type=registry,ref=$image-cache:$BUILD_CACHE_TAG,mode=max"
@@ -237,11 +241,15 @@ elif [ "$DISTRO" == "windows" ]; then
     build_args="--build-arg OVS_VERSION=$OVS_VERSION"
     docker_build_and_push_windows "${image}" "Dockerfile.windows" "${build_args}" "${OVS_VERSION}" $PUSH ""
 elif [ "$DISTRO" == "photon" ]; then
+    photon_build_extra_args=""
     if ! [ -f "photon-rootfs.tar.gz" ]; then
         echoerr "photon-rootfs.tar.gz not found."
         exit 1
     fi
-    docker_build_and_push "antrea/openvswitch-photon-$TARGETARCH" "Dockerfile.photon"
+    if [ -n "$RPM_REPO_URL" ]; then
+        photon_build_extra_args="--build-arg RPM_REPO_URL=$RPM_REPO_URL"
+    fi
+    docker_build_and_push "antrea/openvswitch-photon-$TARGETARCH" "Dockerfile.photon" "$photon_build_extra_args"
 elif [ "$DISTRO" == "ubi" ]; then
     docker_build_and_push "antrea/openvswitch-ubi-$TARGETARCH" "Dockerfile.ubi"
 fi

@@ -79,7 +79,8 @@ COPY libnet*.rpm /tmp/suricata-rpms/
 FROM suricata-skip-build-${INSTALL_SURICATA_FROM_PACKAGE} as suricata-rpms-source
 
 # The final image
-FROM antrea/openvswitch-photon:${BUILD_TAG}
+FROM antrea-openvswitch
+
 ARG RPM_REPO_URL
 
 COPY iptables-wrapper-installer.sh /iptables-wrapper-installer.sh

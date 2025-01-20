@@ -23,7 +23,7 @@ THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 source $THIS_DIR/../build-utils.sh
 
-_usage="Usage: $0 [--pull] [--push] [--platform <PLATFORM>] [--distro [ubuntu|ubi]]
+_usage="Usage: $0 [--pull] [--push] [--platform <PLATFORM>] [--distro [ubuntu|ubi|debian|photon]]
 Build the antrea base image.
         --pull                  Always attempt to pull a newer version of the base images
         --push                  Push the built image to the registry
@@ -209,10 +209,6 @@ if [ "$DISTRO" == "photon" ]; then
     fi
 fi
 
-if [ "$IPSEC" == "true" ]; then
-    BUILD_TAG="${BUILD_TAG}-ipsec"
-fi
-
 # Ignore the version of the CNI binaries if we do not want to download them.
 if ! [ ${DOWNLOAD_CNI_BINARIES} == "true" ] && ! compgen -G "cni-plugins-*.tgz" > /dev/null; then
     echoerr "CNI binaries tarball not found. Use --download-cni-binaries to download it."
@@ -245,7 +241,11 @@ fi
 function docker_build_and_push() {
     local image="$1"
     local dockerfile="$2"
+    local extra_args="$3"
     local build_args="--build-arg CNI_BINARIES_VERSION=$CNI_BINARIES_VERSION --build-arg SURICATA_VERSION=$SURICATA_VERSION --build-arg BUILD_TAG=$BUILD_TAG --build-arg DOWNLOAD_CNI_BINARIES=$DOWNLOAD_CNI_BINARIES --build-arg INSTALL_SURICATA_FROM_PACKAGE=$INSTALL_SURICATA_FROM_PACKAGE"
+    if [ -n "$extra_args" ]; then
+        build_args="$build_args $extra_args"
+    fi
     local build_context="--build-context antrea-openvswitch=docker-image://$ANTREA_OPENVSWITCH_IMAGE"
     local cache_args=""
     if $PUSH; then
@@ -275,6 +275,7 @@ elif [ "$DISTRO" == "ubi" ]; then
 elif [ "$DISTRO" == "debian" ]; then
     docker_build_and_push "antrea/base-debian-$TARGETARCH" Dockerfile.debian
 elif [ "$DISTRO" == "photon" ]; then
+    photon_build_args=""
     if [ "$RPM_REPO_URL" == "" ] && ! ${USE_PUBLIC_PHOTON} ; then
         echoerr "Must specify --rpm-repo-url or --use-public-photon"
         exit 1
@@ -283,7 +284,10 @@ elif [ "$DISTRO" == "photon" ]; then
         echoerr "Cannot specify both --rpm-repo-url and --use-public-photon"
         exit 1
     fi
-    docker_build_and_push "antrea/base-photon-$TARGETARCH" Dockerfile.photon
+    if [ "$RPM_REPO_URL" != "" ]; then
+        photon_build_args="--build-arg RPM_REPO_URL=$RPM_REPO_URL"
+    fi
+    docker_build_and_push "antrea/base-photon-$TARGETARCH" Dockerfile.photon "$photon_build_args"
 fi
 
 popd > /dev/null
