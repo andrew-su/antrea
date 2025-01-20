@@ -26,11 +26,11 @@ CSC_PHOTON_CLN = 14919745
 CSC_PHOTON_BUILDTYPE = 'release'
 CSC_PHOTON_FILES = {
     LINUX_HOSTTYPE: ["publish/docker-image/photon-rootfs.tar.gz",
-                     "publish/csc-photon-5.0.0-x86_64.iso"]
+                     "publish/csc-photon/baseurl.txt"]
 }
 
-CAYMAN_CNI_PLUGINS_BRANCH = "release-1.6.0-fips"
-CAYMAN_CNI_PLUGINS_CLN = '00d4e6328a55281b03778dbb9b589fa8ee74f4ed'
+CAYMAN_CNI_PLUGINS_BRANCH = "release-1.6.2-fips"
+CAYMAN_CNI_PLUGINS_CLN = '534775fd7dd7a29e92356cbad44e2e9088f19308'
 CAYMAN_CNI_PLUGINS_BUILDTYPE = 'release'
 CAYMAN_CNI_PLUGINS_FILES = {
     LINUX_HOSTTYPE: [

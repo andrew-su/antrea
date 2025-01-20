@@ -6,22 +6,23 @@ export NO_PULL=1
 echo "====== Enable IPSec in Makefile ======"
 export IPSEC=1
 
+echo "====== Preparing golang docker images ======"
+prepare_docker_image
+
 echo "====== Archiving OpenvSwitch Source Code ======"
 archive_ovs_source
 
 echo "====== Generating version Files for CI and Consumers ======"
 publish_version_files
 
-echo "====== Checkout Features Branch ======"
-git reset --hard "origin/topic/${ANTREA_VERSION_DIGIT}-features"
 check_manifests
 
 echo "===== Compile antrea e2e testcases ======"
-compile_e2e "ipsec" "advanced"
-git status
+make docker-e2e-bin
+mv bin/e2e bin/e2e-advanced-ipsec-${ANTREA_VERSION}
 
 echo "====== Building Binaries for Antrea IPsec ======"
-fips_make
+make docker-bin
 
 echo "====== Building OpenvSwitch Debian Image ======"
 pushd build/images/ovs
@@ -62,14 +63,13 @@ docker tag antrea/antrea-controller-ubi:${IMAGE_VERSION} antrea/antrea-controlle
 docker tag antrea/antrea-agent-ubi:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-agent-ubi-ipsec:${IMAGE_VERSION}
 docker tag antrea/antrea-controller-ubi:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-controller-ubi-ipsec:${IMAGE_VERSION}
 
-prepare_local_yum_repo
-trap stop_local_yum_repo Exit
+YUM_REPO_URL=$(cat "$GOBUILD_CSC_PHOTON_ROOT/csc-photon/baseurl.txt")
 
 echo "====== Buildling OpenvSwitch Photon Image ======"
 pushd build/images/ovs
 cp "${GOBUILD_CSC_PHOTON_ROOT}/docker-image/photon-rootfs.tar.gz" .
 cp ${OVS_DIR}/openvswitch-*.tar.gz .
-./build.sh --distro photon --rpm-repo-url ${LOCAL_YUM_REPO_URL} --ipsec
+./build.sh --distro photon --rpm-repo-url ${YUM_REPO_URL} --ipsec
 popd
 
 echo "====== Building Photon Base Image ======"
@@ -77,11 +77,11 @@ pushd build/images/base
 cp ${GOBUILD_CAYMAN_CNI_PLUGINS_ROOT}/lin64/cni_plugins/executables/cni-plugins-*.tgz .
 cp ${GOBUILD_CAYMAN_SURICATA_ROOT}/lin64/suricata/packages/rpms/suricata-${SURICATA_VERSION}*.rpm .
 cp ${GOBUILD_CAYMAN_SURICATA_ROOT}/lin64/suricata/packages/rpms/libnet-1*.rpm .
-./build.sh --distro photon --rpm-repo-url ${LOCAL_YUM_REPO_URL} --ipsec
+./build.sh --distro photon --rpm-repo-url ${YUM_REPO_URL} --ipsec
 popd
 
 echo "====== Building antrea-agent-photon-ipsec & antrea-controller-photon-ipsec Images ======"
-make photon VERSION=${IMAGE_VERSION} RPM_REPO_URL=${LOCAL_YUM_REPO_URL} BUILD_INFO="${BUILD_NUMBER}"
+make photon VERSION=${IMAGE_VERSION} RPM_REPO_URL=${YUM_REPO_URL} BUILD_INFO="${BUILD_NUMBER}"
 docker tag antrea/antrea-agent-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-agent-photon-ipsec:${IMAGE_VERSION}
 docker tag antrea/antrea-controller-photon:${IMAGE_VERSION} localhost:5000/vmware.io/antrea/antrea-controller-photon-ipsec:${IMAGE_VERSION}
 

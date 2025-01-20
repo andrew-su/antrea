@@ -6,12 +6,13 @@ export NO_PULL=1
 echo "====== Generating version Files for CI and Consumers ======"
 publish_version_files
 
-echo "====== Checkout Features Branch ======"
-git reset --hard "origin/topic/${ANTREA_VERSION_DIGIT}-features"
+echo "====== Preparing golang docker images ======"
+prepare_docker_image
+
 check_manifests
 
 echo "====== Building Binaries for Antrea IDPS ======"
-fips_make
+make docker-bin
 
 echo "====== Building IDPS Debian Images ======"
 make idps-image-debian VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
