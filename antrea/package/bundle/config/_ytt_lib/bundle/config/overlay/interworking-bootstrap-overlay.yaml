@@ -39,6 +39,7 @@ kind: ConfigMap
 metadata:
   #@overlay/match missing_ok=True
   annotations:
+    #@overlay/match missing_ok=True
     kapp.k14s.io/update-strategy: "skip"
 data:
   bootstrap.conf: #@ yaml.encode(antrea_interworking_bootstrap_conf())

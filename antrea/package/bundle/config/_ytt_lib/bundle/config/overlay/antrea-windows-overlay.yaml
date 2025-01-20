@@ -218,6 +218,7 @@ metadata:
   labels: #@ windows_app_labels()
   #@overlay/match missing_ok=True
   annotations:
+    #@overlay/match missing_ok=True
     kapp.k14s.io/disable-default-label-scoping-rules: ""
 spec:
   selector:

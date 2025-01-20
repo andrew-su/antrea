@@ -633,14 +633,90 @@ metadata:
     kapp.k14s.io/disable-default-label-scoping-rules: ""
 
 
+#@overlay/match by=overlay.subset({"kind": "Deployment"}), expects="1+"
+---
+kind: Deployment
+metadata:
+    #@overlay/match missing_ok=True
+  annotations:
+    #@overlay/match missing_ok=True
+    kapp.k14s.io/change-group: "workload.antrea.io/workloads"
+
+#@overlay/match by=overlay.subset({"kind": "DaemonSet"}), expects="1+"
+---
+kind: DaemonSet
+metadata:
+    #@overlay/match missing_ok=True
+  annotations:
+    #@overlay/match missing_ok=True
+    kapp.k14s.io/change-group: "workload.antrea.io/workloads"
+
+
+
+
+#@overlay/match by=overlay.subset({"kind": "Secret"}), expects="1+"
+---
+kind: Secret
+metadata:
+    #@overlay/match missing_ok=True
+  annotations:
+    #@overlay/match missing_ok=True
+    kapp.k14s.io/change-rule: "upsert before upserting workload.antrea.io/workloads"
+
+
+#@overlay/match by=overlay.subset({"kind": "ConfigMap"}), expects="1+"
+---
+kind: ConfigMap
+metadata:
+  #@overlay/match missing_ok=True
+  annotations:
+    kapp.k14s.io/change-rule.1: "upsert before upserting workload.antrea.io/workloads"
+
+
+#@overlay/match by=overlay.subset({"kind": "Service"}), expects="1+"
+---
+kind: Service
+metadata:
+  #@overlay/match missing_ok=True
+  annotations:
+    kapp.k14s.io/change-rule.1: "upsert before upserting workload.antrea.io/workloads"
+
+
+
+#@overlay/match by=overlay.subset({"kind": "APIService"}), expects="1+"
+---
+kind: APIService
+metadata:
+  #@overlay/match missing_ok=True
+  annotations:
+    kapp.k14s.io/change-rule.1: "upsert after upserting workload.antrea.io/workloads"
+
+
+#@overlay/match by=overlay.subset({"kind": "MutatingWebhookConfiguration"}), expects="1+"
+---
+kind: MutatingWebhookConfiguration
+metadata:
+  #@overlay/match missing_ok=True
+  annotations:
+    kapp.k14s.io/change-rule.1: "upsert after upserting workload.antrea.io/workloads"
+
+
+
+#@overlay/match by=overlay.subset({"kind": "ValidatingWebhookConfiguration"}), expects="1+"
+---
+kind: ValidatingWebhookConfiguration
+metadata:
+  #@overlay/match missing_ok=True
+  annotations:
+    kapp.k14s.io/change-rule.1: "upsert after upserting workload.antrea.io/workloads"
+    
 #@overlay/match by=overlay.subset({"kind":"CustomResourceDefinition"}),expects="1+"
 ---
 kind: CustomResourceDefinition
 metadata:
   #@overlay/match missing_ok=True
   annotations:
-    kapp.k14s.io/change-group: "crd.antrea.io/need-migrations"
-
+    kapp.k14s.io/change-rule.1: "upsert before upserting workload.antrea.io/workloads"
 
 ---
 apiVersion: batch/v1
@@ -652,11 +728,12 @@ metadata:
     app: antrea
   annotations:
     kapp.k14s.io/update-strategy: always-replace
-    kapp.k14s.io/change-rule.1: "upsert before upserting crd.antrea.io/need-migrations"
+    kapp.k14s.io/change-rule.1: "upsert before upserting change-groups.kapp.k14s.io/crds"
     kapp.k14s.io/change-rule.2: "upsert after upserting crd.antrea.io/pre-upgrade-resource"
 spec:
   template:
     spec:
+      hostNetwork: true
       restartPolicy: Never
       nodeSelector:
         kubernetes.io/os: linux
