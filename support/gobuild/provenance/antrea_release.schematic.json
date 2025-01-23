@@ -57,11 +57,19 @@
     "outputs": {
         "$(gobuild:publish_deliverable_uid)": {
             "merge_input_templates": ["build"],
-            "merge_spdx_template": "spdx"
+            "merge_spdx_template": "spdx",
+            "product": {
+                "distribution_type": "external",
+                "embedded_in_hardware": false
+            }
         },
         "$(gobuild:zip_deliverables_uid)": {
             "merge_input_templates": ["build"],
-            "merge_spdx_template": "spdx"
+            "merge_spdx_template": "spdx",
+            "product": {
+                "distribution_type": "external",
+                "embedded_in_hardware": false
+            }
         }
     }
 }

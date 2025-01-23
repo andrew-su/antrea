@@ -14,6 +14,16 @@
             }
         }
     },
+    "scanner_instances": {
+        "go": {
+            "scanner": "srpcli-go",
+            "args": ["--go-mod=$(gobuild:buildroot)/cayman_antrea/antrea/src/go.mod", "--incorporated=true", "--usage=building"]
+        },
+        "syft": {
+            "scanner": "srpcli-syft",
+            "args": ["--scan-target=$(gobuild:buildroot)/publish/","--incorporated=true", "--usage=functionality"]
+        }
+    },
     "input_templates": {
         "comps-common": {
             "$(gobuild:gobuild_component_cayman_uid)": {
@@ -60,12 +70,22 @@
     },
     "outputs": {
         "$(gobuild:publish_deliverable_uid)": {
+            "scanner_instances": [{"name": "go"}, {"name": "syft"}],
             "merge_input_templates": ["comps-common"],
-            "merge_spdx_template": "spdx"
+            "merge_spdx_template": "spdx",
+            "product": {
+                "distribution_type": "external",
+                "embedded_in_hardware": false
+            }
         },
         "$(gobuild:zip_deliverables_uid)": {
+            "scanner_instances": [{"name": "go"}, {"name": "syft"}],
             "merge_input_templates": ["comps-common"],
-            "merge_spdx_template": "spdx"
+            "merge_spdx_template": "spdx",
+            "product": {
+                "distribution_type": "external",
+                "embedded_in_hardware": false
+            }
         }
     }
 }
