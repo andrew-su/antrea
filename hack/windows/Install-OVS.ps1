@@ -376,51 +376,6 @@ function parseDriver {
     return $driver
 }
 
-function InstallOpenSSLFiles {
-    param (
-        [parameter(Mandatory = $true)] [string] $destinationPaths
-    )
-
-    # Check if SSL library has been installed
-    $paths = $destinationPaths.Split(";")
-    foreach($path in $paths) {
-        if ((Test-Path "$path\ssleay32.dll" -PathType Leaf) -and (Test-Path "$path\libeay32.dll" -PathType Leaf)) {
-            Log "Found existing SSL library."
-            return
-        }
-    }
-    if ($LocalSSLFile) {
-        if ($LocalSSLFile -like "*.zip") {
-            Log "Install local SSL library."
-            Expand-Archive $LocalSSLFile -DestinationPath openssl
-        } else {
-            Log "The local SSL package must be in ZIP format, exit"
-            exit 1
-        }
-    } else {
-        $SSLZip = "openssl-1.0.2u-x64_86-win64.zip"
-        $SSLMD5 = "E723E1C479983F35A0901243881FA046"
-        $SSLDownloadURL = "https://github.com/IndySockets/OpenSSL-Binaries/raw/21d81384bfe589273e6b2ac1389c40e8f0ca610d/$SSLZip"
-        curl.exe -LO $SSLDownloadURL
-        If (!$?) {
-            Log "Download SSL files failed, URL: $SSLDownloadURL"
-            Log "Please install ssleay32.dll and libeay32.dll to $OVSInstallDir\usr\sbin\ manually"
-            exit 1
-        }
-        $MD5Result = Get-FileHash $SSLZip -Algorithm MD5 | Select -ExpandProperty "Hash"
-        If ($MD5Result -ne $SSLMD5){
-            Log "Wrong md5sum, Please check the file integrity"
-            exit 1
-        }
-        Expand-Archive $SSLZip -DestinationPath openssl
-        rm $SSLZip
-    }
-    $destinationPaths -Split ";" | Foreach-Object {
-        cp -Force openssl\*.dll $_\
-    }
-    rm -Recurse -Force openssl
-}
-
 function ConfigOVS() {
     param (
         [parameter(Mandatory = $true)] [string] $OVSLocalPath
@@ -593,7 +548,6 @@ function InstallOVS() {
     if ($InstallUserspace -eq $true) {
         $OVSBinPaths="${OVSBinPaths};${OVSLocalPath}\usr\sbin"
     }
-    InstallOpenSSLFiles "$OVSBinPaths"
 
     # Copy OVS utilities to host path "c:/openvswitch/"
     CopyOVSUtilities($OVSLocalPath)
