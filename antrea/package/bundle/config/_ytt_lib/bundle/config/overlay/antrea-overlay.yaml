@@ -733,10 +733,18 @@ metadata:
 spec:
   template:
     spec:
-      hostNetwork: true
-      restartPolicy: Never
+      #@overlay/match missing_ok=True
       nodeSelector:
         kubernetes.io/os: linux
+        #@ if values.nodeSelector != None:
+        #@ for key in values.nodeSelector:
+        #@overlay/match missing_ok=True
+        #@yaml/text-templated-strings
+        (@= key @): #@ values.nodeSelector[key]
+        #@ end
+        #@ end
+      hostNetwork: true
+      restartPolicy: Never
       tolerations:
         - key: CriticalAddonsOnly
           operator: Exists

@@ -3,7 +3,8 @@
 
 ---
 infraProvider: vsphere
-nodeSelector: null
+nodeSelector:
+  run.tanzu.vmware.com/tkr: v1.31.4---vmware.1-fips-vkr.2
 deployment:
   updateStrategy: null
   rollingUpdate:
