@@ -189,8 +189,8 @@ elif [ "$DISTRO" == "photon" ]; then
     ANTREA_OPENVSWITCH_IMAGE="antrea/openvswitch-photon-$TARGETARCH:$BUILD_TAG"
     SURICATA_VERSION="6.0.10"
     LIBNET_VERSION="1.1.6"
-    curl -LO "https://artifactory.eng.vmware.com/artifactory/nsx-ujo-local/cayman_antrea/suricata-${SURICATA_VERSION}.tar.gz"
-    curl -LO "https://artifactory.eng.vmware.com/artifactory/nsx-ujo-local/cayman_antrea/libnet-${LIBNET_VERSION}.tar.gz"
+    curl -LO "https://packages.vcfd.broadcom.net/artifactory/nsx-ujo-local/cayman_antrea/suricata-${SURICATA_VERSION}.tar.gz"
+    curl -LO "https://packages.vcfd.broadcom.net/artifactory/nsx-ujo-local/cayman_antrea/libnet-${LIBNET_VERSION}.tar.gz"
 fi
 
 if [ "$DISTRO" == "photon" ]; then

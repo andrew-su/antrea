@@ -14,8 +14,7 @@
 
 # Prerequisite to build this Dockerfile:
 # - openvswitch-$OVS_VERSION.tar.gz - archive of the source code of OpenvSwitch.
-FROM nsx-ujo-docker-local.packages.vcfd.broadcom.net/antrea/centos:stream9-80150eba as ovs-ubi-rpms
-
+FROM quay.packages.vcfd.broadcom.net/centos/centos:stream9 as ovs-ubi-rpms
 ARG OVS_VERSION
 ARG IPSEC
 
@@ -43,7 +42,7 @@ RUN tar -xzf /tmp/openvswitch-$OVS_VERSION.tar.gz -C /tmp && \
     rm -rf /tmp/openvswitch*
 
 
-FROM nsx-ujo-docker-local.packages.vcfd.broadcom.net/antrea/ubi:9.4-1214
+FROM dockerhub.artifactory.vcfd.broadcom.net/redhat/ubi9:latest
 ARG IPSEC
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"

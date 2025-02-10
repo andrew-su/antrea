@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG BUILD_TAG
+FROM dockerhub.artifactory.vcfd.broadcom.net/library/buildpack-deps:24.04-curl AS certificate-base
+
 FROM dockerhub.artifactory.vcfd.broadcom.net/ubuntu:24.04 as cni-binaries
 
 ARG CNI_BINARIES_VERSION
@@ -20,9 +21,9 @@ ARG DOWNLOAD_CNI_BINARIES=false
 
 COPY cni-plugins-*.tgz /tmp
 
-RUN echo 'Acquire::https::Verify-Peer "false";' > /etc/apt/apt.conf.d/99insecure && \
-    echo 'Acquire::https::Verify-Host "false";' >> /etc/apt/apt.conf.d/99insecure && \
-    echo 'APT::Get::AllowUnauthenticated "true";' >> /etc/apt/apt.conf.d/99insecure
+RUN mkdir -p /usr/local/share/ca-certificates
+RUN mkdir -p /etc/ssl/certs
+COPY --from=certificate-base /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 RUN mv /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources.bak
 
@@ -72,16 +73,6 @@ ARG INSTALL_SURICATA_FROM_PACKAGE=false
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
 LABEL description="An Ubuntu based Docker base image for Antrea."
-
-# Disable SSL peer verification, host verification and allow unauthenticated packages
-# to fix build failure. This is usually not recommended, but should be Ok for a trusted
-# site from Broadcom.
-RUN echo 'Acquire::https::Verify-Peer "false";' > /etc/apt/apt.conf.d/99insecure && \
-    echo 'Acquire::https::Verify-Host "false";' >> /etc/apt/apt.conf.d/99insecure && \
-    echo 'APT::Get::AllowUnauthenticated "true";' >> /etc/apt/apt.conf.d/99insecure && \
-    echo "deb https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu jammy main restricted universe" > /etc/apt/sources.list && \
-    echo "deb https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu jammy-security main restricted" >> /etc/apt/sources.list && \
-    echo "deb https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu jammy-updates main restricted" >> /etc/apt/sources.list
 
 USER root
 

@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG BUILD_TAG
-
-FROM nsx-ujo-docker-local.packages.vcfd.broadcom.net/antrea/ubi:9.4-1214
+FROM dockerhub.artifactory.vcfd.broadcom.net/redhat/ubi9:latest
 ARG BUILD_INFO
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"

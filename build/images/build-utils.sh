@@ -49,7 +49,7 @@ function switch_windows_buildx() {
         return
     fi
     trap 'docker buildx use --default ${original_buildx_instance}' EXIT
-    local_buildx_image="dockerhub.artifactory.eng.vmware.com/moby/buildkit:buildx-stable-1"
+    local_buildx_image="dockerhub.packages.vcfd.broadcom.net/moby/buildkit:buildx-stable-1"
     set +e
     docker buildx ls | grep "${windows_buildx_name}" > /dev/null 2>&1
     if [ $? -eq 0 ] ; then

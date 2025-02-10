@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG BUILD_TAG
 ARG CNI_BINARIES_VERSION
-
 FROM antrea/cni-binaries:${CNI_BINARIES_VERSION} as cni-binaries
 
 FROM antrea-openvswitch
@@ -26,15 +24,6 @@ LABEL description="An Debian based Docker base image for Antrea."
 
 COPY iptables-wrapper-installer.sh /iptables-wrapper-installer.sh
 COPY suricata*.deb /tmp/
-
-# Disable SSL peer verification, host verification and allow unauthenticated packages
-# to fix build failure. This is usually not recommended, but should be Ok for a trusted
-# site from Broadcom.
-RUN echo 'Acquire::https::Verify-Peer "false";' > /etc/apt/apt.conf.d/99insecure && \
-    echo 'Acquire::https::Verify-Host "false";' >> /etc/apt/apt.conf.d/99insecure && \
-    echo 'APT::Get::AllowUnauthenticated "true";' >> /etc/apt/apt.conf.d/99insecure && \
-    echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bullseye main" > /etc/apt/sources.list && \
-    echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bullseye-updates main" >> /etc/apt/sources.list
 
 USER root
 

@@ -1,4 +1,4 @@
-FROM mcr-docker-remote.artifactory.eng.vmware.com/oss/kubernetes/windows-host-process-containers-base-image:v1.0.0
+FROM mcr-docker-remote.packages.vcfd.broadcom.net/oss/kubernetes/windows-host-process-containers-base-image:v1.0.0
 
 ARG LOCAL_PATH
 

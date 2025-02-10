@@ -123,6 +123,11 @@ bin:
 	@mkdir -p $(BINDIR)
 	GOOS=linux $(GO) build -o $(BINDIR) $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/cmd/...
 
+.PHONY: multicluster-bin
+multicluster-bin:
+	@mkdir -p $(BINDIR)
+	GOOS=linux $(GO) build -o $(BINDIR)/antrea-mc-controller $(GOFLAGS) -ldflags '$(LDFLAGS)' antrea.io/antrea/multicluster/cmd/...
+
 .PHONY: e2e-bin
 e2e-bin:
 	@mkdir -p $(BINDIR)
@@ -301,6 +306,7 @@ DOCKER_ENV = \
 .PHONY: docker-bin
 docker-bin: $(DOCKER_CACHE)
 	$(DOCKER_ENV) make bin
+	$(DOCKER_ENV) make multicluster-bin
 	@chmod -R 0755 $<
 
 .PHONY: docker-e2e-bin

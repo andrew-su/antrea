@@ -16,23 +16,36 @@
 # - openvswitch-$OVS_VERSION.tar.gz - archive of the source code of OpenvSwitch.
 # IPsec related packages will not be installed by default. Specify `--build-arg IPsec=true` to enable IPsec support.
 
-# Use a known good image to build the OVS debs to prevent dependency issues. This will not be used in the final image.
-FROM nsx-ujo-docker-local.packages.vcfd.broadcom.net/interworking/ubuntu:22.04 as ovs-ubuntu-debs
+FROM dockerhub.artifactory.vcfd.broadcom.net/library/buildpack-deps:24.04-curl AS certificate-base
 
-# Disable SSL peer verification, host verification and allow unauthenticated packages
-# to fix build failure. This is usually not recommended, but should be Ok for a trusted
-# site from Broadcom.
-RUN echo 'Acquire::https::Verify-Peer "false";' > /etc/apt/apt.conf.d/99insecure && \
-    echo 'Acquire::https::Verify-Host "false";' >> /etc/apt/apt.conf.d/99insecure && \
-    echo 'APT::Get::AllowUnauthenticated "true";' >> /etc/apt/apt.conf.d/99insecure && \
-    echo "deb https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu jammy main restricted universe" > /etc/apt/sources.list && \
-    echo "deb https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu jammy-security main restricted" >> /etc/apt/sources.list && \
-    echo "deb https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu jammy-updates main restricted" >> /etc/apt/sources.list
+FROM dockerhub.artifactory.vcfd.broadcom.net/ubuntu:24.04 as ovs-ubuntu-debs
 
 # Some patches may not apply cleanly if a non-default version is provided.
 # See build/images/deps/ovs-version for the default version.
 ARG OVS_VERSION
 ARG IPSEC
+
+RUN mkdir -p /usr/local/share/ca-certificates
+RUN mkdir -p /etc/ssl/certs
+COPY --from=certificate-base /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+RUN mv /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources.bak
+
+COPY <<EOF /etc/apt/sources.list.d/broadcom.sources
+Types: deb
+URIs: https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu/
+Suites: noble noble-updates noble-backports
+Components: main universe restricted multiverse
+Trusted: yes
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+Types: deb
+URIs: https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu/
+Suites: noble-security
+Components: main universe restricted multiverse
+Trusted: yes
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+EOF
 
 # Install dependencies for building OVS deb packages
 # We only install python3 packages and we only support building OVS >= 2.13.0.
@@ -54,22 +67,16 @@ RUN tar -xzf /tmp/openvswitch-$OVS_VERSION.tar.gz -C /tmp && \
     if ${IPSEC}; then mv openvswitch-ipsec_*.deb ovs-debs/; fi && \
     cd / && rm -rf /tmp/openvswitch*
 
-FROM nsx-ujo-docker-local.packages.vcfd.broadcom.net/interworking/ubuntu:22.04-adbb9011
+FROM dockerhub.artifactory.vcfd.broadcom.net/ubuntu:24.04
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
 LABEL description="A Docker image based on Ubuntu 24.04 which includes Open vSwitch built from source."
 
 ARG IPSEC
 
-# Disable SSL peer verification, host verification and allow unauthenticated packages
-# to fix build failure. This is usually not recommended, but should be Ok for a trusted
-# site from Broadcom.
-RUN echo 'Acquire::https::Verify-Peer "false";' > /etc/apt/apt.conf.d/99insecure && \
-    echo 'Acquire::https::Verify-Host "false";' >> /etc/apt/apt.conf.d/99insecure && \
-    echo 'APT::Get::AllowUnauthenticated "true";' >> /etc/apt/apt.conf.d/99insecure && \
-    echo "deb https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu jammy main restricted universe" > /etc/apt/sources.list && \
-    echo "deb https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu jammy-security main restricted" >> /etc/apt/sources.list && \
-    echo "deb https://packages.vcfd.broadcom.net/ubuntu-remote/ubuntu jammy-updates main restricted" >> /etc/apt/sources.list
+COPY --from=certificate-base /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+RUN mv /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources.bak
+COPY --from=ovs-ubuntu-debs /etc/apt/sources.list.d/broadcom.sources /etc/apt/sources.list.d/broadcom.sources
 
 COPY --from=ovs-ubuntu-debs /tmp/ovs-debs/* /tmp/ovs-debs/
 COPY charon-logging.conf /tmp

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM nsx-ujo-docker-local.artifactory.eng.vmware.com/interworking/static:nonroot
+FROM nsx-ujo-docker-local.packages.vcfd.broadcom.net/interworking/static:nonroot
 ARG BUILD_INFO
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
@@ -21,5 +21,6 @@ LABEL build-info="${BUILD_INFO}"
 
 USER root
 
-COPY multicluster/bin/antrea-mc-controller /
+COPY bin/antrea-mc-controller /
+
 RUN echo "${BUILD_INFO}" > /build-info
