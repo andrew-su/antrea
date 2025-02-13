@@ -5,16 +5,18 @@ export NO_PULL=1
 echo "====== Generating version Files for CI and Consumers ======"
 publish_version_files
 
-echo "====== Checkout Common Branch ======"
-git reset --hard origin/topic/${ANTREA_VERSION_DIGIT}-common
 check_manifests
+git status
 
 echo "====== Compiling antrea e2e testcases ======"
-compile_e2e "noipsec" "multi-cluster"
+make docker-e2e-bin
+mv bin/multicluster-e2e bin/e2e-multi-cluster-${ANTREA_VERSION}
+mkdir -p "${BUILDROOT}/output/executables"
+gzip -c bin/e2e-multi-cluster-${ANTREA_VERSION} > "${BUILDROOT}/output/executables/e2e-multi-cluster-${ANTREA_VERSION}.gz"
 
 echo "====== Preparing Antrea Multi-cluster Deliverables: Manifests ======"
-git status
 OUTPUT_DIR="${BUILDROOT}/mc-output"
+mkdir -p "${OUTPUT_DIR}/executables/"
 mkdir -p "${OUTPUT_DIR}/manifests"
 echo "${BUILD_NUMBER}" > "${OUTPUT_DIR}/manifests/build_number.txt"
 for yml_file in ${REPO_ROOT}/multicluster/build/yamls/*.yml; do
@@ -28,7 +30,7 @@ done
 cp -r "${REPO_ROOT}/multicluster/config/samples/clusterset_init" "${OUTPUT_DIR}/manifests"
 
 echo "====== Building antrea-mc-controller Binaries ======"
-fips_make "go build -o bin/antrea-mc-controller antrea.io/antrea/multicluster/cmd/..."
+make docker-bin
 
 echo "====== Building antrea-mc-controller Debian Image ======"
 make antrea-mc-controller-debian VERSION=${IMAGE_VERSION} BUILD_INFO="${BUILD_NUMBER}"
