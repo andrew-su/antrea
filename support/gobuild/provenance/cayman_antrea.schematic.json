@@ -7,7 +7,7 @@
                 "license_declared": "Broadcom_Proprietary",
                 "originator": "Organization: Broadcom, Inc.",
                 "supplier": "Organization: Broadcom, Inc.",
-                "home_page": "https://gitlab-vmw.devops.broadcom.net/core-build/cayman_antrea/",
+                "home_page": "https://github-vcf.devops.broadcom.net/vcf/cayman_antrea",
                 "short_summary": "cayman antrea",
                 "detailed_description": "",
                 "version": "2.2"

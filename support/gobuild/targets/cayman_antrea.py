@@ -66,8 +66,8 @@ class _CaymanAntrea(helpers.target.Target, helpers.python.CaymanPythonHelper):
 
     def GetRepositories(self, hosttype):
         repos = [{
-            'rcs': 'git',
-            'src': 'core-build/cayman_antrea;%(branch);',
+            'rcs': 'github-vcf',
+            'src': 'vcf/cayman_antrea;%(branch);',
             'dst': 'cayman_antrea',
         }]
         return repos

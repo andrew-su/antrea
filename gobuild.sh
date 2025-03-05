@@ -19,8 +19,8 @@ $(echo $TARGETS | tr ' ' '\n' | sort)
 
 Options
     --localcommits        Apply local changeset to sandbox build
-    --private             Use private git repo on git-eng:
-                          git-eng:$USER/$REPO
+    --private             Use private git repo on github-vcf:
+                          github-vcf:private/$USER/$REPO
     --                    Pass all remaining params to gobuild-sandbox-queue.
                           Get detailed help by $0 <target> -- --help
 EOF
@@ -43,7 +43,7 @@ else
     exit 1
 fi
 
-REPO_URL=core-build/$REPO
+REPO_URL=vcf/$REPO
 
 while test $# != 0;
 do
@@ -72,7 +72,7 @@ do
 done
 
 cmd="$GOBUILDCMD $TARGET \
---bootstrap=\"$TARGET=git-eng:$REPO_URL;%(branch);\" \
+--bootstrap=\"$TARGET=github-vcf:$REPO_URL;%(branch);\" \
 --branch $BRANCH \
 --accept-defaults \
 --no-send-email \

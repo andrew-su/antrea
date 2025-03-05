@@ -20,8 +20,8 @@ class AntreaRelease(helpers.target.Target):
 
     def GetRepositories(self, hostname):
         return [{
-            "rcs": "git",
-            "src": "core-build/cayman_antrea;%(branch);",
+            "rcs": "github-vcf",
+            "src": "vcf/cayman_antrea;%(branch);",
             "dst": "antrea-release"
         }]
 
