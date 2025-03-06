@@ -12,11 +12,10 @@ import (
 	"strings"
 	"time"
 
+	"github-vcf.devops.broadcom.net/vcf/release-machinery/relm/pkg/artifact"
+	"github-vcf.devops.broadcom.net/vcf/release-machinery/relm/pkg/ci"
+	"github-vcf.devops.broadcom.net/vcf/release-machinery/relm/pkg/relmci"
 	"github.com/joho/godotenv"
-
-	"gitlab-vmw.devops.broadcom.net/core-build/tanzu-release-machinery/artifact/pkg/bwartifact"
-	"gitlab-vmw.devops.broadcom.net/core-build/tanzu-release-machinery/ci-tooling/pkg/sdk/buildweb"
-	"gitlab-vmw.devops.broadcom.net/core-build/tanzu-release-machinery/gitlab/pkg/sdk/gitlab"
 )
 
 const (
@@ -55,7 +54,7 @@ func downloadFile(url string, filepath string) error {
 
 func downloadVersionFiles(buildIDDesc string) error {
 	antreaPath := "publish/lin64/antrea/ANTREA_VERSIONS"
-	url := bwartifact.GetBuildsquidPath(buildIDDesc, antreaPath)
+	url := artifact.GetBuildsquidPath(buildIDDesc, antreaPath)
 
 	err := downloadFile(url, AntreaVersionPath)
 	if err != nil {
@@ -67,7 +66,7 @@ func downloadVersionFiles(buildIDDesc string) error {
 /*
   Maintainer Notes:
   # Logging
-  - There are helper functions for logging and commenting to gitlab MR: logInfo, logErr, logInfoAndPost, postToGitlab
+  - There are helper functions for logging and commenting to gitlab MR: logInfo, logErr, logInfoAndPost, relmci.PostToGithub
   - Try to minimize information posted to gitlab MR, as
     - mutliple retries substantially increase the number of comments
 	- it becomes difficult to navigate between review and CI comments.
@@ -84,7 +83,7 @@ func main() {
 	gobuildTarget := "cayman_antrea_package" // same as the one found at support/gobuild/__init__.py
 	timeout := time.Hour * 2
 
-	bw, makeErr := buildweb.MakeBuildwebBuildOptions()
+	bw, makeErr := ci.MakeBuildwebBuildOptions()
 	if makeErr != nil {
 		logErr(buildLogCtx, makeErr)
 		os.Exit(1)
@@ -153,8 +152,8 @@ func main() {
 		"interworking-debian":               interworkingVersion,
 	}
 
-	publishOpts := []bwartifact.OptionFunc{}   // declare at the beginning
-	images := []bwartifact.ImagePublishSpecs{} // debugging purposes
+	publishOpts := []artifact.OptionFunc{}   // declare at the beginning
+	images := []artifact.ImagePublishSpecs{} // debugging purposes
 
 	for compName, imageTag := range imageTagMap {
 		imageTarball := fmt.Sprintf("%s-%s.tar.gz", compName, imageTag) // image tarball name: kube-controllers-v3.27.3_vmware.1.tar.gz
@@ -163,13 +162,13 @@ func main() {
 		}
 		filePath := filepath.Join(bwImagesBaseDir, imageTarball)
 		imgPath := filepath.Join(artifactoryImagesBase, compName)
-		imgPubSpecs := bwartifact.ImagePublishSpecs{ // initialize; hence a new memory address
+		imgPubSpecs := artifact.ImagePublishSpecs{ // initialize; hence a new memory address
 			PublishIdentifier: compName,
 			BuildwebFilePath:  filePath,
 			TargetImagePath:   imgPath,
 			TargetImageTag:    imageTag,
 		}
-		imgFn := bwartifact.WithImagesForPublish(imgPubSpecs) // initialize; hence a new memory address
+		imgFn := artifact.WithImagesForPublish(imgPubSpecs) // initialize; hence a new memory address
 		publishOpts = append(publishOpts, imgFn)
 		images = append(images, imgPubSpecs) // debugging purposes
 	}
@@ -182,35 +181,35 @@ func main() {
 	pkgCrFilename := fmt.Sprintf("%s+%s-%s.yml", os.Getenv("ANTREA_SEMVER"), os.Getenv("VMWARE_VERSION_SUFFIX"), tkgVersionSuffix)
 	pkgMetaCrFilename := "metadata.yml"
 
-	bundlePubSpec := bwartifact.BundlePublishSpecs{
+	bundlePubSpec := artifact.BundlePublishSpecs{
 		PublishIdentifier: "antrea-package",
 		BuildwebFilePath:  filepath.Join(bwBundlesBaseDir, bundleTar),
 		TargetBundlePath:  filepath.Join(artifactoryPackagesBase, "antrea"), // packages/antrea
 		BundleLookupTag:   bundleTag,
-		PackageCR: &bwartifact.PackageCRPublishSpecs{
+		PackageCR: &artifact.PackageCRPublishSpecs{
 			PublishIdentifier: "antrea-package-cr",                              // a unique identifier
 			BuildwebFilePath:  fmt.Sprintf("%s%s", bwCrsBaseDir, pkgCrFilename), // download path
 			TargetFilePath:    filepath.Join(artifactoryCrsBase, pkgCrFilename), // upload path
 		},
-		PackageMetadataCR: &bwartifact.FilePublishSpecs{
+		PackageMetadataCR: &artifact.FilePublishSpecs{
 			PublishIdentifier: "antrea-packageMetadata-cr",
 			BuildwebFilePath:  filepath.Join(bwCrsBaseDir, pkgMetaCrFilename),
 			TargetFilePath:    filepath.Join(artifactoryCrsBase, pkgMetaCrFilename), // custom-resources/metadata.yml
 		},
 	}
 
-	bundleFn := bwartifact.WithBundlesForPublish(bundlePubSpec) // initialize; hence a new memory address
+	bundleFn := artifact.WithBundlesForPublish(bundlePubSpec) // initialize; hence a new memory address
 	publishOpts = append(publishOpts, bundleFn)
-	publishOpts = append(publishOpts, bwartifact.WithIsOfficialBuildEnabled(buildResult.IsOfficialBuild))
-	publishOpts = append(publishOpts, bwartifact.WithBuildIDDesc(buildResult.BuildIDDesc))
+	// publishOpts = append(publishOpts, artifact.WithIsOfficialBuildEnabled(buildResult.IsOfficialBuild))
+	publishOpts = append(publishOpts, artifact.WithBuildIDDesc(buildResult.BuildIDDesc))
 
 	if buildResult.IsOfficialBuild {
-		publishOpts = append(publishOpts, bwartifact.WithDevArtifactory2(artifactoryBasePath))
+		publishOpts = append(publishOpts, artifact.WithDevArtifactory2(artifactoryBasePath))
 	} else {
-		publishOpts = append(publishOpts, bwartifact.WithDevArtifactory2(artifactoryBasePath))
+		publishOpts = append(publishOpts, artifact.WithDevArtifactory2(artifactoryBasePath))
 	}
 
-	pubResult, pubErr := bwartifact.Publish(publishOpts...)
+	pubResult, pubErr := artifact.Publish(publishOpts...)
 
 	// Since publish results can be huge, we log to the CI runner machine only
 	// Publish results must be logged irrespective of success or failures; they
@@ -239,18 +238,12 @@ func main() {
 	}
 
 	// Post to Gitlab on successful publish
-	var pubComment strings.Builder
-	for _, item := range pubResult {
-		pubComment.WriteString(fmt.Sprintf("\n- id = %s", item.PublishIdentifier))
-		pubComment.WriteString(fmt.Sprintf("\n  status = %s", item.Status))
-		if item.DestinationURL != "" {
-			pubComment.WriteString(fmt.Sprintf("\n  url = %s", item.DestinationURL))
-		}
-		if item.DestinationURLDigest != "" {
-			pubComment.WriteString(fmt.Sprintf("\n  digest = %s", item.DestinationURLDigest))
-		}
+	postPubResultErr := relmci.PostPublishResultToGithub(pubResult)
+	if postPubResultErr != nil {
+		log.Println("ERROR:", postPubResultErr)
+		os.Exit(1)
 	}
-	postToGitlab(fmt.Sprintf("publish succeeded: %s", pubComment.String()))
+
 	log.Println(buildResult.String())
 
 	os.Exit(0)
@@ -266,7 +259,7 @@ func logInfoAndPost(msgCtx, msg string, info ...string) {
 	if logMsg == "" {
 		return
 	}
-	postToGitlab(logMsg)
+	relmci.PostToGithub(logMsg)
 }
 
 // logInfo formulates message with additional
@@ -296,23 +289,6 @@ func logInfo(msgCtx, msg string, info ...string) string {
 func logErr(msgCtx string, err error) string {
 	logMsg := fmt.Sprintf("ERROR: %s: %s: %s", relMachLogCtx, msgCtx, err)
 	log.Println(logMsg)
-	postToGitlab("ci failed: check jenkins logs to find the error(s)")
+	relmci.PostToGithub("ci failed: check jenkins logs to find the error(s)")
 	return logMsg
-}
-
-// postToGitlab adds a comment to the gitlab MR
-// using provided message string.
-func postToGitlab(msg string) {
-	_, gitlabErr := gitlab.AddMRComment(
-		gitlab.WithMRCommentParameters(
-			gitlab.WithProjectIDFromEnvKey(gitlab.EnvKeyGitlabMergeRequestTargetProjectId),
-			gitlab.WithMRIidFromEnvKey(gitlab.EnvKeyGitlabMergeRequestIid),
-			gitlab.WithAccessTokenFromRMCIEnvKey(),
-			gitlab.WithBaseURL(gitlab.GitlabVMWBroadcomNet),
-		),
-		gitlab.WithComment(msg),
-	)
-	if gitlabErr != nil {
-		log.Printf("WARN: %s: add comment to merge request: (%+v)", relMachLogCtx, gitlabErr)
-	}
 }

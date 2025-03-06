@@ -120,11 +120,10 @@ pushd "${PROJECT_DIR}/carvelpackage"
 echo "=== GIT_SSH_COMMAND=${GIT_SSH_COMMAND}"
 
   # Configure git to use 'ssh' instead of 'https'
-  git config --global url.ssh://git@gitlab.eng.vmware.com/.insteadOf https://gitlab.eng.vmware.com/
-  export GOPRIVATE=gitlab.eng.vmware.com
+  git config --global url.ssh://git@github-vcf.devops.broadcom.net/.insteadOf https://github-vcf.devops.broadcom.net/
+  export GOPRIVATE=github-vcf.devops.broadcom.net
   export GOPROXY=https://build-artifactory.eng.vmware.com/artifactory/proxy-golang-remote,direct
   export GOSUMDB=off
-
 
 
   CGO_ENABLED=0 \

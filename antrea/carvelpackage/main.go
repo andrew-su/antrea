@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	packagebundle "gitlab-vmw.devops.broadcom.net/core-build/tanzu-release-machinery/carvel-package/pkg/sdk/package-bundle"
+	packagebundle "github-vcf.devops.broadcom.net/vcf/release-machinery/relm/pkg/carvel-package/sdk/package-bundle"
 )
 
 /*
