@@ -16,6 +16,8 @@ spec:
           properties:
             version:
               type: string
+            buildNumber:
+              type: string
             agentConditions:
               type: array
               items:

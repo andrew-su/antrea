@@ -101,6 +101,10 @@ func GetVersion() string {
 	return version.GetFullVersion()
 }
 
+func  GetBuildNumber() string {
+	return version.GetBuildInfo()
+}
+
 // NetworkPolicyQueryFilter is used to filter the result while retrieve network policy
 // An empty attribute, which won't be used as a condition, means match all.
 // e.g SourceType = "" means all type network policy will be retrieved

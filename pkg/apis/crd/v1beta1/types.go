@@ -30,6 +30,8 @@ type AntreaAgentInfo struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// Antrea binary version
 	Version string `json:"version,omitempty"`
+	// Antrea build number
+	BuildNumber string `json:"buildNumber,omitempty"`
 	// The Pod that Antrea Agent is running in
 	PodRef corev1.ObjectReference `json:"podRef,omitempty"`
 	// The Node that Antrea Agent is running in
@@ -110,6 +112,8 @@ type AntreaControllerInfo struct {
 
 	// Antrea binary version
 	Version string `json:"version,omitempty"`
+	// Antrea build number
+	BuildNumber string `json:"buildNumber,omitempty"`
 	// The Pod that Antrea Controller is running in
 	PodRef corev1.ObjectReference `json:"podRef,omitempty"`
 	// The Node that Antrea Controller is running in

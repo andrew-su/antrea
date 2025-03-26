@@ -2857,6 +2857,13 @@ func schema_pkg_apis_crd_v1beta1_AntreaAgentInfo(ref common.ReferenceCallback) c
 							Format:      "",
 						},
 					},
+					"buildNumber": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Antrea build number",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"podRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "The Pod that Antrea Agent is running in",
@@ -3027,6 +3034,13 @@ func schema_pkg_apis_crd_v1beta1_AntreaControllerInfo(ref common.ReferenceCallba
 					"version": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Antrea binary version",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"buildNumber": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Antrea build number",
 							Type:        []string{"string"},
 							Format:      "",
 						},

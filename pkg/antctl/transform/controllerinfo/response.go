@@ -30,6 +30,7 @@ import (
 // removes the resource meta fields.
 type Response struct {
 	Version                     string                                 `json:"version,omitempty"`                     // Antrea binary version
+	BuildNumber                 string                                 `json:"buildNumber,omitempty"`                 // Antrea build number
 	PodRef                      corev1.ObjectReference                 `json:"podRef,omitempty"`                      // The Pod that Antrea Controller is running in
 	NodeRef                     corev1.ObjectReference                 `json:"nodeRef,omitempty"`                     // The Node that Antrea Controller is running in
 	ServiceRef                  corev1.ObjectReference                 `json:"serviceRef,omitempty"`                  // Antrea Controller Service
@@ -51,6 +52,7 @@ func Transform(reader io.Reader, _ bool, _ map[string]string) (interface{}, erro
 	}
 	resp := &Response{
 		Version:                     controllerInfo.Version,
+		BuildNumber:                 controllerInfo.BuildNumber,
 		PodRef:                      controllerInfo.PodRef,
 		NodeRef:                     controllerInfo.NodeRef,
 		ServiceRef:                  controllerInfo.ServiceRef,

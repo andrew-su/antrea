@@ -83,6 +83,7 @@ func (cq controllerQuerier) GetControllerInfo(controllerInfo *v1beta1.AntreaCont
 
 	if !partial {
 		controllerInfo.Version = querier.GetVersion()
+		controllerInfo.BuildNumber = querier.GetBuildNumber()
 		controllerInfo.PodRef = querier.GetSelfPod()
 		controllerInfo.NodeRef = querier.GetSelfNode(false, "")
 		controllerInfo.ServiceRef = cq.getService()

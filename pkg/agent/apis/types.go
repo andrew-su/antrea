@@ -28,6 +28,7 @@ import (
 // It includes all fields except meta info from v1beta1.AntreaAgentInfo struct.
 type AntreaAgentInfoResponse struct {
 	Version                     string                              `json:"version,omitempty"`                     // Antrea binary version
+	BuildNumber                 string                              `json:"buildNumber,omitempty"`                 // Antrea build number
 	PodRef                      corev1.ObjectReference              `json:"podRef,omitempty"`                      // The Pod that Antrea Agent is running in
 	NodeRef                     corev1.ObjectReference              `json:"nodeRef,omitempty"`                     // The Node that Antrea Agent is running in
 	NodeSubnets                 []string                            `json:"nodeSubnets,omitempty"`                 // Node subnets

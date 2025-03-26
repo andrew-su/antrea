@@ -26,6 +26,7 @@ var (
 	// Must follow the rules in https://semver.org/
 	// Does not include git / build information
 	Version = ""
+	BuildInfo = ""
 	// Empty if git not available
 	GitSHA = ""
 	// Can be "dirty", "clean" or empty (if git not available)
@@ -62,6 +63,10 @@ func GetFullVersion() string {
 		return fmt.Sprintf("%s-%s.dirty", Version, GitSHA)
 	}
 	return fmt.Sprintf("%s-%s", Version, GitSHA)
+}
+
+func GetBuildInfo() string {
+	return BuildInfo	
 }
 
 // GetFullVersionWithRuntimeInfo returns the same version string as GetFullVersion but appends

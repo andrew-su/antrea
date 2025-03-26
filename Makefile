@@ -301,19 +301,19 @@ DOCKER_ENV = \
 
 .PHONY: docker-bin
 docker-bin: $(DOCKER_CACHE)
-	$(DOCKER_ENV) make bin
-	$(DOCKER_ENV) make multicluster-bin
+	$(DOCKER_ENV) make bin BUILD_INFO=$(BUILD_INFO)
+	$(DOCKER_ENV) make multicluster-bin BUILD_INFO=$(BUILD_INFO)
 	@chmod -R 0755 $<
 
 .PHONY: docker-e2e-bin
 docker-e2e-bin: $(DOCKER_CACHE)
-	$(DOCKER_ENV) make e2e-bin
+	$(DOCKER_ENV) make e2e-bin BUILD_INFO=$(BUILD_INFO)
 	@chmod -R 0755 $<
 
 .PHONY: docker-windows-bin
 docker-windows-bin: GOLANG_IMAGE := $(GOLANG_IMAGE_WINDOWS)
 docker-windows-bin: $(DOCKER_CACHE)
-	$(DOCKER_ENV) make windows-bin
+	$(DOCKER_ENV) make windows-bin BUILD_INFO=$(BUILD_INFO)
 
 .PHONY: docker-test-unit
 docker-test-unit: $(DOCKER_CACHE)

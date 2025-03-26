@@ -38,10 +38,12 @@ VERSION_LDFLAGS = -X antrea.io/antrea/pkg/version.Version=$(VERSION)
 VERSION_LDFLAGS += -X antrea.io/antrea/pkg/version.GitSHA=$(GIT_SHA)
 VERSION_LDFLAGS += -X antrea.io/antrea/pkg/version.GitTreeState=$(GIT_TREE_STATE)
 VERSION_LDFLAGS += -X antrea.io/antrea/pkg/version.ReleaseStatus=$(RELEASE_STATUS)
+VERSION_LDFLAGS += -X antrea.io/antrea/pkg/version.BuildInfo=$(BUILD_INFO)
 
 version-info:
 	@echo "===> Version information <==="
 	@echo "VERSION: $(VERSION)"
+        @echo "BUILD_INFO: $(BUILD_INFO)" 
 	@echo "GIT_SHA: $(GIT_SHA)"
 	@echo "GIT_TREE_STATE: $(GIT_TREE_STATE)"
 	@echo "RELEASE_STATUS: $(RELEASE_STATUS)"

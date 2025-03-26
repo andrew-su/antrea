@@ -18,6 +18,8 @@ spec:
           properties:
             version:
               type: string
+            buildNumber:
+              type: string
             agentConditions:
               type: array
               items:
@@ -263,6 +265,8 @@ spec:
                   type: string
                 fieldPath:
                   type: string
+            buildNumber:
+              type: string
       additionalPrinterColumns:
         - description: Health status of the Controller
           jsonPath: ".controllerConditions[?(@.type=='ControllerHealthy')].status"

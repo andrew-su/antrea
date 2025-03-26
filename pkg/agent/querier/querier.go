@@ -236,6 +236,7 @@ func (aq agentQuerier) GetAgentInfo(agentInfo *v1beta1.AntreaAgentInfo, partial 
 	// Some other fields are needed when partial is false.
 	if !partial {
 		agentInfo.Version = querier.GetVersion()
+		agentInfo.BuildNumber = querier.GetBuildNumber()
 		agentInfo.PodRef = querier.GetSelfPod()
 		agentInfo.NodeRef = querier.GetSelfNode(true, aq.nodeConfig.Name)
 		// Make a new string slice instead of appending agentInfo.NodeSubnets directly to avoid duplicate CIDRs.

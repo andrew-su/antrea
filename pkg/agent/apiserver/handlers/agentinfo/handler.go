@@ -33,6 +33,7 @@ func HandleFunc(aq querier.AgentQuerier) http.HandlerFunc {
 		aq.GetAgentInfo(agentInfo, false)
 		info := &apis.AntreaAgentInfoResponse{
 			Version:                     agentInfo.Version,
+			BuildNumber:                 agentInfo.BuildNumber,
 			PodRef:                      agentInfo.PodRef,
 			NodeRef:                     agentInfo.NodeRef,
 			OVSInfo:                     agentInfo.OVSInfo,
