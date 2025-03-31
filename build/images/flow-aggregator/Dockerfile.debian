@@ -1,8 +1,9 @@
 # Prerequisite to build this Dockerfile:
 # - Pre-built Antrea binaries in bin/.
-
 # Chose this base image so that a shell is available for users to exec into the container, run antctl and run tools like pprof easily
-FROM nsx-ujo-docker-local.packages.vcfd.broadcom.net/antrea/debian:bullseye-20240904-slim
+FROM dockerhub.artifactory.vcfd.broadcom.net/library/buildpack-deps:bookworm-curl AS certificate-base
+
+FROM dockerhub.artifactory.vcfd.broadcom.net/library/debian:bookworm-slim
 ARG BUILD_INFO
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
@@ -12,14 +13,14 @@ LABEL build-info="${BUILD_INFO}"
 COPY bin/flow-aggregator /
 COPY bin/antctl /usr/local/bin/
 
-# Disable SSL peer verification, host verification and allow unauthenticated packages
-# to fix build failure. This is usually not recommended, but should be Ok for a trusted
-# site from Broadcom.
-RUN echo 'Acquire::https::Verify-Peer "false";' > /etc/apt/apt.conf.d/99insecure && \
-    echo 'Acquire::https::Verify-Host "false";' >> /etc/apt/apt.conf.d/99insecure && \
-    echo 'APT::Get::AllowUnauthenticated "true";' >> /etc/apt/apt.conf.d/99insecure && \
-    echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bullseye main" > /etc/apt/sources.list && \
-    echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bullseye-updates main" >> /etc/apt/sources.list && \
+# Note: The 'debian:bookworm-slim' image doesn't include CA certificates by default.
+#       If you need a pre-installed CA setup, consider using images like 'buildpack-deps:bookworm-curl'
+RUN mkdir -p /usr/local/share/ca-certificates
+RUN mkdir -p /etc/ssl/certs
+COPY --from=certificate-base /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+RUN echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bookworm main" > /etc/apt/sources.list && \
+    echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bookworm-updates main" >> /etc/apt/sources.list && \
     apt-get update && apt -y upgrade \
     && apt-get install -y --no-install-recommends ca-certificates \
     && rm -rf /var/lib/apt/lists/*

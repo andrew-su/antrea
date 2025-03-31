@@ -15,29 +15,29 @@
 # Prerequisite to build this Dockerfile:
 # - openvswitch-$OVS_VERSION.tar.gz - archive of the source code of OpenvSwitch.
 # IPsec related packages will not be installed by default. Sepcify `--build-arg IPsec=true` to enable IPsec support.
-FROM dockerhub.artifactory.vcfd.broadcom.net/library/buildpack-deps:bullseye-curl AS certificate-base
+FROM dockerhub.artifactory.vcfd.broadcom.net/library/buildpack-deps:bookworm-curl AS certificate-base
 
-FROM dockerhub.artifactory.vcfd.broadcom.net/library/debian:bullseye-slim as ovs-debian-debs
+FROM dockerhub.artifactory.vcfd.broadcom.net/library/debian:bookworm-slim as ovs-debian-debs
 # Some patches may not apply cleanly if a non-default version is provided.
 # See build/images/deps/ovs-version for the default version.
 ARG OVS_VERSION
 ARG IPSEC
 
-# Note: The 'debian:bullseye-slim' image doesn't include CA certificates by default.
-#       If you need a pre-installed CA setup, consider using images like 'buildpack-deps:bullseye-curl'
+# Note: The 'debian:bookworm-slim' image doesn't include CA certificates by default.
+#       If you need a pre-installed CA setup, consider using images like 'buildpack-deps:bookworm-curl'
 RUN mkdir -p /usr/local/share/ca-certificates
 RUN mkdir -p /etc/ssl/certs
 COPY --from=certificate-base /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
-RUN echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bullseye main" > /etc/apt/sources.list && \
-    echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bullseye-updates main" >> /etc/apt/sources.list
+RUN echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bookworm main" > /etc/apt/sources.list && \
+    echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bookworm-updates main" >> /etc/apt/sources.list
 
 # Install dependencies for building OVS deb packages
 # We only install python3 packages and we only support building OVS >= 2.13.0.
 RUN apt-get update && \
     DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends wget curl git ca-certificates build-essential fakeroot graphviz \
             bzip2 autoconf automake debhelper dh-make dh-autoreconf dh-python libssl-dev libtool openssl procps \
-            python-six python3-all python3-twisted python3-zope.interface \
+            python3-all python3-twisted python3-zope.interface python3-sphinx \
             libunbound-dev
 
 COPY apply-patches-debian.sh /
@@ -56,7 +56,7 @@ RUN tar -xzf /tmp/openvswitch-$OVS_VERSION.tar.gz -C /tmp && \
     if ${IPSEC}; then mv openvswitch-ipsec_*.deb ovs-debs/; fi && \
     cd /
 
-FROM dockerhub.artifactory.vcfd.broadcom.net/library/debian:bullseye-slim
+FROM dockerhub.artifactory.vcfd.broadcom.net/library/debian:bookworm-slim
 ARG IPSEC
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
@@ -66,8 +66,8 @@ RUN mkdir -p /usr/local/share/ca-certificates
 RUN mkdir -p /etc/ssl/certs
 COPY --from=certificate-base /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
-RUN echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bullseye main" > /etc/apt/sources.list && \
-    echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bullseye-updates main" >> /etc/apt/sources.list
+RUN echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bookworm main" > /etc/apt/sources.list && \
+    echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bookworm-updates main" >> /etc/apt/sources.list
 
 COPY --from=ovs-debian-debs /tmp/ovs-debs/* /tmp/ovs-debs/
 COPY charon-logging.conf /tmp

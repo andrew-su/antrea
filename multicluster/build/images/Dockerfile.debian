@@ -1,4 +1,4 @@
-FROM dockerhub.artifactory.vcfd.broadcom.net/library/debian:bullseye-slim
+FROM dockerhub.artifactory.vcfd.broadcom.net/library/debian:bookworm-slim
 
 ARG BUILD_INFO
 

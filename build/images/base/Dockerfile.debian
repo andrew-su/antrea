@@ -39,7 +39,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         apt-get install -y --no-install-recommends /tmp/suricata*.deb && \
         apt-mark hold suricata; \
     else \
-        echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bullseye-backports main" >> /etc/apt/sources.list.d/backports.list && \
+        echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bookworm-backports main" >> /etc/apt/sources.list.d/backports.list && \
         apt update && \
         apt-get install -y --no-install-recommends suricata; \
     fi && \

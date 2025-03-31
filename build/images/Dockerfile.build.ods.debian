@@ -1,7 +1,8 @@
 # Copyright 2024 Antrea Authors
 
-FROM nsx-ujo-docker-local.packages.vcfd.broadcom.net/interworking/debian:bullseye-slim
+FROM dockerhub.artifactory.vcfd.broadcom.net/library/buildpack-deps:bookworm-curl AS certificate-base
 
+FROM dockerhub.artifactory.vcfd.broadcom.net/library/debian:bookworm-slim
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
 LABEL description="The Docker image to run SHA agent for ODS runbook."
 
@@ -12,11 +13,14 @@ USER root
 COPY build/yamls/ods/dummy_cert/* /cert/
 COPY build/yamls/ods/deployment_info.yml /etc/sha/
 
-RUN echo "deb http://packages.vcfd.broadcom.net/debian-remote/debian bullseye main" > /etc/apt/sources.list && \
-    echo "deb http://packages.vcfd.broadcom.net/debian-remote/debian bullseye-updates main" >> /etc/apt/sources.list && \
-    echo 'Acquire::https::Verify-Peer "false";' > /etc/apt/apt.conf.d/99insecure && \
-    echo 'Acquire::https::Verify-Host "false";' >> /etc/apt/apt.conf.d/99insecure && \
-    echo 'APT::Get::AllowUnauthenticated "true";' >> /etc/apt/apt.conf.d/99insecure
+# Note: The 'debian:bookworm-slim' image doesn't include CA certificates by default.
+#       If you need a pre-installed CA setup, consider using images like 'buildpack-deps:bookworm-curl'
+RUN mkdir -p /usr/local/share/ca-certificates
+RUN mkdir -p /etc/ssl/certs
+COPY --from=certificate-base /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+RUN echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bookworm main" > /etc/apt/sources.list && \
+    echo "deb https://packages.vcfd.broadcom.net/debian-remote/debian bookworm-updates main" >> /etc/apt/sources.list
 
 RUN apt-get update && \
     apt-get upgrade -y && \
