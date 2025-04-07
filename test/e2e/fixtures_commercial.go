@@ -20,8 +20,6 @@ func setupTestForAntreaIDPS(tb testing.TB) (*TestData, error) {
 	if err != nil {
 		return testData, err
 	}
-	skipIfMissingManifest(tb, testData, antreaIDPSYML)
-
 	if err = testData.deployAntreaIDPS(); err != nil {
 		return nil, err
 	}
