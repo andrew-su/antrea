@@ -1381,13 +1381,23 @@ func networkPolicyInitFlows(ovsMeterSupported, externalNodeEnabled bool) []strin
 			"cookie=0x1020000000000, table=Output, priority=200,reg0=0xe400000/0xfe600000 actions=meter:256,controller(id=32776,reason=no_match,userdata=01.07,max_len=65535)",
 		}
 	}
+	metricsFlows := []string{
+		"cookie=0x1020000000000, table=EgressMetric, priority=64992,reg8=0x50000/0xf0000 actions=set_field:0x20000/0x30000->reg8,set_field:0x80000/0xc0000->reg8,resubmit:AntreaPolicyEgressRule",
+		"cookie=0x1020000000000, table=EgressMetric, priority=64991,reg8=0x10000/0x30000 actions=set_field:0x20000/0x30000->reg8,resubmit:AntreaPolicyEgressRule",
+		"cookie=0x1020000000000, table=EgressMetric, priority=64991,reg8=0x40000/0xc0000 actions=set_field:0x80000/0xc0000->reg8,resubmit:EgressDefaultRule",
+		"cookie=0x1020000000000, table=IngressMetric, priority=64992,reg8=0x50000/0xf0000 actions=set_field:0x20000/0x30000->reg8,set_field:0x80000/0xc0000->reg8,resubmit:AntreaPolicyIngressRule",
+		"cookie=0x1020000000000, table=IngressMetric, priority=64991,reg8=0x10000/0x30000 actions=set_field:0x20000/0x30000->reg8,resubmit:AntreaPolicyIngressRule",
+		"cookie=0x1020000000000, table=IngressMetric, priority=64991,reg8=0x40000/0xc0000 actions=set_field:0x80000/0xc0000->reg8,resubmit:IngressDefaultRule",
+	}
+
 	if externalNodeEnabled {
-		return append(loggingFlows,
+		externalNodeFlows := append(loggingFlows,
 			"cookie=0x1020000000000, table=AntreaPolicyEgressRule, priority=64990,ct_state=-new+est,ip actions=goto_table:EgressMetric",
 			"cookie=0x1020000000000, table=AntreaPolicyEgressRule, priority=64990,ct_state=-new+rel,ip actions=goto_table:EgressMetric",
 			"cookie=0x1020000000000, table=AntreaPolicyIngressRule, priority=64990,ct_state=-new+est,ip actions=goto_table:IngressMetric",
 			"cookie=0x1020000000000, table=AntreaPolicyIngressRule, priority=64990,ct_state=-new+rel,ip actions=goto_table:IngressMetric",
 		)
+		return append(externalNodeFlows, metricsFlows...)
 	}
 	initFlows := append(loggingFlows,
 		"cookie=0x1020000000000, table=IngressSecurityClassifier, priority=200,reg0=0x20/0xf0 actions=goto_table:IngressMetric",
@@ -1399,7 +1409,7 @@ func networkPolicyInitFlows(ovsMeterSupported, externalNodeEnabled bool) []strin
 		"cookie=0x1020000000000, table=AntreaPolicyIngressRule, priority=64990,ct_state=-new+est,ip actions=goto_table:IngressMetric",
 		"cookie=0x1020000000000, table=AntreaPolicyIngressRule, priority=64990,ct_state=-new+rel,ip actions=goto_table:IngressMetric",
 	)
-	return initFlows
+	return append(initFlows, metricsFlows...)
 }
 
 func Test_featureNetworkPolicy_initFlows(t *testing.T) {

@@ -1493,6 +1493,16 @@ func (n *NetworkPolicyController) triggerPolicyResyncForLabelIdentityUpdates(key
 	n.enqueueInternalNetworkPolicy(internalNPObj.(*antreatypes.NetworkPolicy).SourceRef)
 }
 
+func isDryRunPolicy(obj metav1.Object) bool {
+	val, ok := obj.GetAnnotations()["antrea.io/dry-run"]
+	if ok {
+		b, err := strconv.ParseBool(val)
+		return err == nil && b
+	}
+
+	return false
+}
+
 // syncInternalNetworkPolicy retrieves all the AppliedToGroups associated with
 // itself in order to calculate the Node span for this policy.
 func (n *NetworkPolicyController) syncInternalNetworkPolicy(key *controlplane.NetworkPolicyReference) error {
@@ -1508,6 +1518,7 @@ func (n *NetworkPolicyController) syncInternalNetworkPolicy(key *controlplane.Ne
 	var newInternalNetworkPolicy *antreatypes.NetworkPolicy
 	var newAppliedToGroups map[string]*antreatypes.AppliedToGroup
 	var newAddressGroups map[string]*antreatypes.AddressGroup
+	var isDryRun bool
 
 	switch key.Type {
 	case controlplane.AntreaClusterNetworkPolicy:
@@ -1519,6 +1530,7 @@ func (n *NetworkPolicyController) syncInternalNetworkPolicy(key *controlplane.Ne
 			n.deleteInternalNetworkPolicy(internalNetworkPolicyName)
 			return nil
 		}
+		isDryRun = isDryRunPolicy(acnp)
 		newInternalNetworkPolicy, newAppliedToGroups, newAddressGroups = n.processClusterNetworkPolicy(acnp)
 	case controlplane.AntreaNetworkPolicy:
 		annp, err := n.annpLister.NetworkPolicies(key.Namespace).Get(key.Name)
@@ -1526,6 +1538,7 @@ func (n *NetworkPolicyController) syncInternalNetworkPolicy(key *controlplane.Ne
 			n.deleteInternalNetworkPolicy(internalNetworkPolicyName)
 			return nil
 		}
+		isDryRun = isDryRunPolicy(annp)
 		newInternalNetworkPolicy, newAppliedToGroups, newAddressGroups = n.processAntreaNetworkPolicy(annp)
 	case controlplane.K8sNetworkPolicy:
 		knp, err := n.networkPolicyLister.NetworkPolicies(key.Namespace).Get(key.Name)
@@ -1533,6 +1546,7 @@ func (n *NetworkPolicyController) syncInternalNetworkPolicy(key *controlplane.Ne
 			n.deleteInternalNetworkPolicy(internalNetworkPolicyName)
 			return nil
 		}
+		isDryRun = isDryRunPolicy(knp)
 		newInternalNetworkPolicy, newAppliedToGroups, newAddressGroups = n.processNetworkPolicy(knp)
 	case controlplane.AdminNetworkPolicy:
 		anp, err := n.adminNetworkPolicyLister.Get(key.Name)
@@ -1540,6 +1554,7 @@ func (n *NetworkPolicyController) syncInternalNetworkPolicy(key *controlplane.Ne
 			n.deleteInternalNetworkPolicy(internalNetworkPolicyName)
 			return nil
 		}
+		isDryRun = isDryRunPolicy(anp)
 		newInternalNetworkPolicy, newAppliedToGroups, newAddressGroups = n.processAdminNetworkPolicy(anp)
 	case controlplane.BaselineAdminNetworkPolicy:
 		banp, err := n.banpLister.Get(key.Name)
@@ -1547,8 +1562,11 @@ func (n *NetworkPolicyController) syncInternalNetworkPolicy(key *controlplane.Ne
 			n.deleteInternalNetworkPolicy(internalNetworkPolicyName)
 			return nil
 		}
+		isDryRun = isDryRunPolicy(banp)
 		newInternalNetworkPolicy, newAppliedToGroups, newAddressGroups = n.processBaselineAdminNetworkPolicy(banp)
 	}
+
+	newInternalNetworkPolicy.DryRun = isDryRun
 
 	// The NetworkPolicy must subscribe to the updates of AppliedToGroups before calculating span based on them,
 	// otherwise the calculated span may be outdated as AppliedToGroups can be updated concurrently and the

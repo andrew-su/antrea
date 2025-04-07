@@ -1211,15 +1211,15 @@ func (f *featureNetworkPolicy) calculateActionFlowChangesForRule(rule *types.Pol
 		var metricFlows []binding.Flow
 		if rule.IsAntreaNetworkPolicyRule() && *rule.Action == crdv1beta1.RuleActionDrop {
 			metricFlows = append(metricFlows, f.denyRuleMetricFlow(ruleOfID, isIngress, rule.TableID))
-			actionFlows = append(actionFlows, f.conjunctionActionDenyFlow(ruleOfID, ruleTable, rule.Priority, DispositionDrop, rule.EnableLogging))
+			actionFlows = append(actionFlows, f.conjunctionActionDenyFlow(ruleOfID, ruleTable, rule.Priority, DispositionDrop, rule.EnableLogging, rule.DryRun))
 		} else if rule.IsAntreaNetworkPolicyRule() && *rule.Action == crdv1beta1.RuleActionReject {
 			metricFlows = append(metricFlows, f.denyRuleMetricFlow(ruleOfID, isIngress, rule.TableID))
-			actionFlows = append(actionFlows, f.conjunctionActionDenyFlow(ruleOfID, ruleTable, rule.Priority, DispositionRej, rule.EnableLogging))
+			actionFlows = append(actionFlows, f.conjunctionActionDenyFlow(ruleOfID, ruleTable, rule.Priority, DispositionRej, rule.EnableLogging, rule.DryRun))
 		} else if rule.IsAntreaNetworkPolicyRule() && *rule.Action == crdv1beta1.RuleActionPass {
-			actionFlows = append(actionFlows, f.conjunctionActionPassFlow(ruleOfID, ruleTable, rule.Priority, rule.EnableLogging))
+			actionFlows = append(actionFlows, f.conjunctionActionPassFlow(ruleOfID, ruleTable, rule.Priority, rule.EnableLogging, rule.DryRun))
 		} else {
 			metricFlows = append(metricFlows, f.allowRulesMetricFlows(ruleOfID, isIngress, rule.TableID)...)
-			actionFlows = append(actionFlows, f.conjunctionActionFlow(ruleOfID, ruleTable, dropTable.GetNext(), rule.Priority, rule.EnableLogging, rule.L7RuleVlanID)...)
+			actionFlows = append(actionFlows, f.conjunctionActionFlow(ruleOfID, ruleTable, dropTable.GetNext(), rule.Priority, rule.EnableLogging, rule.L7RuleVlanID, rule.DryRun)...)
 		}
 		conj.actionFlows = GetFlowModMessages(actionFlows, binding.AddMessage)
 		conj.metricFlows = GetFlowModMessages(metricFlows, binding.AddMessage)
@@ -2161,6 +2161,7 @@ func (f *featureNetworkPolicy) initFlows() []*openflow15.FlowMod {
 	}
 	flows = append(flows, f.skipPolicyRuleCheckFlows()...)
 	flows = append(flows, f.initLoggingFlows()...)
+	flows = append(flows, f.dryRunFlows()...)
 	return GetFlowModMessages(flows, binding.AddMessage)
 }
 
@@ -2384,6 +2385,50 @@ func (f *featureNetworkPolicy) initGroups() []binding.OFEntry {
 		groups = append(groups, group)
 	}
 	return groups
+}
+
+func (f *featureNetworkPolicy) dryRunFlows() []binding.Flow {
+	cookieID := f.cookieAllocator.Request(f.category).Raw()
+
+	priority := priorityHigh
+	if f.enableAntreaPolicy {
+		priority = priorityTopAntreaPolicy
+	}
+
+	klog.V(2).Infof("Creating default flows for DryRun with priority: %d", priority)
+
+	genFlow := func(table *Table, antreaTable *Table, defaultTable *Table) []binding.Flow {
+		return []binding.Flow{
+			table.ofTable.BuildFlow(priority + 2).
+				Cookie(cookieID).
+				MatchRegMark(AntreaDryRunRegMark).
+				MatchRegMark(K8sDryRunRegMark).
+				Action().LoadRegMark(AntreaDryRunLoggedRegMark).
+				Action().LoadRegMark(K8sDryRunLoggedRegMark).
+				Action().ResubmitToTables(antreaTable.GetID()).
+				Done(),
+			table.ofTable.BuildFlow(priority + 1).
+				Cookie(cookieID).
+				MatchRegMark(AntreaDryRunRegMark).
+				Action().LoadRegMark(AntreaDryRunLoggedRegMark).
+				Action().ResubmitToTables(antreaTable.GetID()).
+				Done(),
+			table.ofTable.BuildFlow(priority + 1).
+				Cookie(cookieID).
+				MatchRegMark(K8sDryRunRegMark).
+				Action().LoadRegMark(K8sDryRunLoggedRegMark).
+				Action().ResubmitToTables(defaultTable.GetID()).
+				Done(),
+		}
+	}
+
+	var flows []binding.Flow
+	// Add default rules for dryrun on ingress and egress
+	flows = append(flows, genFlow(EgressMetricTable, AntreaPolicyEgressRuleTable, EgressDefaultTable)...)
+	flows = append(flows, genFlow(IngressMetricTable, AntreaPolicyIngressRuleTable, IngressDefaultTable)...)
+	//TODO: Add for MulticastEgressMetricTable and MulticastIngressMetricTable
+
+	return flows
 }
 
 func (f *featureNetworkPolicy) replayMeters() []binding.OFEntry {
