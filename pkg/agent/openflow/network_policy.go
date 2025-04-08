@@ -666,6 +666,7 @@ type policyRuleConjunction struct {
 	fromClause    *clause
 	toClause      *clause
 	serviceClause *clause
+	dryRunClause  *clause
 	actionFlows   []*openflow15.FlowMod
 	metricFlows   []*openflow15.FlowMod
 	// NetworkPolicy reference information for debugging usage, its value can be nil
@@ -1211,15 +1212,15 @@ func (f *featureNetworkPolicy) calculateActionFlowChangesForRule(rule *types.Pol
 		var metricFlows []binding.Flow
 		if rule.IsAntreaNetworkPolicyRule() && *rule.Action == crdv1beta1.RuleActionDrop {
 			metricFlows = append(metricFlows, f.denyRuleMetricFlow(ruleOfID, isIngress, rule.TableID))
-			actionFlows = append(actionFlows, f.conjunctionActionDenyFlow(ruleOfID, ruleTable, rule.Priority, DispositionDrop, rule.EnableLogging))
+			actionFlows = append(actionFlows, f.conjunctionActionDenyFlow(ruleOfID, ruleTable, rule.Priority, DispositionDrop, rule.EnableLogging, rule.DryRun))
 		} else if rule.IsAntreaNetworkPolicyRule() && *rule.Action == crdv1beta1.RuleActionReject {
 			metricFlows = append(metricFlows, f.denyRuleMetricFlow(ruleOfID, isIngress, rule.TableID))
-			actionFlows = append(actionFlows, f.conjunctionActionDenyFlow(ruleOfID, ruleTable, rule.Priority, DispositionRej, rule.EnableLogging))
+			actionFlows = append(actionFlows, f.conjunctionActionDenyFlow(ruleOfID, ruleTable, rule.Priority, DispositionRej, rule.EnableLogging, rule.DryRun))
 		} else if rule.IsAntreaNetworkPolicyRule() && *rule.Action == crdv1beta1.RuleActionPass {
-			actionFlows = append(actionFlows, f.conjunctionActionPassFlow(ruleOfID, ruleTable, rule.Priority, rule.EnableLogging))
+			actionFlows = append(actionFlows, f.conjunctionActionPassFlow(ruleOfID, ruleTable, rule.Priority, rule.EnableLogging, rule.DryRun))
 		} else {
 			metricFlows = append(metricFlows, f.allowRulesMetricFlows(ruleOfID, isIngress, rule.TableID)...)
-			actionFlows = append(actionFlows, f.conjunctionActionFlow(ruleOfID, ruleTable, dropTable.GetNext(), rule.Priority, rule.EnableLogging, rule.L7RuleVlanID)...)
+			actionFlows = append(actionFlows, f.conjunctionActionFlow(ruleOfID, ruleTable, dropTable.GetNext(), rule.Priority, rule.EnableLogging, rule.L7RuleVlanID, rule.DryRun)...)
 		}
 		conj.actionFlows = GetFlowModMessages(actionFlows, binding.AddMessage)
 		conj.metricFlows = GetFlowModMessages(metricFlows, binding.AddMessage)

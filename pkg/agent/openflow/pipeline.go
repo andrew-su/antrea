@@ -1715,7 +1715,7 @@ func (f *featurePodConnectivity) ipv6Flows() []binding.Flow {
 
 // For normal traffic, conjunctionActionFlow generates the flow to jump to a specific table if policyRuleConjunction ID is matched. Priority of
 // conjunctionActionFlow is created at priorityLow for k8s network policies, and *priority assigned by PriorityAssigner for AntreaPolicy.
-func (f *featureNetworkPolicy) conjunctionActionFlow(conjunctionID uint32, table binding.Table, nextTable uint8, priority *uint16, enableLogging bool, l7RuleVlanID *uint32) []binding.Flow {
+func (f *featureNetworkPolicy) conjunctionActionFlow(conjunctionID uint32, table binding.Table, nextTable uint8, priority *uint16, enableLogging bool, l7RuleVlanID *uint32, dryRun bool) []binding.Flow {
 	tableID := table.GetID()
 	cookieID := f.cookieAllocator.Request(f.category).Raw()
 	var ofPriority uint16
@@ -1810,7 +1810,7 @@ func (f *featureNetworkPolicy) conjunctionActionFlow(conjunctionID uint32, table
 // conjunctionActionDenyFlow generates the flow to mark the packet to be denied (dropped or rejected) if policyRuleConjunction
 // ID is matched. Any matched flow will be dropped in corresponding metric tables.
 func (f *featureNetworkPolicy) conjunctionActionDenyFlow(conjunctionID uint32, table binding.Table, priority *uint16,
-	disposition uint32, enableLogging bool) binding.Flow {
+	disposition uint32, enableLogging bool, dryRun bool) binding.Flow {
 	ofPriority := *priority
 	metricTable := IngressMetricTable
 	tableID := table.GetID()
@@ -1858,7 +1858,7 @@ func (f *featureNetworkPolicy) conjunctionActionDenyFlow(conjunctionID uint32, t
 		Done()
 }
 
-func (f *featureNetworkPolicy) conjunctionActionPassFlow(conjunctionID uint32, table binding.Table, priority *uint16, enableLogging bool) binding.Flow {
+func (f *featureNetworkPolicy) conjunctionActionPassFlow(conjunctionID uint32, table binding.Table, priority *uint16, enableLogging bool, dryRun bool) binding.Flow {
 	ofPriority := *priority
 	conjReg := TFIngressConjIDField
 	nextTable := IngressRuleTable
