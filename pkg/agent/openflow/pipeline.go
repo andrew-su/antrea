@@ -1736,9 +1736,19 @@ func (f *featureNetworkPolicy) conjunctionActionFlow(conjunctionID uint32, table
 		if proto == binding.ProtocolIPv6 {
 			ctZone = CtZoneV6
 		}
+
+		fb := table.BuildFlow(ofPriority).MatchProtocol(proto).
+			MatchConjID(conjunctionID)
+
+		if dryRun {
+			// When it's dry run, add match for dry run rule and mark it as so.
+			return fb.MatchRegMark(AntreaDryRunCleanRegMark).
+				Action().LoadRegMark(AntreaDryRunRegMark).
+				Action().LoadRegMark(K8sDryRunRegMark).
+				Action().GotoTable(nextTable).Done()
+		}
+
 		if enableLogging {
-			fb := table.BuildFlow(ofPriority).MatchProtocol(proto).
-				MatchConjID(conjunctionID)
 			if l7RuleVlanID != nil {
 				return fb.
 					Action().LoadToRegField(conjReg, conjunctionID).        // Traceflow.
@@ -1767,8 +1777,7 @@ func (f *featureNetworkPolicy) conjunctionActionFlow(conjunctionID uint32, table
 				Done()
 		}
 		if l7RuleVlanID != nil {
-			return table.BuildFlow(ofPriority).MatchProtocol(proto).
-				MatchConjID(conjunctionID).
+			return fb.
 				Action().LoadToRegField(conjReg, conjunctionID).        // Traceflow.
 				Action().CT(true, nextTable, ctZone, f.ctZoneSrcField). // CT action requires commit flag if actions other than NAT without arguments are specified.
 				LoadToLabelField(uint64(conjunctionID), labelField).
@@ -1778,8 +1787,7 @@ func (f *featureNetworkPolicy) conjunctionActionFlow(conjunctionID uint32, table
 				Cookie(cookieID).
 				Done()
 		}
-		return table.BuildFlow(ofPriority).MatchProtocol(proto).
-			MatchConjID(conjunctionID).
+		return fb.
 			Action().LoadToRegField(conjReg, conjunctionID).        // Traceflow.
 			Action().CT(true, nextTable, ctZone, f.ctZoneSrcField). // CT action requires commit flag if actions other than NAT without arguments are specified.
 			LoadToLabelField(uint64(conjunctionID), labelField).
@@ -1793,12 +1801,21 @@ func (f *featureNetworkPolicy) conjunctionActionFlow(conjunctionID uint32, table
 	// to mark the packet to be allowed if policyRuleConjunction ID is matched.
 	// Any matched flow will be resubmitted to next table in corresponding metric tables.
 	if f.enableMulticast && (tableID == MulticastEgressRuleTable.GetID() || tableID == MulticastIngressRuleTable.GetID()) {
-		flow := table.BuildFlow(ofPriority).MatchConjID(conjunctionID).
+		fb := table.BuildFlow(ofPriority).MatchConjID(conjunctionID)
+
+		if dryRun {
+			// When it's dry run, add match for dry run rule and mark it as so.
+			fb = fb.MatchRegMark(AntreaDryRunCleanRegMark).
+				Action().LoadRegMark(AntreaDryRunRegMark).
+				Action().LoadRegMark(K8sDryRunRegMark)
+		}
+
+		fb = fb.
 			Action().LoadToRegField(APConjIDField, conjunctionID).
 			Action().NextTable().
-			Cookie(f.cookieAllocator.Request(f.category).Raw()).
-			Done()
-		flows = append(flows, flow)
+			Cookie(f.cookieAllocator.Request(f.category).Raw())
+
+		flows = append(flows, fb.Done())
 		return flows
 	}
 	for _, proto := range f.ipProtocols {
@@ -1845,6 +1862,13 @@ func (f *featureNetworkPolicy) conjunctionActionDenyFlow(conjunctionID uint32, t
 		packetInOperations += PacketInNPRejectOperation
 	}
 
+	if dryRun {
+		// When it's dry run, we want to check for whether the dry run flag is set
+		flowBuilder = flowBuilder.MatchRegMark(AntreaDryRunCleanRegMark).
+			Action().LoadRegMark(AntreaDryRunRegMark).
+			Action().LoadRegMark(K8sDryRunRegMark)
+	}
+
 	if enableLogging || f.enableDenyTracking || disposition == DispositionRej {
 		groupID := f.getLoggingAndResubmitGroupID(metricTable.GetID())
 		return flowBuilder.Action().LoadToRegField(PacketInOperationField, uint32(packetInOperations)).
@@ -1871,6 +1895,12 @@ func (f *featureNetworkPolicy) conjunctionActionPassFlow(conjunctionID uint32, t
 		Cookie(f.cookieAllocator.Request(f.category).Raw()).
 		MatchConjID(conjunctionID).
 		Action().LoadToRegField(conjReg, conjunctionID)
+
+	if dryRun {
+		// When it's dry run, we want to check for whether the dry run flag is set
+		flowBuilder = flowBuilder.MatchRegMark(AntreaDryRunCleanRegMark).
+			Action().LoadRegMark(AntreaDryRunRegMark)
+	}
 
 	if enableLogging {
 		groupID := f.getLoggingAndResubmitGroupID(nextTable.GetID())
