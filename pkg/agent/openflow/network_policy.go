@@ -2425,8 +2425,8 @@ func (f *featureNetworkPolicy) dryRunFlows() []binding.Flow {
 
 	var flows []binding.Flow
 	// Add default rules for dryrun on ingress and egress
-	flows = append(flows, genFlow(EgressMetricTable, AntreaPolicyEgressRuleTable, EgressDefaultTable)...)
-	flows = append(flows, genFlow(IngressMetricTable, AntreaPolicyIngressRuleTable, IngressDefaultTable)...)
+	flows = append(flows, genFlow(EgressMetricTable, AntreaPolicyEgressRuleTable, EgressRuleTable)...)
+	flows = append(flows, genFlow(IngressMetricTable, AntreaPolicyIngressRuleTable, IngressRuleTable)...)
 	//TODO: Add for MulticastEgressMetricTable and MulticastIngressMetricTable
 
 	return flows
