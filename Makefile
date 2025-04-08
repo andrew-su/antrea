@@ -49,17 +49,6 @@ TEST_ARGS ?=
 # If we have stdin we can run interactive so the tests running in docker can be interrupted.
 INTERACTIVE_ARGS := $(shell [ -t 0 ] && echo "-it")
 
-BUILD_TAG :=
-ifndef CUSTOM_BUILD_TAG
-	BUILD_TAG = $(shell build/images/build-tag.sh)
-	ifneq ($(IPSEC), n)
-		BUILD_TAG := $(BUILD_TAG)-ipsec
-	endif
-else
-	BUILD_TAG = $(CUSTOM_BUILD_TAG)
-	DOCKER_IMG_VERSION = $(CUSTOM_BUILD_TAG)
-endif
-
 DOCKER_BUILD_ARGS :=
 ifeq ($(NO_PULL),)
 	DOCKER_BUILD_ARGS += --pull
@@ -87,6 +76,9 @@ include versioning.mk
 BUILD_TAG :=
 ifndef CUSTOM_BUILD_TAG
 	BUILD_TAG = $(shell build/images/build-tag.sh)
+	ifneq ($(IPSEC), n)
+		BUILD_TAG := $(BUILD_TAG)-ipsec
+	endif
 else
 	BUILD_TAG = $(CUSTOM_BUILD_TAG)
 	DOCKER_IMG_VERSION = $(CUSTOM_BUILD_TAG)
