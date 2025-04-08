@@ -296,6 +296,10 @@ DOCKER_ENV = \
 		-e "GIT_SHA=$(GIT_SHA)" \
 		-e "GIT_TAG=$(GIT_TAG)" \
 		-e "CC=$(CC)" \
+		-e "CGO_ENABLED=$(CGO_ENABLED)" \
+		-e "CGO_CFLAGS=$(CGO_CFLAGS)" \
+		-e "CGO_LDFLAGS=$(CGO_LDFLAGS)" \
+		-e "GOEXPERIMENT=$(GOEXPERIMENT)" \
 		-e "GIT_TREE_STATE=$(GIT_TREE_STATE)" \
 		-w /usr/src/antrea.io/antrea \
 		-v $(DOCKER_CACHE)/gopath:/tmp/gopath \
