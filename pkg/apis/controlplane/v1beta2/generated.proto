@@ -1,4 +1,4 @@
-// Copyright 2024 Antrea Authors
+// Copyright 2025 Antrea Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -294,6 +294,9 @@ message NetworkPolicy {
 
   // Reference to the original NetworkPolicy that the internal NetworkPolicy is created for.
   optional NetworkPolicyReference sourceRef = 6;
+
+  // DryRun indicated whether this specific policy is created only for dry-run purposes
+  optional bool dryRun = 7;
 }
 
 // NetworkPolicyEvaluation contains the request and response for a NetworkPolicy evaluation.

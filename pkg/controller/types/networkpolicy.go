@@ -118,6 +118,8 @@ type NetworkPolicy struct {
 	AppliedToPerRule bool
 	// SyncError is the Error encountered when syncing this NetworkPolicy.
 	SyncError error
+	// DryRun signals whether this policy should be only used for dry-run
+	DryRun bool
 }
 
 // GetAddressGroups returns AddressGroups used by this NetworkPolicy.
