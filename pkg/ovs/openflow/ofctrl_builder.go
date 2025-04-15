@@ -24,6 +24,8 @@ import (
 
 type ofFlowBuilder struct {
 	ofFlow
+
+	isDryRun bool
 }
 
 // MatchVLAN can be used as follows:
@@ -65,6 +67,11 @@ func (b *ofFlowBuilder) SetHardTimeout(timout uint16) FlowBuilder {
 
 func (b *ofFlowBuilder) SetIdleTimeout(timeout uint16) FlowBuilder {
 	b.ofFlow.IdleTimeout = timeout
+	return b
+}
+
+func (b *ofFlowBuilder) SetDryRun(dryRun bool) FlowBuilder {
+	b.isDryRun = dryRun
 	return b
 }
 

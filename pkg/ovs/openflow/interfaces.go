@@ -319,6 +319,7 @@ type FlowBuilder interface {
 	Cookie(cookieID uint64) FlowBuilder
 	SetHardTimeout(timout uint16) FlowBuilder
 	SetIdleTimeout(timeout uint16) FlowBuilder
+	SetDryRun(dryRun bool) FlowBuilder
 	Action() Action
 	Done() Flow
 }

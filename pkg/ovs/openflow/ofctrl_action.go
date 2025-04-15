@@ -63,6 +63,13 @@ func (a *ofFlowAction) OutputInPort() FlowBuilder {
 // CT is an action to set conntrack marks and return CTAction to add actions that is executed with conntrack context.
 // zone will be ignored if zoneSrcField is not nil.
 func (a *ofFlowAction) CT(commit bool, tableID uint8, zone int, zoneSrcField *RegField) CTAction {
+	if a.builder.isDryRun {
+		return &ofDryRunCTAction{
+			builder: a.builder,
+			nextTable: tableID,
+		}
+	}
+
 	base := ctBase{
 		commit:         commit,
 		force:          false,
@@ -183,6 +190,48 @@ func (a *ofCTAction) CTDone() FlowBuilder {
 		conntrackAct = ofctrl.NewNXConnTrackActionWithZoneField(a.commit, a.force, &a.ctTable, nil, a.ctZoneSrcField.GetNXFieldName(), a.ctZoneSrcField.GetRange().ToNXRange(), a.actions...)
 	}
 	a.builder.ApplyAction(conntrackAct)
+	return a.builder
+}
+
+//
+type ofDryRunCTAction struct {
+	builder *ofFlowBuilder
+	nextTable uint8
+}
+
+func (a *ofDryRunCTAction) LoadToCtMark(marks ...*CtMark) CTAction {
+	return a
+}
+
+func (a *ofDryRunCTAction) LoadToLabelField(value uint64, labelField *CtLabel) CTAction {
+	return a
+}
+
+// MoveToLabel is an action to move data into ct_label.
+func (a *ofDryRunCTAction) MoveToLabel(fromName string, fromRng, labelRng *Range) CTAction {
+	return a
+}
+
+// MoveToCtMarkField is an action to move data into ct_mark.
+func (a *ofDryRunCTAction) MoveToCtMarkField(fromRegField *RegField, ctMarkField *CtMarkField) CTAction {
+	return a
+}
+
+func (a *ofDryRunCTAction) SNAT(ipRange *IPRange, portRange *PortRange) CTAction {
+	return a
+}
+
+func (a *ofDryRunCTAction) DNAT(ipRange *IPRange, portRange *PortRange) CTAction {
+	return a
+}
+
+func (a *ofDryRunCTAction) NAT() CTAction {
+	return a
+}
+
+// CTDone sets the next table for dry-run.
+func (a *ofDryRunCTAction) CTDone() FlowBuilder {
+	a.builder.ofFlow.Goto(a.nextTable)
 	return a.builder
 }
 

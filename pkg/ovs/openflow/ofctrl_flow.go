@@ -150,7 +150,7 @@ func (f *ofFlow) CopyToBuilder(priority uint16, copyActions bool) FlowBuilder {
 		Flow:     flow,
 		protocol: f.protocol,
 	}
-	return &ofFlowBuilder{newFlow}
+	return &ofFlowBuilder{ofFlow: newFlow}
 }
 
 func (r *Range) ToNXRange() *openflow15.NXRange {
