@@ -2772,14 +2772,14 @@ func Test_client_ReplayFlows(t *testing.T) {
 	priority200 = uint16(200)
 	conj := &policyRuleConjunction{
 		id:          ruleID,
-		actionFlows: []*openflow15.FlowMod{getFlowModMessage(fc.featureNetworkPolicy.conjunctionActionDenyFlow(ruleID, IngressRuleTable.ofTable, &priority200, DispositionDrop, true), binding.AddMessage)},
+		actionFlows: []*openflow15.FlowMod{getFlowModMessage(fc.featureNetworkPolicy.conjunctionActionDenyFlow(ruleID, IngressRuleTable.ofTable, &priority200, DispositionDrop, true, false), binding.AddMessage)},
 		metricFlows: []*openflow15.FlowMod{getFlowModMessage(fc.featureNetworkPolicy.denyRuleMetricFlow(ruleID, true, IngressMetricTable.GetID()), binding.AddMessage)},
 	}
 	assert.NoError(t, fc.featureNetworkPolicy.policyCache.Add(conj))
 	mp := matchPair{matchKey: MatchDstOFPort, matchValue: int32(podOfPort)}
 	context := &conjMatchFlowContext{
 		flow:     getFlowModMessage(fc.featureNetworkPolicy.conjunctiveMatchFlow(IngressRuleTable.GetID(), []matchPair{mp}, &priority200, []*conjunctiveAction{{conjID: ruleID, clauseID: 2, nClause: 2}}), binding.AddMessage),
-		dropFlow: getFlowModMessage(fc.featureNetworkPolicy.defaultDropFlow(IngressDefaultTable.ofTable, []matchPair{mp}, true), binding.AddMessage),
+		dropFlow: getFlowModMessage(fc.featureNetworkPolicy.defaultDropFlow(IngressDefaultTable.ofTable, []matchPair{mp}, true, false), binding.AddMessage),
 	}
 	fc.featureNetworkPolicy.globalConjMatchFlowCache["npMatch"] = context
 	replayedFlows = append(replayedFlows,

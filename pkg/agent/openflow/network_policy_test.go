@@ -656,7 +656,7 @@ func TestConjMatchFlowContextKeyConflict(t *testing.T) {
 	flowChange2 := clause2.addAddrFlows(c.featureNetworkPolicy, types.DstAddress, parseAddresses([]string{ipNet.String()}), nil, false, false)
 	err = c.featureNetworkPolicy.applyConjunctiveMatchFlows(flowChange2)
 	require.Nil(t, err, "no error expect in applyConjunctiveMatchFlows")
-	expectedMatchKey := fmt.Sprintf("table:%d,priority:%s,matchPair:%s", EgressRuleTable.GetID(), strconv.Itoa(int(priorityNormal)), singleMatchPair.KeyString())
+	expectedMatchKey := fmt.Sprintf("table:%d,priority:%s,dryrun:false,matchPair:%s", EgressRuleTable.GetID(), strconv.Itoa(int(priorityNormal)), singleMatchPair.KeyString())
 	ctx, found := c.featureNetworkPolicy.globalConjMatchFlowCache[expectedMatchKey]
 	assert.True(t, found)
 	assert.Equal(t, 2, len(ctx.actions))
@@ -873,7 +873,7 @@ func checkFlowCount(t *testing.T, expectCount int) {
 }
 
 func checkConjMatchFlowActions(t *testing.T, client *client, c *clause, address types.Address, addressType types.AddressType, actionCount int, anyDropRuleCount int) {
-	addrMatch := generateAddressConjMatch(c.ruleTable.GetID(), address, addressType, nil)
+	addrMatch := generateAddressConjMatch(c.ruleTable.GetID(), address, addressType, nil, false)
 	context, found := client.featureNetworkPolicy.globalConjMatchFlowCache[addrMatch.generateGlobalMapKey()]
 	require.True(t, found, "Failed to add conjunctive match flow to global cache")
 	assert.Equal(t, actionCount, len(context.actions), fmt.Sprintf("Incorrect policyRuleConjunction action number, expect: %d, actual: %d", actionCount, len(context.actions)))
@@ -1361,17 +1361,11 @@ func TestClient_GetPolicyInfoFromConjunction(t *testing.T) {
 }
 
 func networkPolicyInitFlows(ovsMeterSupported, externalNodeEnabled bool) []string {
-	loggingFlows := []string{
-		"cookie=0x1020000000000, table=Output, priority=200,reg0=0x2400000/0xfe600000 actions=controller(id=32776,reason=no_match,userdata=01.01,max_len=65535)",
-		"cookie=0x1020000000000, table=Output, priority=200,reg0=0x4400000/0xfe600000 actions=controller(id=32776,reason=no_match,userdata=01.02,max_len=65535)",
-		"cookie=0x1020000000000, table=Output, priority=200,reg0=0x6400000/0xfe600000 actions=controller(id=32776,reason=no_match,userdata=01.03,max_len=65535)",
-		"cookie=0x1020000000000, table=Output, priority=200,reg0=0x8400000/0xfe600000 actions=controller(id=32776,reason=no_match,userdata=01.04,max_len=65535)",
-		"cookie=0x1020000000000, table=Output, priority=200,reg0=0xa400000/0xfe600000 actions=controller(id=32776,reason=no_match,userdata=01.05,max_len=65535)",
-		"cookie=0x1020000000000, table=Output, priority=200,reg0=0xc400000/0xfe600000 actions=controller(id=32776,reason=no_match,userdata=01.06,max_len=65535)",
-		"cookie=0x1020000000000, table=Output, priority=200,reg0=0xe400000/0xfe600000 actions=controller(id=32776,reason=no_match,userdata=01.07,max_len=65535)",
-	}
+	var initFlows []string
+
+	// Logging Flows
 	if ovsMeterSupported {
-		loggingFlows = []string{
+		initFlows = append(initFlows,
 			"cookie=0x1020000000000, table=Output, priority=200,reg0=0x2400000/0xfe600000 actions=meter:256,controller(id=32776,reason=no_match,userdata=01.01,max_len=65535)",
 			"cookie=0x1020000000000, table=Output, priority=200,reg0=0x4400000/0xfe600000 actions=meter:256,controller(id=32776,reason=no_match,userdata=01.02,max_len=65535)",
 			"cookie=0x1020000000000, table=Output, priority=200,reg0=0x6400000/0xfe600000 actions=meter:256,controller(id=32776,reason=no_match,userdata=01.03,max_len=65535)",
@@ -1379,27 +1373,46 @@ func networkPolicyInitFlows(ovsMeterSupported, externalNodeEnabled bool) []strin
 			"cookie=0x1020000000000, table=Output, priority=200,reg0=0xa400000/0xfe600000 actions=meter:256,controller(id=32776,reason=no_match,userdata=01.05,max_len=65535)",
 			"cookie=0x1020000000000, table=Output, priority=200,reg0=0xc400000/0xfe600000 actions=meter:256,controller(id=32776,reason=no_match,userdata=01.06,max_len=65535)",
 			"cookie=0x1020000000000, table=Output, priority=200,reg0=0xe400000/0xfe600000 actions=meter:256,controller(id=32776,reason=no_match,userdata=01.07,max_len=65535)",
-		}
+		)
+	} else {
+		initFlows = append(initFlows,
+			"cookie=0x1020000000000, table=Output, priority=200,reg0=0x2400000/0xfe600000 actions=controller(id=32776,reason=no_match,userdata=01.01,max_len=65535)",
+			"cookie=0x1020000000000, table=Output, priority=200,reg0=0x4400000/0xfe600000 actions=controller(id=32776,reason=no_match,userdata=01.02,max_len=65535)",
+			"cookie=0x1020000000000, table=Output, priority=200,reg0=0x6400000/0xfe600000 actions=controller(id=32776,reason=no_match,userdata=01.03,max_len=65535)",
+			"cookie=0x1020000000000, table=Output, priority=200,reg0=0x8400000/0xfe600000 actions=controller(id=32776,reason=no_match,userdata=01.04,max_len=65535)",
+			"cookie=0x1020000000000, table=Output, priority=200,reg0=0xa400000/0xfe600000 actions=controller(id=32776,reason=no_match,userdata=01.05,max_len=65535)",
+			"cookie=0x1020000000000, table=Output, priority=200,reg0=0xc400000/0xfe600000 actions=controller(id=32776,reason=no_match,userdata=01.06,max_len=65535)",
+			"cookie=0x1020000000000, table=Output, priority=200,reg0=0xe400000/0xfe600000 actions=controller(id=32776,reason=no_match,userdata=01.07,max_len=65535)",
+		)
 	}
+
 	if externalNodeEnabled {
-		return append(loggingFlows,
+		initFlows = append(initFlows,
+			"cookie=0x1020000000000, table=AntreaPolicyEgressRule, priority=64990,ct_state=-new+est,ip actions=goto_table:EgressMetric",
+			"cookie=0x1020000000000, table=AntreaPolicyEgressRule, priority=64990,ct_state=-new+rel,ip actions=goto_table:EgressMetric",
+			"cookie=0x1020000000000, table=AntreaPolicyIngressRule, priority=64990,ct_state=-new+est,ip actions=goto_table:IngressMetric",
+			"cookie=0x1020000000000, table=AntreaPolicyIngressRule, priority=64990,ct_state=-new+rel,ip actions=goto_table:IngressMetric",
+		)
+	} else {
+		initFlows = append(initFlows,
+			"cookie=0x1020000000000, table=IngressSecurityClassifier, priority=200,reg0=0x20/0xf0 actions=goto_table:IngressMetric",
+			"cookie=0x1020000000000, table=IngressSecurityClassifier, priority=200,reg0=0x10/0xf0 actions=goto_table:IngressMetric",
+			"cookie=0x1020000000000, table=IngressSecurityClassifier, priority=200,reg0=0x40/0xf0 actions=goto_table:IngressMetric",
+			"cookie=0x1020000000000, table=IngressSecurityClassifier, priority=200,ct_mark=0x40/0x40 actions=goto_table:ConntrackCommit",
 			"cookie=0x1020000000000, table=AntreaPolicyEgressRule, priority=64990,ct_state=-new+est,ip actions=goto_table:EgressMetric",
 			"cookie=0x1020000000000, table=AntreaPolicyEgressRule, priority=64990,ct_state=-new+rel,ip actions=goto_table:EgressMetric",
 			"cookie=0x1020000000000, table=AntreaPolicyIngressRule, priority=64990,ct_state=-new+est,ip actions=goto_table:IngressMetric",
 			"cookie=0x1020000000000, table=AntreaPolicyIngressRule, priority=64990,ct_state=-new+rel,ip actions=goto_table:IngressMetric",
 		)
 	}
-	initFlows := append(loggingFlows,
-		"cookie=0x1020000000000, table=IngressSecurityClassifier, priority=200,reg0=0x20/0xf0 actions=goto_table:IngressMetric",
-		"cookie=0x1020000000000, table=IngressSecurityClassifier, priority=200,reg0=0x10/0xf0 actions=goto_table:IngressMetric",
-		"cookie=0x1020000000000, table=IngressSecurityClassifier, priority=200,reg0=0x40/0xf0 actions=goto_table:IngressMetric",
-		"cookie=0x1020000000000, table=IngressSecurityClassifier, priority=200,ct_mark=0x40/0x40 actions=goto_table:ConntrackCommit",
-		"cookie=0x1020000000000, table=AntreaPolicyEgressRule, priority=64990,ct_state=-new+est,ip actions=goto_table:EgressMetric",
-		"cookie=0x1020000000000, table=AntreaPolicyEgressRule, priority=64990,ct_state=-new+rel,ip actions=goto_table:EgressMetric",
-		"cookie=0x1020000000000, table=AntreaPolicyIngressRule, priority=64990,ct_state=-new+est,ip actions=goto_table:IngressMetric",
-		"cookie=0x1020000000000, table=AntreaPolicyIngressRule, priority=64990,ct_state=-new+rel,ip actions=goto_table:IngressMetric",
-	)
-	return initFlows
+
+	// DryRun flows
+	dryRunFlows := []string{
+		"cookie=0x1020000000000, table=EgressMetric, priority=64991,reg8=0x10000/0x30000 actions=set_field:0x20000/0x30000->reg8,set_field:0x0/0x400->reg0,resubmit:AntreaPolicyEgressRule",
+		"cookie=0x1020000000000, table=IngressMetric, priority=64991,reg8=0x10000/0x30000 actions=set_field:0x20000/0x30000->reg8,set_field:0x0/0x400->reg0,resubmit:AntreaPolicyIngressRule",
+	}
+
+	return append(initFlows, dryRunFlows...)
 }
 
 func Test_featureNetworkPolicy_initFlows(t *testing.T) {
