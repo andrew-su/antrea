@@ -104,6 +104,7 @@ type PolicyRule struct {
 	PolicyRef     *v1beta2.NetworkPolicyReference
 	EnableLogging bool
 	LogLabel      string
+	DryRun        bool
 }
 
 // IsAntreaNetworkPolicyRule returns if a PolicyRule is created for Antrea NetworkPolicy types.
