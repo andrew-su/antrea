@@ -2317,6 +2317,24 @@ func (data *TestData) createNetworkPolicy(name string, spec *networkingv1.Networ
 	return data.clientset.NetworkingV1().NetworkPolicies(data.testNamespace).Create(context.TODO(), policy, metav1.CreateOptions{})
 }
 
+// createNetworkPolicy creates a network policy with spec.
+func (data *TestData) createNetworkPolicyWithDryRun(name, namespace string, dryRun bool, spec *networkingv1.NetworkPolicySpec) (*networkingv1.NetworkPolicy, error) {
+	policy := &networkingv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels: map[string]string{
+				"antrea-e2e": name,
+			},
+			Annotations: map[string]string{
+				"antrea.io/dry-run": strconv.FormatBool(dryRun),
+			},
+		},
+		Spec: *spec,
+	}
+	return data.clientset.NetworkingV1().NetworkPolicies(namespace).Create(context.TODO(), policy, metav1.CreateOptions{})
+}
+
 // deleteNetworkpolicy deletes the network policy.
 func (data *TestData) deleteNetworkpolicy(policy *networkingv1.NetworkPolicy) error {
 	if err := data.clientset.NetworkingV1().NetworkPolicies(policy.Namespace).Delete(context.TODO(), policy.Name, metav1.DeleteOptions{}); err != nil {

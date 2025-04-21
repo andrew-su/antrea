@@ -24,6 +24,7 @@ type AntreaNetworkPolicySpecBuilder struct {
 	Spec      crdv1beta1.NetworkPolicySpec
 	Name      string
 	Namespace string
+	dryRun    bool
 }
 
 type ANNPAppliedToSpec struct {
@@ -41,13 +42,26 @@ func (b *AntreaNetworkPolicySpecBuilder) Get() *crdv1beta1.NetworkPolicy {
 	if b.Spec.Egress == nil {
 		b.Spec.Egress = []crdv1beta1.Rule{}
 	}
+	var annotations map[string]string
+	if b.dryRun {
+		annotations = map[string]string{
+			"antrea.io/dry-run": "true",
+		}
+	}
+
 	return &crdv1beta1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      b.Name,
-			Namespace: b.Namespace,
+			Name:        b.Name,
+			Namespace:   b.Namespace,
+			Annotations: annotations,
 		},
 		Spec: b.Spec,
 	}
+}
+
+func (b *AntreaNetworkPolicySpecBuilder) SetDryRun(v bool) *AntreaNetworkPolicySpecBuilder {
+	b.dryRun = v
+	return b
 }
 
 func (b *AntreaNetworkPolicySpecBuilder) SetName(namespace string, name string) *AntreaNetworkPolicySpecBuilder {

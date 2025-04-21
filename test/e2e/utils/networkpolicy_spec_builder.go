@@ -25,16 +25,30 @@ type NetworkPolicySpecBuilder struct {
 	Spec      networkingv1.NetworkPolicySpec
 	Name      string
 	Namespace string
+	dryRun    bool
 }
 
 func (n *NetworkPolicySpecBuilder) Get() *networkingv1.NetworkPolicy {
+	var annotations map[string]string
+	if n.dryRun {
+		annotations = map[string]string{
+			"antrea.io/dry-run": "true",
+		}
+	}
+
 	return &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      n.Name,
-			Namespace: n.Namespace,
+			Name:        n.Name,
+			Namespace:   n.Namespace,
+			Annotations: annotations,
 		},
 		Spec: n.Spec,
 	}
+}
+
+func (n *NetworkPolicySpecBuilder) SetDryRun(v bool) *NetworkPolicySpecBuilder {
+	n.dryRun = v
+	return n
 }
 
 func (n *NetworkPolicySpecBuilder) SetPodSelector(labels map[string]string) *NetworkPolicySpecBuilder {

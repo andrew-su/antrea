@@ -4620,6 +4620,23 @@ func executeTestsWithData(t *testing.T, testList []*TestCase, data *TestData) {
 			for _, p := range step.CustomProbes {
 				doProbe(t, data, p, step.Protocol)
 			}
+
+			if step.NetworkStatExpectation != nil {
+				if data == nil {
+					t.Errorf("test case %s with network stat expectations must set test data", testCase.Name)
+					continue
+				}
+
+				if err := step.NetworkStatExpectation.Check(data.crdClient.StatsV1alpha1()); err != nil {
+					t.Errorf("test case %s failed network stat expectation with: %v", testCase.Name, err)
+				}
+
+				_, failed := step.NetworkStatExpectation.GetSummary()
+				if failed > 0 {
+					t.Errorf("test case %s failed %d expectations", testCase.Name, failed)
+				}
+			}
+
 			if step.CustomTeardown != nil {
 				step.CustomTeardown()
 			}
