@@ -180,6 +180,10 @@ var (
 	// Field to store the CtZone ID, which is a combination of VLANIDField and CtZoneTypeField to indicate CtZone for DstNAT.
 	CtZoneField = binding.NewRegField(8, 0, 15)
 
+	DryRunField            = binding.NewRegField(8, 16, 17)
+	DryRunRegMark          = binding.NewRegMark(DryRunField, 0b01)
+	DryRunLoggedRegMark    = binding.NewRegMark(DryRunField, 0b10)
+
 	// reg9(NXM_NX_REG9)
 	// Field to cache the ofPort of the OVS interface to output traffic control packets.
 	TrafficControlTargetOFPortField = binding.NewRegField(9, 0, 31)

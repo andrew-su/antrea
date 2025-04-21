@@ -2161,6 +2161,7 @@ func (f *featureNetworkPolicy) initFlows() []*openflow15.FlowMod {
 	}
 	flows = append(flows, f.skipPolicyRuleCheckFlows()...)
 	flows = append(flows, f.initLoggingFlows()...)
+	flows = append(flows, f.dryRunFlows()...)
 	return GetFlowModMessages(flows, binding.AddMessage)
 }
 
@@ -2384,6 +2385,36 @@ func (f *featureNetworkPolicy) initGroups() []binding.OFEntry {
 		groups = append(groups, group)
 	}
 	return groups
+}
+
+func (f *featureNetworkPolicy) dryRunFlows() []binding.Flow {
+	cookieID := f.cookieAllocator.Request(f.category).Raw()
+
+	priority := priorityHigh
+	if f.enableAntreaPolicy {
+		priority = priorityTopAntreaPolicy // When we +1 to this later, it becomes priorityDNSIntercept. Is this okay?
+	}
+
+	klog.V(2).Infof("Creating default flows for DryRun with priority: %d", priority+1)
+
+	genFlows := func(metricTable *Table, antreaTable *Table) []binding.Flow {
+		return []binding.Flow{
+			metricTable.ofTable.BuildFlow(priority+1).
+				Cookie(cookieID).
+				MatchRegMark(DryRunRegMark).
+				Action().LoadRegMark(DryRunLoggedRegMark).
+				Action().LoadToRegField(APDenyRegMark.GetField(), 0x0). // Reset the Deny mark.
+				Action().ResubmitToTables(antreaTable.GetID()).
+				Done(),
+		}
+	}
+
+	var flows []binding.Flow
+	// Add default rules for dryrun on ingress and egress metric table.
+	flows = append(flows, genFlows(EgressMetricTable, AntreaPolicyEgressRuleTable)...)
+	flows = append(flows, genFlows(IngressMetricTable, AntreaPolicyIngressRuleTable)...)
+
+	return flows
 }
 
 func (f *featureNetworkPolicy) replayMeters() []binding.OFEntry {
