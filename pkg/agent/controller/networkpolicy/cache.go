@@ -100,8 +100,6 @@ type rule struct {
 	EnableLogging bool
 	// LogLabel is a string associated to the NetworkPolicy rule. Used for logging.
 	LogLabel string
-	// DryRun signifies the OF rule should include dry run specific marks.
-	DryRun bool
 }
 
 func (r *rule) Less(r2 *rule) bool {
@@ -723,7 +721,6 @@ func toRule(r *v1beta.NetworkPolicyRule, policy *v1beta.NetworkPolicy, maxPriori
 		SourceRef:       policy.SourceRef,
 		EnableLogging:   r.EnableLogging,
 		LogLabel:        r.LogLabel,
-		DryRun:          policy.DryRun,
 	}
 	rule.ID = hashRule(rule)
 	rule.PolicyName = policy.Name

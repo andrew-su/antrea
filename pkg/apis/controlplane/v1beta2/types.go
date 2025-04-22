@@ -235,8 +235,6 @@ type NetworkPolicy struct {
 	TierPriority *int32 `json:"tierPriority,omitempty" protobuf:"varint,5,opt,name=tierPriority"`
 	// Reference to the original NetworkPolicy that the internal NetworkPolicy is created for.
 	SourceRef *NetworkPolicyReference `json:"sourceRef,omitempty" protobuf:"bytes,6,opt,name=sourceRef"`
-	// DryRun indicated whether this specific policy is created only for dry-run purposes
-	DryRun bool `json:"dryRun,omitempty" protobuf:"varint,7,opt,name=dryRun"`
 }
 
 // Direction defines traffic direction of NetworkPolicyRule.
