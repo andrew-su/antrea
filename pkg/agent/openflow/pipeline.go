@@ -1114,7 +1114,7 @@ func (f *featureNetworkPolicy) flowsToTrace(dataplaneTag uint8,
 				klog.ErrorS(err, "Failed to get OpenFlow table by tableID", "id", ctx.dropFlow.TableId)
 				continue
 			}
-			dropFlow := f.defaultDropFlow(table, ctx.matchPairs, false)
+			dropFlow := f.defaultDropFlow(table, ctx.matchPairs, false, false)
 			copyFlowBuilder := dropFlow.CopyToBuilder(priorityNormal+2, false)
 			if dropFlow.FlowProtocol() == "" {
 				copyFlowBuilderIPv6 := dropFlow.CopyToBuilder(priorityNormal+2, false)
@@ -1715,7 +1715,7 @@ func (f *featurePodConnectivity) ipv6Flows() []binding.Flow {
 
 // For normal traffic, conjunctionActionFlow generates the flow to jump to a specific table if policyRuleConjunction ID is matched. Priority of
 // conjunctionActionFlow is created at priorityLow for k8s network policies, and *priority assigned by PriorityAssigner for AntreaPolicy.
-func (f *featureNetworkPolicy) conjunctionActionFlow(conjunctionID uint32, table binding.Table, nextTable uint8, priority *uint16, enableLogging bool, l7RuleVlanID *uint32) []binding.Flow {
+func (f *featureNetworkPolicy) conjunctionActionFlow(conjunctionID uint32, table binding.Table, nextTable uint8, priority *uint16, enableLogging bool, l7RuleVlanID *uint32, dryRun bool) []binding.Flow {
 	tableID := table.GetID()
 	cookieID := f.cookieAllocator.Request(f.category).Raw()
 	var ofPriority uint16
@@ -1736,12 +1736,30 @@ func (f *featureNetworkPolicy) conjunctionActionFlow(conjunctionID uint32, table
 		if proto == binding.ProtocolIPv6 {
 			ctZone = CtZoneV6
 		}
+
+		fb := table.BuildFlow(ofPriority).
+			MatchProtocol(proto).
+			MatchConjID(conjunctionID).
+			Cookie(cookieID).
+			Action().LoadToRegField(conjReg, conjunctionID) // Traceflow.
+
+		if dryRun {
+			// Is there a cleaner way to find out whether it's an AntreaNetworkPolicy rule?
+			if table.GetID() == AntreaPolicyEgressRuleTable.GetID() || table.GetID() == AntreaPolicyIngressRuleTable.GetID() {
+				fb = fb.MatchRegMark(DryRunCleanRegMark)
+			} else {
+				fb = fb.MatchRegMark(DryRunPassCleanRegMark)
+			}
+			return fb.
+				Action().LoadRegMark(DryRunRegMark).
+				Action().LoadRegMark(DryRunPassRegMark).
+				Action().ResubmitToTables(nextTable). // Should we use GoTo() instead?
+				Done()
+		}
+
 		if enableLogging {
-			fb := table.BuildFlow(ofPriority).MatchProtocol(proto).
-				MatchConjID(conjunctionID)
 			if l7RuleVlanID != nil {
 				return fb.
-					Action().LoadToRegField(conjReg, conjunctionID).        // Traceflow.
 					Action().CT(true, nextTable, ctZone, f.ctZoneSrcField). // CT action requires commit flag if actions other than NAT without arguments are specified.
 					LoadToLabelField(uint64(conjunctionID), labelField).
 					LoadToCtMark(L7NPRedirectCTMark).                               // Mark the packets of the connection should be redirected to an application-aware engine.
@@ -1751,11 +1769,9 @@ func (f *featureNetworkPolicy) conjunctionActionFlow(conjunctionID uint32, table
 					Action().LoadToRegField(PacketInOperationField, PacketInNPLoggingOperation).
 					Action().LoadToRegField(PacketInTableField, uint32(tableID)).
 					Action().GotoTable(OutputTable.GetID()).
-					Cookie(cookieID).
 					Done()
 			}
 			return fb.
-				Action().LoadToRegField(conjReg, conjunctionID).        // Traceflow.
 				Action().CT(true, nextTable, ctZone, f.ctZoneSrcField). // CT action requires commit flag if actions other than NAT without arguments are specified.
 				LoadToLabelField(uint64(conjunctionID), labelField).
 				CTDone().
@@ -1763,28 +1779,21 @@ func (f *featureNetworkPolicy) conjunctionActionFlow(conjunctionID uint32, table
 				Action().LoadToRegField(PacketInOperationField, PacketInNPLoggingOperation).
 				Action().LoadToRegField(PacketInTableField, uint32(tableID)).
 				Action().GotoTable(OutputTable.GetID()).
-				Cookie(cookieID).
 				Done()
 		}
 		if l7RuleVlanID != nil {
-			return table.BuildFlow(ofPriority).MatchProtocol(proto).
-				MatchConjID(conjunctionID).
-				Action().LoadToRegField(conjReg, conjunctionID).        // Traceflow.
+			return fb.
 				Action().CT(true, nextTable, ctZone, f.ctZoneSrcField). // CT action requires commit flag if actions other than NAT without arguments are specified.
 				LoadToLabelField(uint64(conjunctionID), labelField).
 				LoadToCtMark(L7NPRedirectCTMark).                               // Mark the packets of the connection should be redirected to an application-aware engine.
 				LoadToLabelField(uint64(*l7RuleVlanID), L7NPRuleVlanIDCTLabel). // Load the VLAN ID allocated for L7 NetworkPolicy rule to CT mark field L7NPRuleVlanIDCTMarkField.
 				CTDone().
-				Cookie(cookieID).
 				Done()
 		}
-		return table.BuildFlow(ofPriority).MatchProtocol(proto).
-			MatchConjID(conjunctionID).
-			Action().LoadToRegField(conjReg, conjunctionID).        // Traceflow.
+		return fb.
 			Action().CT(true, nextTable, ctZone, f.ctZoneSrcField). // CT action requires commit flag if actions other than NAT without arguments are specified.
 			LoadToLabelField(uint64(conjunctionID), labelField).
 			CTDone().
-			Cookie(cookieID).
 			Done()
 	}
 	var flows []binding.Flow
@@ -1793,12 +1802,22 @@ func (f *featureNetworkPolicy) conjunctionActionFlow(conjunctionID uint32, table
 	// to mark the packet to be allowed if policyRuleConjunction ID is matched.
 	// Any matched flow will be resubmitted to next table in corresponding metric tables.
 	if f.enableMulticast && (tableID == MulticastEgressRuleTable.GetID() || tableID == MulticastIngressRuleTable.GetID()) {
-		flow := table.BuildFlow(ofPriority).MatchConjID(conjunctionID).
+		fb := table.BuildFlow(ofPriority).MatchConjID(conjunctionID)
+
+		if dryRun {
+			// TODO: Do we need to differentiate which table we belong to? How does Multicast work?
+			fb = fb.
+				MatchRegMark(DryRunCleanRegMark).
+				Action().LoadRegMark(DryRunRegMark).
+				Action().LoadRegMark(DryRunPassRegMark)
+		}
+
+		fb = fb.
 			Action().LoadToRegField(APConjIDField, conjunctionID).
 			Action().NextTable().
-			Cookie(f.cookieAllocator.Request(f.category).Raw()).
-			Done()
-		flows = append(flows, flow)
+			Cookie(f.cookieAllocator.Request(f.category).Raw())
+
+		flows = append(flows, fb.Done())
 		return flows
 	}
 	for _, proto := range f.ipProtocols {
@@ -1810,7 +1829,7 @@ func (f *featureNetworkPolicy) conjunctionActionFlow(conjunctionID uint32, table
 // conjunctionActionDenyFlow generates the flow to mark the packet to be denied (dropped or rejected) if policyRuleConjunction
 // ID is matched. Any matched flow will be dropped in corresponding metric tables.
 func (f *featureNetworkPolicy) conjunctionActionDenyFlow(conjunctionID uint32, table binding.Table, priority *uint16,
-	disposition uint32, enableLogging bool) binding.Flow {
+	disposition uint32, enableLogging bool, dryRun bool) binding.Flow {
 	ofPriority := *priority
 	metricTable := IngressMetricTable
 	tableID := table.GetID()
@@ -1829,6 +1848,13 @@ func (f *featureNetworkPolicy) conjunctionActionDenyFlow(conjunctionID uint32, t
 		MatchConjID(conjunctionID).
 		Action().LoadToRegField(APConjIDField, conjunctionID).
 		Action().LoadRegMark(APDenyRegMark)
+
+	if dryRun {
+		flowBuilder = flowBuilder.
+			MatchRegMark(DryRunCleanRegMark).
+			Action().LoadRegMark(DryRunRegMark).
+			Action().LoadRegMark(DryRunPassRegMark)
+	}
 
 	var packetInOperations uint8
 	if f.enableDenyTracking {
@@ -1858,7 +1884,7 @@ func (f *featureNetworkPolicy) conjunctionActionDenyFlow(conjunctionID uint32, t
 		Done()
 }
 
-func (f *featureNetworkPolicy) conjunctionActionPassFlow(conjunctionID uint32, table binding.Table, priority *uint16, enableLogging bool) binding.Flow {
+func (f *featureNetworkPolicy) conjunctionActionPassFlow(conjunctionID uint32, table binding.Table, priority *uint16, enableLogging bool, dryRun bool) binding.Flow {
 	ofPriority := *priority
 	conjReg := TFIngressConjIDField
 	nextTable := IngressRuleTable
@@ -1871,6 +1897,12 @@ func (f *featureNetworkPolicy) conjunctionActionPassFlow(conjunctionID uint32, t
 		Cookie(f.cookieAllocator.Request(f.category).Raw()).
 		MatchConjID(conjunctionID).
 		Action().LoadToRegField(conjReg, conjunctionID)
+
+	if dryRun {
+		flowBuilder = flowBuilder.
+			MatchRegMark(DryRunCleanRegMark).
+			Action().LoadRegMark(DryRunRegMark)
+	}
 
 	if enableLogging {
 		groupID := f.getLoggingAndResubmitGroupID(nextTable.GetID())
@@ -2037,7 +2069,7 @@ func (f *featureNetworkPolicy) conjunctiveMatchFlow(tableID uint8, matchPairs []
 }
 
 // defaultDropFlow generates the flow to drop packets if the match condition is matched.
-func (f *featureNetworkPolicy) defaultDropFlow(table binding.Table, matchPairs []matchPair, enableLogging bool) binding.Flow {
+func (f *featureNetworkPolicy) defaultDropFlow(table binding.Table, matchPairs []matchPair, enableLogging, dryRun bool) binding.Flow {
 	cookieID := f.cookieAllocator.Request(f.category).Raw()
 	fb := table.BuildFlow(priorityNormal).Cookie(cookieID)
 	for _, eachMatchPair := range matchPairs {
@@ -2050,6 +2082,12 @@ func (f *featureNetworkPolicy) defaultDropFlow(table binding.Table, matchPairs [
 	}
 	if enableLogging {
 		packetInOperations += PacketInNPLoggingOperation
+	}
+	if dryRun {
+		return fb.MatchRegMark(DryRunPassCleanRegMark).
+			Action().LoadRegMark(DryRunRegMark).
+			Action().LoadRegMark(DryRunPassRegMark).
+			Action().NextTable().Done()
 	}
 
 	if enableLogging || f.enableDenyTracking {

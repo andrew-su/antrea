@@ -584,6 +584,7 @@ func (r *podReconciler) computeOFRulesForAdd(rule *CompletedRule, ofPriority *ui
 				PolicyRef:     rule.SourceRef,
 				EnableLogging: rule.EnableLogging,
 				LogLabel:      rule.LogLabel,
+				DryRun:        rule.DryRun,
 			}
 		}
 	} else {
@@ -615,6 +616,7 @@ func (r *podReconciler) computeOFRulesForAdd(rule *CompletedRule, ofPriority *ui
 				PolicyRef:     rule.SourceRef,
 				EnableLogging: rule.EnableLogging,
 				LogLabel:      rule.LogLabel,
+				DryRun:        rule.DryRun,
 			}
 		}
 
@@ -640,6 +642,7 @@ func (r *podReconciler) computeOFRulesForAdd(rule *CompletedRule, ofPriority *ui
 					PolicyRef:     rule.SourceRef,
 					EnableLogging: rule.EnableLogging,
 					LogLabel:      rule.LogLabel,
+					DryRun:        rule.DryRun,
 				}
 				ofRuleByServicesMap[svcKey] = ofRule
 			}
