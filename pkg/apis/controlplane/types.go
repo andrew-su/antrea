@@ -234,7 +234,7 @@ type NetworkPolicy struct {
 	TierPriority *int32
 	// Reference to the original NetworkPolicy that the internal NetworkPolicy is created for.
 	SourceRef *NetworkPolicyReference
-	// DryRun indicated whether this specific policy is created only for dry-run purposes
+	// DryRun indicates whether this specific policy is created only for dry-run purposes
 	DryRun bool
 }
 

@@ -1697,7 +1697,7 @@ func schema_pkg_apis_controlplane_v1beta2_NetworkPolicy(ref common.ReferenceCall
 					},
 					"dryRun": {
 						SchemaProps: spec.SchemaProps{
-							Description: "DryRun indicated whether this specific policy is created only for dry-run purposes",
+							Description: "DryRun indicates whether this specific policy is created only for dry-run purposes",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},

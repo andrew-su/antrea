@@ -295,7 +295,7 @@ message NetworkPolicy {
   // Reference to the original NetworkPolicy that the internal NetworkPolicy is created for.
   optional NetworkPolicyReference sourceRef = 6;
 
-  // DryRun indicated whether this specific policy is created only for dry-run purposes
+  // DryRun indicates whether this specific policy is created only for dry-run purposes
   optional bool dryRun = 7;
 }
 
