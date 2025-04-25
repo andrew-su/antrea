@@ -2418,16 +2418,18 @@ func (f *featureNetworkPolicy) dryRunFlows() []binding.Flow {
 
 	priority := priorityHigh
 	if f.enableAntreaPolicy {
-		priority = priorityTopAntreaPolicy // When we +1 to this later, it becomes priorityDNSIntercept. Is this okay?
+		priority = priorityTopAntreaPolicy
 	}
 
-	klog.V(2).Infof("Creating default flows for DryRun with priority: %d", priority+1)
+	priority++
+
+	klog.V(2).Infof("Creating default flows for DryRun with priority: %d", priority)
 
 	genFlows := func(metricTable *Table, antreaTable *Table) []binding.Flow {
 		return []binding.Flow{
-			metricTable.ofTable.BuildFlow(priority+1).
+			metricTable.ofTable.BuildFlow(priority).
 				Cookie(cookieID).
-				MatchRegMark(DryRunRegMark).
+				MatchRegMark(DryRunHitRegMark).
 				Action().LoadRegMark(DryRunLoggedRegMark).
 				Action().LoadToRegField(APDenyRegMark.GetField(), 0x0). // Reset the Deny mark.
 				Action().ResubmitToTables(antreaTable.GetID()).

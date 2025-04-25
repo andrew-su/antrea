@@ -182,11 +182,11 @@ var (
 
 	DryRunField            = binding.NewRegField(8, 16, 17)
 	DryRunCleanRegMark     = binding.NewRegMark(DryRunField, 0b00)
-	DryRunRegMark          = binding.NewRegMark(DryRunField, 0b01)
+	DryRunHitRegMark       = binding.NewRegMark(DryRunField, 0b01)
 	DryRunLoggedRegMark    = binding.NewRegMark(DryRunField, 0b10)
 	DryRunPassField        = binding.NewRegField(8, 18, 18)
 	DryRunPassCleanRegMark = binding.NewRegMark(DryRunPassField, 0b00)
-	DryRunPassRegMark      = binding.NewRegMark(DryRunPassField, 0b01)
+	DryRunPassHitRegMark   = binding.NewRegMark(DryRunPassField, 0b01)
 
 	// reg9(NXM_NX_REG9)
 	// Field to cache the ofPort of the OVS interface to output traffic control packets.

@@ -1751,8 +1751,8 @@ func (f *featureNetworkPolicy) conjunctionActionFlow(conjunctionID uint32, table
 				fb = fb.MatchRegMark(DryRunPassCleanRegMark)
 			}
 			return fb.
-				Action().LoadRegMark(DryRunRegMark).
-				Action().LoadRegMark(DryRunPassRegMark).
+				Action().LoadRegMark(DryRunHitRegMark).
+				Action().LoadRegMark(DryRunPassHitRegMark).
 				Action().ResubmitToTables(nextTable). // Should we use GoTo() instead?
 				Done()
 		}
@@ -1808,8 +1808,8 @@ func (f *featureNetworkPolicy) conjunctionActionFlow(conjunctionID uint32, table
 			// TODO: Do we need to differentiate which table we belong to? How does Multicast work?
 			fb = fb.
 				MatchRegMark(DryRunCleanRegMark).
-				Action().LoadRegMark(DryRunRegMark).
-				Action().LoadRegMark(DryRunPassRegMark)
+				Action().LoadRegMark(DryRunHitRegMark).
+				Action().LoadRegMark(DryRunPassHitRegMark)
 		}
 
 		fb = fb.
@@ -1852,8 +1852,8 @@ func (f *featureNetworkPolicy) conjunctionActionDenyFlow(conjunctionID uint32, t
 	if dryRun {
 		flowBuilder = flowBuilder.
 			MatchRegMark(DryRunCleanRegMark).
-			Action().LoadRegMark(DryRunRegMark).
-			Action().LoadRegMark(DryRunPassRegMark)
+			Action().LoadRegMark(DryRunHitRegMark).
+			Action().LoadRegMark(DryRunPassHitRegMark)
 	}
 
 	var packetInOperations uint8
@@ -1901,7 +1901,7 @@ func (f *featureNetworkPolicy) conjunctionActionPassFlow(conjunctionID uint32, t
 	if dryRun {
 		flowBuilder = flowBuilder.
 			MatchRegMark(DryRunCleanRegMark).
-			Action().LoadRegMark(DryRunRegMark)
+			Action().LoadRegMark(DryRunHitRegMark)
 	}
 
 	if enableLogging {
@@ -2085,8 +2085,8 @@ func (f *featureNetworkPolicy) defaultDropFlow(table binding.Table, matchPairs [
 	}
 	if dryRun {
 		return fb.MatchRegMark(DryRunPassCleanRegMark).
-			Action().LoadRegMark(DryRunRegMark).
-			Action().LoadRegMark(DryRunPassRegMark).
+			Action().LoadRegMark(DryRunHitRegMark).
+			Action().LoadRegMark(DryRunPassHitRegMark).
 			Action().NextTable().Done()
 	}
 
