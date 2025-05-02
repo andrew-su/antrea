@@ -1601,17 +1601,19 @@ func (f *featurePodConnectivity) arpNormalFlow() binding.Flow {
 		Done()
 }
 
-func (f *featureNetworkPolicy) allowRulesMetricFlows(conjunctionID uint32, ingress bool, tableID uint8) []binding.Flow {
+func (f *featureNetworkPolicy) allowRulesMetricFlows(conjunctionID uint32, ingress bool, tableID uint8, dryRun bool) []binding.Flow {
 	cookieID := f.cookieAllocator.Request(f.category).Raw()
 	metricTable := IngressMetricTable
 	offset := 0
 	// We use the 0..31 bits of the ct_label to store the ingress rule ID and use the 32..63 bits to store the
 	// egress rule ID.
 	field := IngressRuleCTLabel
+	dryRunOrigTable := AntreaPolicyIngressRuleTable
 	if !ingress {
 		metricTable = EgressMetricTable
 		offset = 32
 		field = EgressRuleCTLabel
+		dryRunOrigTable = AntreaPolicyEgressRuleTable
 	}
 	if f.enableMulticast && tableID == MulticastEgressRuleTable.GetID() {
 		metricTable = MulticastEgressMetricTable
@@ -1620,9 +1622,19 @@ func (f *featureNetworkPolicy) allowRulesMetricFlows(conjunctionID uint32, ingre
 		metricTable = MulticastIngressMetricTable
 	}
 	metricFlow := func(isCTNew bool, protocol binding.Protocol) binding.Flow {
-		return metricTable.ofTable.BuildFlow(priorityNormal).
+		flowBuilder := metricTable.ofTable.BuildFlow(priorityNormal).
 			Cookie(cookieID).
-			MatchProtocol(protocol).
+			MatchProtocol(protocol)
+
+		if dryRun {
+			return flowBuilder.MatchRegMark(DryRunHitRegMark).
+				MatchRegFieldWithValue(APConjIDField, conjunctionID).
+				Action().LoadRegMark(DryRunLoggedRegMark).
+				Action().ResubmitToTables(dryRunOrigTable.GetID()).
+				Done()
+		}
+
+		return flowBuilder.
 			MatchCTStateNew(isCTNew).
 			MatchCTLabelField(0, uint64(conjunctionID)<<offset, field).
 			Action().NextTable().
@@ -1650,10 +1662,12 @@ func (f *featureNetworkPolicy) allowRulesMetricFlows(conjunctionID uint32, ingre
 	return flows
 }
 
-func (f *featureNetworkPolicy) denyRuleMetricFlow(conjunctionID uint32, ingress bool, tableID uint8) binding.Flow {
+func (f *featureNetworkPolicy) denyRuleMetricFlow(conjunctionID uint32, ingress bool, tableID uint8, dryRun bool) binding.Flow {
 	metricTable := IngressMetricTable
+	dryRunOrigTable := AntreaPolicyIngressRuleTable
 	if !ingress {
 		metricTable = EgressMetricTable
+		dryRunOrigTable = AntreaPolicyEgressRuleTable
 	}
 	if f.enableMulticast && tableID == MulticastEgressRuleTable.GetID() {
 		metricTable = MulticastEgressMetricTable
@@ -1661,12 +1675,21 @@ func (f *featureNetworkPolicy) denyRuleMetricFlow(conjunctionID uint32, ingress 
 	if f.enableMulticast && tableID == MulticastIngressRuleTable.GetID() {
 		metricTable = MulticastIngressMetricTable
 	}
-	return metricTable.ofTable.BuildFlow(priorityNormal).
+
+	flowBuilder := metricTable.ofTable.BuildFlow(priorityNormal).
 		Cookie(f.cookieAllocator.Request(f.category).Raw()).
 		MatchRegMark(APDenyRegMark).
-		MatchRegFieldWithValue(APConjIDField, conjunctionID).
-		Action().Drop().
-		Done()
+		MatchRegFieldWithValue(APConjIDField, conjunctionID)
+
+	if dryRun {
+		return flowBuilder.MatchRegMark(DryRunHitRegMark).
+			Action().LoadToRegField(APDenyRegMark.GetField(), 0x0). // Reset the Deny mark.			Action().LoadRegMark(DryRunLoggedRegMark).
+			Action().ResubmitToTables(dryRunOrigTable.GetID()).
+			Done()
+	}
+
+	return flowBuilder.
+		Action().Drop().Done()
 }
 
 // ipv6Flows generates the flows to allow IPv6 packets from link-local addresses and handle multicast packets, Neighbor
@@ -1751,6 +1774,7 @@ func (f *featureNetworkPolicy) conjunctionActionFlow(conjunctionID uint32, table
 				fb = fb.MatchRegMark(DryRunPassCleanRegMark)
 			}
 			return fb.
+				Action().LoadToRegField(APConjIDField, conjunctionID).
 				Action().LoadRegMark(DryRunHitRegMark).
 				Action().LoadRegMark(DryRunPassHitRegMark).
 				Action().ResubmitToTables(nextTable). // Should we use GoTo() instead?
@@ -1850,10 +1874,12 @@ func (f *featureNetworkPolicy) conjunctionActionDenyFlow(conjunctionID uint32, t
 		Action().LoadRegMark(APDenyRegMark)
 
 	if dryRun {
-		flowBuilder = flowBuilder.
+		return flowBuilder.
 			MatchRegMark(DryRunCleanRegMark).
 			Action().LoadRegMark(DryRunHitRegMark).
-			Action().LoadRegMark(DryRunPassHitRegMark)
+			Action().LoadRegMark(DryRunPassHitRegMark).
+			Action().GotoTable(metricTable.GetID()).
+			Done()
 	}
 
 	var packetInOperations uint8

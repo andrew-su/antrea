@@ -1216,15 +1216,15 @@ func (f *featureNetworkPolicy) calculateActionFlowChangesForRule(rule *types.Pol
 		var actionFlows []binding.Flow
 		var metricFlows []binding.Flow
 		if rule.IsAntreaNetworkPolicyRule() && *rule.Action == crdv1beta1.RuleActionDrop {
-			metricFlows = append(metricFlows, f.denyRuleMetricFlow(ruleOfID, isIngress, rule.TableID))
+			metricFlows = append(metricFlows, f.denyRuleMetricFlow(ruleOfID, isIngress, rule.TableID, rule.DryRun))
 			actionFlows = append(actionFlows, f.conjunctionActionDenyFlow(ruleOfID, ruleTable, rule.Priority, DispositionDrop, rule.EnableLogging, rule.DryRun))
 		} else if rule.IsAntreaNetworkPolicyRule() && *rule.Action == crdv1beta1.RuleActionReject {
-			metricFlows = append(metricFlows, f.denyRuleMetricFlow(ruleOfID, isIngress, rule.TableID))
+			metricFlows = append(metricFlows, f.denyRuleMetricFlow(ruleOfID, isIngress, rule.TableID, rule.DryRun))
 			actionFlows = append(actionFlows, f.conjunctionActionDenyFlow(ruleOfID, ruleTable, rule.Priority, DispositionRej, rule.EnableLogging, rule.DryRun))
 		} else if rule.IsAntreaNetworkPolicyRule() && *rule.Action == crdv1beta1.RuleActionPass {
 			actionFlows = append(actionFlows, f.conjunctionActionPassFlow(ruleOfID, ruleTable, rule.Priority, rule.EnableLogging, rule.DryRun))
 		} else {
-			metricFlows = append(metricFlows, f.allowRulesMetricFlows(ruleOfID, isIngress, rule.TableID)...)
+			metricFlows = append(metricFlows, f.allowRulesMetricFlows(ruleOfID, isIngress, rule.TableID, rule.DryRun)...)
 			actionFlows = append(actionFlows, f.conjunctionActionFlow(ruleOfID, ruleTable, dropTable.GetNext(), rule.Priority, rule.EnableLogging, rule.L7RuleVlanID, rule.DryRun)...)
 		}
 		conj.actionFlows = GetFlowModMessages(actionFlows, binding.AddMessage)
@@ -1952,6 +1952,14 @@ func parseFlowMetric(flowMap map[string]string) types.RuleMetric {
 	return m
 }
 
+func parseDryRunFlow(flowMap map[string]string) (uint32, types.RuleMetric) {
+	m := parseFlowMetric(flowMap)
+	m.Sessions = m.Packets
+	reg3 := flowMap["reg3"]
+	id, _ := strconv.ParseUint(reg3, 0, 32)
+	return uint32(id), m
+}
+
 func parseDropFlow(flowMap map[string]string) (uint32, types.RuleMetric) {
 	m := parseFlowMetric(flowMap)
 	m.Sessions = m.Packets
@@ -1997,6 +2005,11 @@ func parseFlowToMap(flow string) map[string]string {
 }
 
 func parseMetricFlow(flowMap map[string]string) (uint32, types.RuleMetric) {
+	dryRunIdentifier := "reg8"
+	if _, ok := flowMap[dryRunIdentifier]; ok {
+		return parseDryRunFlow(flowMap)
+	}
+
 	dropIdentifier := "reg0"
 	// example allow flow format:
 	// table=101, n_packets=0, n_bytes=0, priority=200,ct_state=-new,ct_label=0x1/0xffffffff,ip actions=goto_table:105
@@ -2187,7 +2200,6 @@ func (f *featureNetworkPolicy) initFlows() []*openflow15.FlowMod {
 	}
 	flows = append(flows, f.skipPolicyRuleCheckFlows()...)
 	flows = append(flows, f.initLoggingFlows()...)
-	flows = append(flows, f.dryRunFlows()...)
 	return GetFlowModMessages(flows, binding.AddMessage)
 }
 
@@ -2411,38 +2423,6 @@ func (f *featureNetworkPolicy) initGroups() []binding.OFEntry {
 		groups = append(groups, group)
 	}
 	return groups
-}
-
-func (f *featureNetworkPolicy) dryRunFlows() []binding.Flow {
-	cookieID := f.cookieAllocator.Request(f.category).Raw()
-
-	priority := priorityHigh
-	if f.enableAntreaPolicy {
-		priority = priorityTopAntreaPolicy
-	}
-
-	priority++
-
-	klog.V(2).Infof("Creating default flows for DryRun with priority: %d", priority)
-
-	genFlows := func(metricTable *Table, antreaTable *Table) []binding.Flow {
-		return []binding.Flow{
-			metricTable.ofTable.BuildFlow(priority).
-				Cookie(cookieID).
-				MatchRegMark(DryRunHitRegMark).
-				Action().LoadRegMark(DryRunLoggedRegMark).
-				Action().LoadToRegField(APDenyRegMark.GetField(), 0x0). // Reset the Deny mark.
-				Action().ResubmitToTables(antreaTable.GetID()).
-				Done(),
-		}
-	}
-
-	var flows []binding.Flow
-	// Add default rules for dryrun on ingress and egress metric table.
-	flows = append(flows, genFlows(EgressMetricTable, AntreaPolicyEgressRuleTable)...)
-	flows = append(flows, genFlows(IngressMetricTable, AntreaPolicyIngressRuleTable)...)
-
-	return flows
 }
 
 func (f *featureNetworkPolicy) replayMeters() []binding.OFEntry {
