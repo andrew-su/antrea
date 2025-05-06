@@ -326,7 +326,6 @@ type conjunctiveMatch struct {
 	tableID    uint8
 	priority   *uint16
 	matchPairs []matchPair
-	dryRun     bool
 }
 
 type matchPair struct {
@@ -397,7 +396,7 @@ func (m *conjunctiveMatch) generateGlobalMapKey() string {
 	} else {
 		priorityStr = strconv.Itoa(int(*m.priority))
 	}
-	return fmt.Sprintf("table:%d,priority:%s,dryrun:%t,matchPair:%s", m.tableID, priorityStr, m.dryRun, strings.Join(matchPairStrList, ","))
+	return fmt.Sprintf("table:%d,priority:%s,matchPair:%s", m.tableID, priorityStr, strings.Join(matchPairStrList, ","))
 }
 
 // changeType is generally used to describe the change type of a conjMatchFlowContext. It is also used in "flowChange"
@@ -867,14 +866,13 @@ func (c *clause) addConjunctiveMatchFlow(featureNetworkPolicy *featureNetworkPol
 	return ctxChanges
 }
 
-func generateAddressConjMatch(ruleTableID uint8, addr types.Address, addrType types.AddressType, priority *uint16, dryRun bool) *conjunctiveMatch {
+func generateAddressConjMatch(ruleTableID uint8, addr types.Address, addrType types.AddressType, priority *uint16) *conjunctiveMatch {
 	matchKey := addr.GetMatchKey(addrType)
 	matchValue := addr.GetValue()
 	match := &conjunctiveMatch{
 		tableID:    ruleTableID,
 		matchPairs: []matchPair{{matchKey: matchKey, matchValue: matchValue}},
 		priority:   priority,
-		dryRun:     dryRun,
 	}
 	return match
 }
@@ -1027,7 +1025,7 @@ func (c *clause) addAddrFlows(featureNetworkPolicy *featureNetworkPolicy, addrTy
 	var conjMatchFlowContextChanges []*conjMatchFlowContextChange
 	// Calculate Openflow changes for the added addresses.
 	for _, addr := range addresses {
-		match := generateAddressConjMatch(c.ruleTable.GetID(), addr, addrType, priority, c.dryRun)
+		match := generateAddressConjMatch(c.ruleTable.GetID(), addr, addrType, priority)
 		ctxChange := c.addConjunctiveMatchFlow(featureNetworkPolicy, match, enableLogging, isMCNPRule)
 		if ctxChange != nil {
 			conjMatchFlowContextChanges = append(conjMatchFlowContextChanges, ctxChange)
@@ -1107,7 +1105,7 @@ func (c *clause) deleteConjunctiveMatchFlow(flowContextKey string) *conjMatchFlo
 func (c *clause) deleteAddrFlows(addrType types.AddressType, addresses []types.Address, priority *uint16) []*conjMatchFlowContextChange {
 	var ctxChanges []*conjMatchFlowContextChange
 	for _, addr := range addresses {
-		match := generateAddressConjMatch(c.ruleTable.GetID(), addr, addrType, priority, c.dryRun)
+		match := generateAddressConjMatch(c.ruleTable.GetID(), addr, addrType, priority)
 		contextKey := match.generateGlobalMapKey()
 		ctxChange := c.deleteConjunctiveMatchFlow(contextKey)
 		if ctxChange != nil {
@@ -1247,13 +1245,13 @@ func (f *featureNetworkPolicy) addRuleToConjunctiveMatch(conj *policyRuleConjunc
 	isMCNPRule := containsLabelIdentityAddress(rule.From)
 	if conj.fromClause != nil {
 		for _, addr := range rule.From {
-			match := generateAddressConjMatch(conj.fromClause.ruleTable.GetID(), addr, types.SrcAddress, rule.Priority, rule.DryRun)
+			match := generateAddressConjMatch(conj.fromClause.ruleTable.GetID(), addr, types.SrcAddress, rule.Priority)
 			f.addActionToConjunctiveMatch(conj.fromClause, match, rule.EnableLogging, isMCNPRule)
 		}
 	}
 	if conj.toClause != nil {
 		for _, addr := range rule.To {
-			match := generateAddressConjMatch(conj.toClause.ruleTable.GetID(), addr, types.DstAddress, rule.Priority, rule.DryRun)
+			match := generateAddressConjMatch(conj.toClause.ruleTable.GetID(), addr, types.DstAddress, rule.Priority)
 			f.addActionToConjunctiveMatch(conj.toClause, match, rule.EnableLogging, isMCNPRule)
 		}
 	}
