@@ -458,6 +458,9 @@ type conjMatchFlowContext struct {
 	dropFlow *openflow15.FlowMod
 	// dropFlowEnableLogging describes the logging requirement of the dropFlow.
 	dropFlowEnableLogging bool
+
+	// dryRun helps identify whether this match was a dry-run
+	dryRun bool
 }
 
 // createOrUpdateConjunctiveMatchFlow creates or updates the conjunctive match flow with the latest actions. It returns
@@ -810,6 +813,7 @@ func (c *clause) addConjunctiveMatchFlow(featureNetworkPolicy *featureNetworkPol
 			actions:               make(map[uint32]*conjunctiveAction),
 			featureNetworkPolicy:  featureNetworkPolicy,
 			dropFlowEnableLogging: enableLogging,
+			dryRun:                c.dryRun,
 		}
 		ctxType = insertion
 
@@ -827,10 +831,13 @@ func (c *clause) addConjunctiveMatchFlow(featureNetworkPolicy *featureNetworkPol
 				}
 			}
 		}
-	} else if context.dropFlowEnableLogging != enableLogging {
-		// Logging requirement of the rule has changed, modify default drop flow accordingly.
-		context.dropFlowEnableLogging = enableLogging
-		if c.dropTable != nil && context.dropFlow != nil {
+	} else {
+		updateDropFlow := c.dropTable != nil && context.dropFlow != nil && (context.dropFlowEnableLogging != enableLogging ||
+			context.dryRun != c.dryRun)
+
+		if updateDropFlow {
+			context.dropFlowEnableLogging = enableLogging // Logging requirement of the rule has changed, modify default drop flow accordingly.
+			context.dryRun = c.dryRun                     // If dryRun has changed update it to latest
 			dropFlow = &flowChange{
 				flow:       getFlowModMessage(context.featureNetworkPolicy.defaultDropFlow(c.dropTable, match.matchPairs, enableLogging, c.dryRun), binding.AddMessage),
 				changeType: modification,
@@ -1285,6 +1292,7 @@ func (f *featureNetworkPolicy) addActionToConjunctiveMatch(clause *clause, match
 			actions:               make(map[uint32]*conjunctiveAction),
 			featureNetworkPolicy:  f,
 			dropFlowEnableLogging: enableLogging,
+			dryRun:                clause.dryRun,
 		}
 		// Generate the default drop flow if dropTable is not nil.
 		if clause.dropTable != nil {
