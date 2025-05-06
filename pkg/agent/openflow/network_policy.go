@@ -23,6 +23,7 @@ import (
 
 	"antrea.io/libOpenflow/openflow15"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 
@@ -458,6 +459,11 @@ type conjMatchFlowContext struct {
 	dropFlow *openflow15.FlowMod
 	// dropFlowEnableLogging describes the logging requirement of the dropFlow.
 	dropFlowEnableLogging bool
+
+	// dryRun helps identify whether this match was a dry-run
+	dryRun         bool
+	dryRunDropFlow *openflow15.FlowMod
+	dryRunConjSet  sets.Set[uint32]
 }
 
 // createOrUpdateConjunctiveMatchFlow creates or updates the conjunctive match flow with the latest actions. It returns
@@ -564,7 +570,8 @@ type conjMatchFlowContextChange struct {
 	// dropFlow is the changed drop flow which needs to be realized on the OVS bridge. It is used to update
 	// conjMatchFlowContext.dropFlow. dropFlow is set when the default drop flow needs to be added or removed on the OVS
 	// bridge, and it is nil in other cases.
-	dropFlow *flowChange
+	dropFlow       *flowChange
+	dryRunDropFlow *flowChange
 	// clause is the policyRuleConjunction's clause having current conjMatchFlowContextChange. It is used to update the
 	// mapping relations between the policyRuleConjunction and the conjMatchFlowContext. Update the clause.matches after
 	// the conjMatchFlowContextChange is realized on the OVS bridge. clause is not nil.
@@ -635,6 +642,16 @@ func (c *conjMatchFlowContextChange) updateContextStatus() {
 		}
 	}
 
+	// Update conjMatchFlowContext.dropFlow.
+	if c.dryRunDropFlow != nil {
+		switch c.dryRunDropFlow.changeType {
+		case insertion:
+			c.context.dryRunDropFlow = c.dryRunDropFlow.flow
+		case deletion:
+			c.context.dryRunDropFlow = nil
+		}
+	}
+
 	// Update globalConjMatchFlowCache. Add the conjMatchFlowContext into the globalConjMatchFlowCache if the ctxChangeType
 	// is "insertion", or delete from the globalConjMatchFlowCache if the ctxChangeType is "deletion".
 	switch c.ctxChangeType {
@@ -666,6 +683,7 @@ type policyRuleConjunction struct {
 	fromClause    *clause
 	toClause      *clause
 	serviceClause *clause
+	dryRunClause  *clause
 	actionFlows   []*openflow15.FlowMod
 	metricFlows   []*openflow15.FlowMod
 	// NetworkPolicy reference information for debugging usage, its value can be nil
@@ -802,6 +820,7 @@ func (c *clause) addConjunctiveMatchFlow(featureNetworkPolicy *featureNetworkPol
 	var context *conjMatchFlowContext
 	ctxType := modification
 	var dropFlow *flowChange
+	var dryRunDropFlow *flowChange
 	// Get conjMatchFlowContext from globalConjMatchFlowCache. If it doesn't exist, create a new one and add into the cache.
 	context, found = featureNetworkPolicy.globalConjMatchFlowCache[matcherKey]
 	if !found {
@@ -810,33 +829,68 @@ func (c *clause) addConjunctiveMatchFlow(featureNetworkPolicy *featureNetworkPol
 			actions:               make(map[uint32]*conjunctiveAction),
 			featureNetworkPolicy:  featureNetworkPolicy,
 			dropFlowEnableLogging: enableLogging,
+			dryRunConjSet:         sets.New[uint32](),
 		}
 		ctxType = insertion
+	}
 
-		// Generate the default drop flow if dropTable is not nil and the default drop flow is not set yet.
-		if c.dropTable != nil && context.dropFlow == nil {
+	// TODO: Ultimately the implementation is the same if we assume the drop table for the same clause can not suddenly change (nil<>non-nil) for the clause.
+	// Generate a dryRunDropFlow if there was ever a dry-run for this rule.
+	if c.dropTable != nil {
+		conjId := c.action.conjID
+
+		if c.dryRun {
+			changeType := insertion
+			if context.dryRunDropFlow != nil {
+				changeType = modification
+			}
+
+			// Do I skip this if it's multicluster??
+			dryRunDropFlow = &flowChange{
+				flow:       getFlowModMessage(context.featureNetworkPolicy.defaultDropFlow(c.dropTable, match.matchPairs, enableLogging, true), binding.AddMessage),
+				changeType: changeType,
+			}
+
+			// We only have dry-runs no real work
+			if len(context.dryRunConjSet) == len(context.actions) && context.dropFlow != nil && !isMCNPRule { // && len(context.actions) > 0 to save on extra change request
+				dropFlow = &flowChange{
+					flow:       context.dropFlow,
+					changeType: deletion,
+				}
+			}
+
+			context.dryRunConjSet.Insert(conjId)
+		} else { // Generate the default drop flow if dropTable is not nil.
+			changeType := insertion
+			if context.dropFlow != nil {
+				changeType = modification
+			}
 			if isMCNPRule {
 				dropFlow = &flowChange{
 					flow:       getFlowModMessage(context.featureNetworkPolicy.multiClusterNetworkPolicySecurityDropFlow(c.dropTable, match.matchPairs), binding.AddMessage),
-					changeType: insertion,
+					changeType: changeType,
 				}
 			} else {
 				dropFlow = &flowChange{
-					flow:       getFlowModMessage(context.featureNetworkPolicy.defaultDropFlow(c.dropTable, match.matchPairs, enableLogging, c.dryRun), binding.AddMessage),
-					changeType: insertion,
+					flow:       getFlowModMessage(context.featureNetworkPolicy.defaultDropFlow(c.dropTable, match.matchPairs, enableLogging, false), binding.AddMessage),
+					changeType: changeType,
+				}
+			}
+
+			context.dryRunConjSet.Delete(conjId)
+			if context.dryRunDropFlow != nil {
+				dryRunDropFlow = &flowChange{
+					flow:       context.dryRunDropFlow,
+					changeType: deletion,
 				}
 			}
 		}
-	} else if context.dropFlowEnableLogging != enableLogging {
-		// Logging requirement of the rule has changed, modify default drop flow accordingly.
-		context.dropFlowEnableLogging = enableLogging
-		if c.dropTable != nil && context.dropFlow != nil {
-			dropFlow = &flowChange{
-				flow:       getFlowModMessage(context.featureNetworkPolicy.defaultDropFlow(c.dropTable, match.matchPairs, enableLogging, c.dryRun), binding.AddMessage),
-				changeType: modification,
-			}
-		}
 	}
+
+	// TODO: If dryRunDropFlow == nil && context.DryRunFlowCount == 0 { delete dryRunDropFlow }
+
+	context.dropFlowEnableLogging = enableLogging // no effect if it's the same
+	context.dryRun = c.dryRun                     // no effect if it's the same
 
 	// Calculate the change on the conjMatchFlowContext.
 	ctxChanges := &conjMatchFlowContextChange{
@@ -846,7 +900,8 @@ func (c *clause) addConjunctiveMatchFlow(featureNetworkPolicy *featureNetworkPol
 		actChange: &actionChange{
 			changeType: insertion,
 		},
-		dropFlow: dropFlow,
+		dropFlow:       dropFlow,
+		dryRunDropFlow: dryRunDropFlow,
 	}
 	if c.action.nClause > 1 {
 		// Append the conjunction to conjunctiveFlowContext's actions, and add the changed flow into the conjMatchFlowContextChange.
@@ -1075,6 +1130,17 @@ func (c *clause) deleteConjunctiveMatchFlow(flowContextKey string) *conjMatchFlo
 			ctxChange.actChange.action = action
 			expectedConjunctiveActions--
 		}
+
+		// This conjunction is being deleted, remove from cache
+		context.dryRunConjSet.Delete(conjID)
+		if len(context.dryRunConjSet) == expectedConjunctiveActions { // There are only dryrun policies
+			if context.dropFlow != nil {
+				ctxChange.dropFlow = &flowChange{
+					flow:       context.dropFlow,
+					changeType: deletion,
+				}
+			}
+		}
 	} else {
 		// Delete the DENY-ALL rule if it is in context denyAllRules.
 		ctxChange.matchFlow = &flowChange{
@@ -1089,6 +1155,13 @@ func (c *clause) deleteConjunctiveMatchFlow(flowContextKey string) *conjMatchFlo
 		if context.dropFlow != nil {
 			ctxChange.dropFlow = &flowChange{
 				flow:       context.dropFlow,
+				changeType: deletion,
+			}
+		}
+
+		if context.dryRunDropFlow != nil {
+			ctxChange.dryRunDropFlow = &flowChange{
+				flow:       context.dryRunDropFlow,
 				changeType: deletion,
 			}
 		}
@@ -1285,6 +1358,8 @@ func (f *featureNetworkPolicy) addActionToConjunctiveMatch(clause *clause, match
 			actions:               make(map[uint32]*conjunctiveAction),
 			featureNetworkPolicy:  f,
 			dropFlowEnableLogging: enableLogging,
+			dryRun:                clause.dryRun,
+			dryRunConjSet:         sets.New[uint32](),
 		}
 		// Generate the default drop flow if dropTable is not nil.
 		if clause.dropTable != nil {
@@ -1374,6 +1449,7 @@ func (f *featureNetworkPolicy) applyConjunctiveMatchFlows(flowChanges []*conjMat
 
 // sendConjunctiveFlows sends all the changed OpenFlow entries to the OVS bridge in a single Bundle.
 func (f *featureNetworkPolicy) sendConjunctiveFlows(changes []*conjMatchFlowContextChange) error {
+	// spew.Dump(changes)
 	var addFlows, modifyFlows, deleteFlows []*openflow15.FlowMod
 	var flowChanges []*flowChange
 	for _, change := range changes {
@@ -1382,6 +1458,10 @@ func (f *featureNetworkPolicy) sendConjunctiveFlows(changes []*conjMatchFlowCont
 		}
 		if change.dropFlow != nil {
 			flowChanges = append(flowChanges, change.dropFlow)
+		}
+
+		if change.dryRunDropFlow != nil {
+			flowChanges = append(flowChanges, change.dryRunDropFlow)
 		}
 	}
 	// Retrieve the OpenFlow entries from the flowChanges.
@@ -1423,17 +1503,9 @@ func (c *policyRuleConjunction) newClause(clauseID uint8, nClause uint8, ruleTab
 }
 
 func (c *policyRuleConjunction) newDryRunClause(clauseID uint8, nClause uint8, ruleTable, dropTable binding.Table) *clause {
-	return &clause{
-		ruleTable: ruleTable,
-		dropTable: dropTable,
-		matches:   make(map[string]*conjMatchFlowContext, 0),
-		action: &conjunctiveAction{
-			conjID:   c.id,
-			clauseID: clauseID,
-			nClause:  nClause,
-		},
-		dryRun: true,
-	}
+	clause := c.newClause(clauseID, nClause, ruleTable, dropTable)
+	clause.dryRun = true
+	return clause
 }
 
 // calculateClauses configures the policyRuleConjunction's clauses according to the PolicyRule. The Openflow entries are
@@ -1492,6 +1564,7 @@ func (c *policyRuleConjunction) calculateClauses(rule *types.PolicyRule) (uint8,
 	if rule.Service != nil {
 		c.serviceClause = clauseFn(serviceID, nClause, ruleTable, nil)
 	}
+
 	return nClause, ruleTable, dropTable
 }
 
@@ -2198,6 +2271,7 @@ func (f *featureNetworkPolicy) initFlows() []*openflow15.FlowMod {
 	}
 	flows = append(flows, f.skipPolicyRuleCheckFlows()...)
 	flows = append(flows, f.initLoggingFlows()...)
+	flows = append(flows, f.dryRunDefaultFlows()...)
 	return GetFlowModMessages(flows, binding.AddMessage)
 }
 
@@ -2421,6 +2495,32 @@ func (f *featureNetworkPolicy) initGroups() []binding.OFEntry {
 		groups = append(groups, group)
 	}
 	return groups
+}
+
+func (f *featureNetworkPolicy) dryRunDefaultFlows() []binding.Flow {
+	var flows []binding.Flow
+	cookieID := f.cookieAllocator.Request(f.category).Raw()
+
+	// If there are no matching metrics
+	flows = append(flows,
+		EgressMetricTable.ofTable.BuildFlow(priorityLow-10).
+			Cookie(cookieID).
+			MatchRegMark(DryRunHitRegMark).
+			Action().LoadToRegField(APDenyRegMark.GetField(), 0x0).
+			Action().LoadRegMark(DryRunLoggedRegMark).
+			Action().LoadRegMark(DryRunPassHitRegMark).
+			Action().ResubmitToTables(AntreaPolicyEgressRuleTable.GetID()).
+			Done(),
+		IngressMetricTable.ofTable.BuildFlow(priorityLow-10).
+			Cookie(cookieID).
+			MatchRegMark(DryRunHitRegMark).
+			Action().LoadToRegField(APDenyRegMark.GetField(), 0x0).
+			Action().LoadRegMark(DryRunLoggedRegMark).
+			Action().LoadRegMark(DryRunPassHitRegMark).
+			Action().ResubmitToTables(AntreaPolicyIngressRuleTable.GetID()).
+			Done(),
+	)
+	return flows
 }
 
 func (f *featureNetworkPolicy) replayMeters() []binding.OFEntry {

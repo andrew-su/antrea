@@ -679,7 +679,7 @@ func TestConjMatchFlowContextKeyConflict(t *testing.T) {
 	flowChange2 := clause2.addAddrFlows(c.featureNetworkPolicy, types.DstAddress, parseAddresses([]string{ipNet.String()}), nil, false, false)
 	err = c.featureNetworkPolicy.applyConjunctiveMatchFlows(flowChange2)
 	require.Nil(t, err, "no error expect in applyConjunctiveMatchFlows")
-	expectedMatchKey := fmt.Sprintf("table:%d,priority:%s,dryrun:false,matchPair:%s", EgressRuleTable.GetID(), strconv.Itoa(int(priorityNormal)), singleMatchPair.KeyString())
+	expectedMatchKey := fmt.Sprintf("table:%d,priority:%s,matchPair:%s", EgressRuleTable.GetID(), strconv.Itoa(int(priorityNormal)), singleMatchPair.KeyString())
 	ctx, found := c.featureNetworkPolicy.globalConjMatchFlowCache[expectedMatchKey]
 	assert.True(t, found)
 	assert.Equal(t, 2, len(ctx.actions))
@@ -1431,8 +1431,8 @@ func networkPolicyInitFlows(ovsMeterSupported, externalNodeEnabled bool) []strin
 
 	// DryRun flows
 	dryRunFlows := []string{
-		"cookie=0x1020000000000, table=EgressMetric, priority=64991,reg8=0x10000/0x30000 actions=set_field:0x20000/0x30000->reg8,set_field:0x0/0x400->reg0,resubmit:AntreaPolicyEgressRule",
-		"cookie=0x1020000000000, table=IngressMetric, priority=64991,reg8=0x10000/0x30000 actions=set_field:0x20000/0x30000->reg8,set_field:0x0/0x400->reg0,resubmit:AntreaPolicyIngressRule",
+		"cookie=0x1020000000000, table=EgressMetric, priority=180,reg8=0x10000/0x30000 actions=set_field:0x0/0x400->reg0,set_field:0x20000/0x30000->reg8,set_field:0x40000/0x40000->reg8,resubmit:AntreaPolicyEgressRule",
+		"cookie=0x1020000000000, table=IngressMetric, priority=180,reg8=0x10000/0x30000 actions=set_field:0x0/0x400->reg0,set_field:0x20000/0x30000->reg8,set_field:0x40000/0x40000->reg8,resubmit:AntreaPolicyIngressRule",
 	}
 
 	return append(initFlows, dryRunFlows...)

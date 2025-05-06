@@ -1683,7 +1683,8 @@ func (f *featureNetworkPolicy) denyRuleMetricFlow(conjunctionID uint32, ingress 
 
 	if dryRun {
 		return flowBuilder.MatchRegMark(DryRunHitRegMark).
-			Action().LoadToRegField(APDenyRegMark.GetField(), 0x0). // Reset the Deny mark.			Action().LoadRegMark(DryRunLoggedRegMark).
+			Action().LoadToRegField(APDenyRegMark.GetField(), 0x0). // Reset the Deny mark.	
+			Action().LoadRegMark(DryRunLoggedRegMark).
 			Action().ResubmitToTables(dryRunOrigTable.GetID()).
 			Done()
 	}
@@ -2097,7 +2098,13 @@ func (f *featureNetworkPolicy) conjunctiveMatchFlow(tableID uint8, matchPairs []
 // defaultDropFlow generates the flow to drop packets if the match condition is matched.
 func (f *featureNetworkPolicy) defaultDropFlow(table binding.Table, matchPairs []matchPair, enableLogging, dryRun bool) binding.Flow {
 	cookieID := f.cookieAllocator.Request(f.category).Raw()
-	fb := table.BuildFlow(priorityNormal).Cookie(cookieID)
+
+	priority := priorityNormal
+	if dryRun {
+		priority = priority - 10
+	}
+
+	fb := table.BuildFlow(priority).Cookie(cookieID)
 	for _, eachMatchPair := range matchPairs {
 		fb = f.addFlowMatch(fb, eachMatchPair.matchKey, eachMatchPair.matchValue)
 	}
