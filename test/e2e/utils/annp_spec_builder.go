@@ -15,6 +15,8 @@
 package utils
 
 import (
+	"strconv"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	crdv1beta1 "antrea.io/antrea/pkg/apis/crd/v1beta1"
@@ -45,6 +47,25 @@ func (b *AntreaNetworkPolicySpecBuilder) Get() *crdv1beta1.NetworkPolicy {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      b.Name,
 			Namespace: b.Namespace,
+		},
+		Spec: b.Spec,
+	}
+}
+
+func (b *AntreaNetworkPolicySpecBuilder) GetWithDryRun(dryRun bool) *crdv1beta1.NetworkPolicy {
+	if b.Spec.Ingress == nil {
+		b.Spec.Ingress = []crdv1beta1.Rule{}
+	}
+	if b.Spec.Egress == nil {
+		b.Spec.Egress = []crdv1beta1.Rule{}
+	}
+	return &crdv1beta1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      b.Name,
+			Namespace: b.Namespace,
+			Annotations: map[string]string{
+				"antrea.io/dry-run": strconv.FormatBool(dryRun),
+			},
 		},
 		Spec: b.Spec,
 	}
