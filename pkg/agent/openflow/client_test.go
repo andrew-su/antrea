@@ -2775,7 +2775,7 @@ func Test_client_ReplayFlows(t *testing.T) {
 			conj := &policyRuleConjunction{
 				id:          ruleID,
 				actionFlows: []*openflow15.FlowMod{getFlowModMessage(fc.featureNetworkPolicy.conjunctionActionDenyFlow(ruleID, IngressRuleTable.ofTable, &priority200, DispositionDrop, true, dryRun), binding.AddMessage)},
-				metricFlows: []*openflow15.FlowMod{getFlowModMessage(fc.featureNetworkPolicy.denyRuleMetricFlow(ruleID, true, IngressMetricTable.GetID()), binding.AddMessage)},
+				metricFlows: []*openflow15.FlowMod{getFlowModMessage(fc.featureNetworkPolicy.denyRuleMetricFlow(ruleID, true, IngressMetricTable.GetID(), dryRun), binding.AddMessage)},
 				dryRun:      dryRun,
 			}
 			assert.NoError(t, fc.featureNetworkPolicy.policyCache.Add(conj))
