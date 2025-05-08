@@ -15,6 +15,8 @@
 package utils
 
 import (
+	"strconv"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -47,6 +49,24 @@ func (b *ClusterNetworkPolicySpecBuilder) Get() *crdv1beta1.ClusterNetworkPolicy
 	return &crdv1beta1.ClusterNetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: b.Name,
+		},
+		Spec: b.Spec,
+	}
+}
+
+func (b *ClusterNetworkPolicySpecBuilder) GetWithDryRun(dryRun bool) *crdv1beta1.ClusterNetworkPolicy {
+	if b.Spec.Ingress == nil {
+		b.Spec.Ingress = []crdv1beta1.Rule{}
+	}
+	if b.Spec.Egress == nil {
+		b.Spec.Egress = []crdv1beta1.Rule{}
+	}
+	return &crdv1beta1.ClusterNetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: b.Name,
+			Annotations: map[string]string{
+				"antrea.io/dry-run": strconv.FormatBool(dryRun),
+			},
 		},
 		Spec: b.Spec,
 	}
