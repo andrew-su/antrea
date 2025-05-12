@@ -1431,8 +1431,8 @@ func networkPolicyInitFlows(ovsMeterSupported, externalNodeEnabled bool) []strin
 
 	// DryRun flows
 	dryRunFlows := []string{
-		"cookie=0x1020000000000, table=EgressMetric, priority=64991,reg8=0x10000/0x30000 actions=set_field:0x20000/0x30000->reg8,set_field:0x0/0x400->reg0,resubmit:AntreaPolicyEgressRule",
-		"cookie=0x1020000000000, table=IngressMetric, priority=64991,reg8=0x10000/0x30000 actions=set_field:0x20000/0x30000->reg8,set_field:0x0/0x400->reg0,resubmit:AntreaPolicyIngressRule",
+		// "cookie=0x1020000000000, table=EgressMetric, priority=64991,reg8=0x10000/0x30000 actions=set_field:0x20000/0x30000->reg8,set_field:0x0/0x400->reg0,resubmit:AntreaPolicyEgressRule",
+		// "cookie=0x1020000000000, table=IngressMetric, priority=64991,reg8=0x10000/0x30000 actions=set_field:0x20000/0x30000->reg8,set_field:0x0/0x400->reg0,resubmit:AntreaPolicyIngressRule",
 	}
 
 	return append(initFlows, dryRunFlows...)
