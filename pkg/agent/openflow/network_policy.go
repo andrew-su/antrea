@@ -683,7 +683,6 @@ type policyRuleConjunction struct {
 	fromClause    *clause
 	toClause      *clause
 	serviceClause *clause
-	dryRunClause  *clause
 	actionFlows   []*openflow15.FlowMod
 	metricFlows   []*openflow15.FlowMod
 	// NetworkPolicy reference information for debugging usage, its value can be nil
@@ -1358,7 +1357,6 @@ func (f *featureNetworkPolicy) addActionToConjunctiveMatch(clause *clause, match
 			actions:               make(map[uint32]*conjunctiveAction),
 			featureNetworkPolicy:  f,
 			dropFlowEnableLogging: enableLogging,
-			dryRun:                clause.dryRun,
 			dryRunConjSet:         sets.New[uint32](),
 		}
 		// Generate the default drop flow if dropTable is not nil.
