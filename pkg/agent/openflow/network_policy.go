@@ -460,8 +460,6 @@ type conjMatchFlowContext struct {
 	// dropFlowEnableLogging describes the logging requirement of the dropFlow.
 	dropFlowEnableLogging bool
 
-	// dryRun helps identify whether this match was a dry-run
-	dryRun         bool
 	dryRunDropFlow *openflow15.FlowMod
 	dryRunConjSet  sets.Set[uint32]
 }
@@ -647,8 +645,10 @@ func (c *conjMatchFlowContextChange) updateContextStatus() {
 		switch c.dryRunDropFlow.changeType {
 		case insertion:
 			c.context.dryRunDropFlow = c.dryRunDropFlow.flow
+			c.context.dryRunConjSet.Insert(c.clause.action.conjID)
 		case deletion:
 			c.context.dryRunDropFlow = nil
+			c.context.dryRunConjSet.Delete(c.clause.action.conjID)
 		}
 	}
 
@@ -833,63 +833,47 @@ func (c *clause) addConjunctiveMatchFlow(featureNetworkPolicy *featureNetworkPol
 		ctxType = insertion
 	}
 
+	hasChange := context.dropFlowEnableLogging != enableLogging
+
 	// TODO: Ultimately the implementation is the same if we assume the drop table for the same clause can not suddenly change (nil<>non-nil) for the clause.
 	// Generate a dryRunDropFlow if there was ever a dry-run for this rule.
 	if c.dropTable != nil {
-		conjId := c.action.conjID
+		// conjId := c.action.conjID
 
-		if c.dryRun {
+		if c.dryRun && !isMCNPRule {
 			changeType := insertion
 			if context.dryRunDropFlow != nil {
 				changeType = modification
 			}
 
-			// Do I skip this if it's multicluster??
-			dryRunDropFlow = &flowChange{
-				flow:       getFlowModMessage(context.featureNetworkPolicy.defaultDropFlow(c.dropTable, match.matchPairs, enableLogging, true), binding.AddMessage),
-				changeType: changeType,
-			}
-
-			// We only have dry-runs no real work
-			if len(context.dryRunConjSet) == len(context.actions) && context.dropFlow != nil && !isMCNPRule { // && len(context.actions) > 0 to save on extra change request
-				dropFlow = &flowChange{
-					flow:       context.dropFlow,
-					changeType: deletion,
+			if hasChange || context.dryRunDropFlow == nil {
+				dryRunDropFlow = &flowChange{
+					flow:       getFlowModMessage(context.featureNetworkPolicy.defaultDropFlow(c.dropTable, match.matchPairs, enableLogging, true), binding.AddMessage),
+					changeType: changeType,
 				}
 			}
-
-			context.dryRunConjSet.Insert(conjId)
 		} else { // Generate the default drop flow if dropTable is not nil.
 			changeType := insertion
 			if context.dropFlow != nil {
 				changeType = modification
 			}
-			if isMCNPRule {
-				dropFlow = &flowChange{
-					flow:       getFlowModMessage(context.featureNetworkPolicy.multiClusterNetworkPolicySecurityDropFlow(c.dropTable, match.matchPairs), binding.AddMessage),
-					changeType: changeType,
-				}
-			} else {
-				dropFlow = &flowChange{
-					flow:       getFlowModMessage(context.featureNetworkPolicy.defaultDropFlow(c.dropTable, match.matchPairs, enableLogging, false), binding.AddMessage),
-					changeType: changeType,
-				}
-			}
 
-			context.dryRunConjSet.Delete(conjId)
-			if context.dryRunDropFlow != nil {
-				dryRunDropFlow = &flowChange{
-					flow:       context.dryRunDropFlow,
-					changeType: deletion,
+			if hasChange || context.dropFlow == nil {
+				if isMCNPRule {
+					dropFlow = &flowChange{
+						flow:       getFlowModMessage(context.featureNetworkPolicy.multiClusterNetworkPolicySecurityDropFlow(c.dropTable, match.matchPairs), binding.AddMessage),
+						changeType: changeType,
+					}
+				} else {
+					dropFlow = &flowChange{
+						flow:       getFlowModMessage(context.featureNetworkPolicy.defaultDropFlow(c.dropTable, match.matchPairs, enableLogging, false), binding.AddMessage),
+						changeType: changeType,
+					}
 				}
 			}
 		}
 	}
-
-	// TODO: If dryRunDropFlow == nil && context.DryRunFlowCount == 0 { delete dryRunDropFlow }
-
 	context.dropFlowEnableLogging = enableLogging // no effect if it's the same
-	context.dryRun = c.dryRun                     // no effect if it's the same
 
 	// Calculate the change on the conjMatchFlowContext.
 	ctxChanges := &conjMatchFlowContextChange{
@@ -1121,6 +1105,7 @@ func (c *clause) deleteConjunctiveMatchFlow(flowContextKey string) *conjMatchFlo
 	conjID := c.action.conjID
 	expectedConjunctiveActions := len(context.actions)
 	expectedDenyAllRules := len(context.denyAllRules)
+
 	if c.action.nClause > 1 {
 		// Delete the conjunctive action if it is in context actions.
 		action, found := context.actions[conjID]
@@ -1129,23 +1114,35 @@ func (c *clause) deleteConjunctiveMatchFlow(flowContextKey string) *conjMatchFlo
 			ctxChange.actChange.action = action
 			expectedConjunctiveActions--
 		}
-
-		// This conjunction is being deleted, remove from cache
-		context.dryRunConjSet.Delete(conjID)
-		if len(context.dryRunConjSet) == expectedConjunctiveActions { // There are only dryrun policies
-			if context.dropFlow != nil {
-				ctxChange.dropFlow = &flowChange{
-					flow:       context.dropFlow,
-					changeType: deletion,
-				}
-			}
-		}
 	} else {
 		// Delete the DENY-ALL rule if it is in context denyAllRules.
 		ctxChange.matchFlow = &flowChange{
 			changeType: deletion,
 		}
 		expectedDenyAllRules--
+	}
+
+	// This dry-run rule is being deleted, but there are other dry-run rules. Only mark it for deletion.
+	if context.dryRunConjSet.Has(conjID) {
+		if len(context.dryRunConjSet) > 1 { // Other dry-run rules exist
+			ctxChange.dryRunDropFlow = &flowChange{
+				changeType: deletion,
+			}
+		} else { // This is the last dry-run rule (or there was none)
+			if context.dryRunDropFlow != nil {
+				ctxChange.dryRunDropFlow = &flowChange{
+					flow:       context.dryRunDropFlow,
+					changeType: deletion,
+				}
+			}
+		}
+	} else if len(context.dryRunConjSet) == expectedConjunctiveActions { // Only dry-run rules left
+		if context.dropFlow != nil {
+			ctxChange.dropFlow = &flowChange{
+				flow:       context.dropFlow,
+				changeType: deletion,
+			}
+		}
 	}
 
 	// Uninstall default drop flow if the deleted conjunctiveAction is the last action or the rule is the last one in
@@ -1458,7 +1455,7 @@ func (f *featureNetworkPolicy) sendConjunctiveFlows(changes []*conjMatchFlowCont
 			flowChanges = append(flowChanges, change.dropFlow)
 		}
 
-		if change.dryRunDropFlow != nil {
+		if change.dryRunDropFlow != nil && change.dryRunDropFlow.flow != nil {
 			flowChanges = append(flowChanges, change.dryRunDropFlow)
 		}
 	}
