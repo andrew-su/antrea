@@ -647,7 +647,9 @@ func (c *conjMatchFlowContextChange) updateContextStatus() {
 			c.context.dryRunDropFlow = c.dryRunDropFlow.flow
 			c.context.dryRunConjSet.Insert(c.clause.action.conjID)
 		case deletion:
-			c.context.dryRunDropFlow = nil
+			if c.dryRunDropFlow.flow != nil {
+				c.context.dryRunDropFlow = nil
+			}
 			c.context.dryRunConjSet.Delete(c.clause.action.conjID)
 		}
 	}
@@ -835,44 +837,42 @@ func (c *clause) addConjunctiveMatchFlow(featureNetworkPolicy *featureNetworkPol
 
 	hasChange := context.dropFlowEnableLogging != enableLogging
 
+	changeType := func(flow *openflow15.FlowMod) changeType {
+		if flow != nil {
+			return modification
+		}
+		return insertion
+	}
+
 	// TODO: Ultimately the implementation is the same if we assume the drop table for the same clause can not suddenly change (nil<>non-nil) for the clause.
 	// Generate a dryRunDropFlow if there was ever a dry-run for this rule.
 	if c.dropTable != nil {
-		// conjId := c.action.conjID
-
-		if c.dryRun && !isMCNPRule {
-			changeType := insertion
-			if context.dryRunDropFlow != nil {
-				changeType = modification
-			}
-
-			if hasChange || context.dryRunDropFlow == nil {
-				dryRunDropFlow = &flowChange{
-					flow:       getFlowModMessage(context.featureNetworkPolicy.defaultDropFlow(c.dropTable, match.matchPairs, enableLogging, true), binding.AddMessage),
-					changeType: changeType,
+		if isMCNPRule {
+			if hasChange { // This was never considered in the original implementation
+				dropFlow = &flowChange{
+					flow:       getFlowModMessage(context.featureNetworkPolicy.multiClusterNetworkPolicySecurityDropFlow(c.dropTable, match.matchPairs), binding.AddMessage),
+					changeType: changeType(context.dropFlow),
 				}
 			}
 		} else { // Generate the default drop flow if dropTable is not nil.
-			changeType := insertion
-			if context.dropFlow != nil {
-				changeType = modification
+			flow := &flowChange{
+				flow: getFlowModMessage(context.featureNetworkPolicy.defaultDropFlow(c.dropTable, match.matchPairs, enableLogging, c.dryRun), binding.AddMessage),
 			}
-
-			if hasChange || context.dropFlow == nil {
-				if isMCNPRule {
-					dropFlow = &flowChange{
-						flow:       getFlowModMessage(context.featureNetworkPolicy.multiClusterNetworkPolicySecurityDropFlow(c.dropTable, match.matchPairs), binding.AddMessage),
-						changeType: changeType,
-					}
-				} else {
-					dropFlow = &flowChange{
-						flow:       getFlowModMessage(context.featureNetworkPolicy.defaultDropFlow(c.dropTable, match.matchPairs, enableLogging, false), binding.AddMessage),
-						changeType: changeType,
-					}
+			if c.dryRun {
+				flow.changeType = changeType(context.dryRunDropFlow)
+				if context.dryRunDropFlow == nil || hasChange {
+					dryRunDropFlow = flow
+				}
+				context.dryRunConjSet.Insert(c.action.conjID)
+			} else {
+				flow.changeType = changeType(context.dropFlow)
+				if context.dropFlow == nil || hasChange {
+					dropFlow = flow
 				}
 			}
 		}
 	}
+
 	context.dropFlowEnableLogging = enableLogging // no effect if it's the same
 
 	// Calculate the change on the conjMatchFlowContext.
@@ -1356,16 +1356,30 @@ func (f *featureNetworkPolicy) addActionToConjunctiveMatch(clause *clause, match
 			dropFlowEnableLogging: enableLogging,
 			dryRunConjSet:         sets.New[uint32](),
 		}
-		// Generate the default drop flow if dropTable is not nil.
-		if clause.dropTable != nil {
-			if isMCNPRule {
-				context.dropFlow = getFlowModMessage(context.featureNetworkPolicy.multiClusterNetworkPolicySecurityDropFlow(clause.dropTable, match.matchPairs), binding.AddMessage)
-			} else {
-				context.dropFlow = getFlowModMessage(context.featureNetworkPolicy.defaultDropFlow(clause.dropTable, match.matchPairs, enableLogging, clause.dryRun), binding.AddMessage)
-			}
-		}
-		f.globalConjMatchFlowCache[matcherKey] = context
 	}
+	var flow *openflow15.FlowMod
+	// Generate the default drop flow if dropTable is not nil.
+	if clause.dropTable != nil {
+		if isMCNPRule {
+			flow = getFlowModMessage(context.featureNetworkPolicy.multiClusterNetworkPolicySecurityDropFlow(clause.dropTable, match.matchPairs), binding.AddMessage)
+		} else {
+			flow = getFlowModMessage(context.featureNetworkPolicy.defaultDropFlow(clause.dropTable, match.matchPairs, enableLogging, clause.dryRun), binding.AddMessage)
+		}
+	}
+
+	if flow != nil {
+		if isMCNPRule {
+			context.dropFlow = flow
+		} else if clause.dryRun {
+			context.dryRunConjSet.Insert(clause.action.conjID)
+			context.dryRunDropFlow = flow
+		} else {
+			context.dropFlow = flow
+		}
+	}
+
+	f.globalConjMatchFlowCache[matcherKey] = context
+
 	clause.matches[matcherKey] = context
 
 	if clause.action.nClause > 1 {
@@ -1411,6 +1425,9 @@ func (c *client) BatchInstallPolicyRuleFlows(ofPolicyRules []*types.PolicyRule) 
 		}
 		if ctx.dropFlow != nil {
 			allFlowMessages = append(allFlowMessages, ctx.dropFlow)
+		}
+		if ctx.dryRunDropFlow != nil {
+			allFlowMessages = append(allFlowMessages, ctx.dryRunDropFlow)
 		}
 	}
 
