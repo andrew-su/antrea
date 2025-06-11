@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM dockerhub.artifactory.vcfd.broadcom.net/library/buildpack-deps:24.04-curl AS certificate-base
+FROM dockerhub.packages.vcfd.broadcom.net/library/buildpack-deps:24.04-curl AS certificate-base
 
-FROM dockerhub.artifactory.vcfd.broadcom.net/ubuntu:24.04 as cni-binaries
+FROM dockerhub.packages.vcfd.broadcom.net/ubuntu:24.04 as cni-binaries
 
 ARG CNI_BINARIES_VERSION
 ARG DOWNLOAD_CNI_BINARIES=false

@@ -1,1 +1,1 @@
-nsx-ujo-docker-local.packages.vcfd.broadcom.net/microsoft/golang:1.23-fips-bookworm-e96f8bcd
+gobuild-container-registry.lvn.broadcom.net/cayman_golang/vmware-go1.23-unified/241f082d601adea6b22fc9c7f84a7e8cd9253d23/release/publish/infra/docker/ubuntu-amd64/1.23.8:ob-24686390

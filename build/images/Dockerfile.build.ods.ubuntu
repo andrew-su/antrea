@@ -1,6 +1,6 @@
 # Copyright 2024 Antrea Authors
 
-FROM dockerhub.artifactory.vcfd.broadcom.net/library/python:3.8-slim
+FROM dockerhub.packages.vcfd.broadcom.net/library/python:3.8-slim
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
 LABEL description="The Docker image to run SHA agent for ODS runbook."

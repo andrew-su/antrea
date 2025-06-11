@@ -1,4 +1,4 @@
-FROM dockerhub.artifactory.vcfd.broadcom.net/redhat/ubi9:latest
+FROM dockerhub.packages.vcfd.broadcom.net/redhat/ubi9:latest
 
 ARG BUILD_INFO
 

@@ -16,9 +16,9 @@
 # - openvswitch-$OVS_VERSION.tar.gz - archive of the source code of OpenvSwitch.
 # IPsec related packages will not be installed by default. Specify `--build-arg IPsec=true` to enable IPsec support.
 
-FROM dockerhub.artifactory.vcfd.broadcom.net/library/buildpack-deps:24.04-curl AS certificate-base
+FROM dockerhub.packages.vcfd.broadcom.net/library/buildpack-deps:24.04-curl AS certificate-base
 
-FROM dockerhub.artifactory.vcfd.broadcom.net/ubuntu:24.04 as ovs-ubuntu-debs
+FROM dockerhub.packages.vcfd.broadcom.net/ubuntu:24.04 as ovs-ubuntu-debs
 
 # Some patches may not apply cleanly if a non-default version is provided.
 # See build/images/deps/ovs-version for the default version.
@@ -67,7 +67,7 @@ RUN tar -xzf /tmp/openvswitch-$OVS_VERSION.tar.gz -C /tmp && \
     if ${IPSEC}; then mv openvswitch-ipsec_*.deb ovs-debs/; fi && \
     cd / && rm -rf /tmp/openvswitch*
 
-FROM dockerhub.artifactory.vcfd.broadcom.net/ubuntu:24.04
+FROM dockerhub.packages.vcfd.broadcom.net/ubuntu:24.04
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
 LABEL description="A Docker image based on Ubuntu 24.04 which includes Open vSwitch built from source."

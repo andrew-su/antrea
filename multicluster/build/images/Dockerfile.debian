@@ -1,4 +1,4 @@
-FROM dockerhub.artifactory.vcfd.broadcom.net/library/debian:bookworm-slim
+FROM dockerhub.packages.vcfd.broadcom.net/library/debian:bookworm-slim
 
 ARG BUILD_INFO
 

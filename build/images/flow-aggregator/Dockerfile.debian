@@ -1,9 +1,9 @@
 # Prerequisite to build this Dockerfile:
 # - Pre-built Antrea binaries in bin/.
 # Chose this base image so that a shell is available for users to exec into the container, run antctl and run tools like pprof easily
-FROM dockerhub.artifactory.vcfd.broadcom.net/library/buildpack-deps:bookworm-curl AS certificate-base
+FROM dockerhub.packages.vcfd.broadcom.net/library/buildpack-deps:bookworm-curl AS certificate-base
 
-FROM dockerhub.artifactory.vcfd.broadcom.net/library/debian:bookworm-slim
+FROM dockerhub.packages.vcfd.broadcom.net/library/debian:bookworm-slim
 ARG BUILD_INFO
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"

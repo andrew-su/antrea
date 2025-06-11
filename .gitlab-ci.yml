@@ -18,7 +18,7 @@ test-unit:
 
 check-codegen:
   before_script: []
-  image: dockerhub.artifactory.vcfd.broadcom.net/antrea/codegen:kubernetes-1.31.1-build.1
+  image: dockerhub.packages.vcfd.broadcom.net/antrea/codegen:kubernetes-1.31.1-build.1
   stage: test
   script:
     - ./ci/check-codegen.sh

@@ -1,8 +1,8 @@
 # Copyright 2024 Antrea Authors
 
-FROM dockerhub.artifactory.vcfd.broadcom.net/library/buildpack-deps:bookworm-curl AS certificate-base
+FROM dockerhub.packages.vcfd.broadcom.net/library/buildpack-deps:bookworm-curl AS certificate-base
 
-FROM dockerhub.artifactory.vcfd.broadcom.net/library/debian:bookworm-slim
+FROM dockerhub.packages.vcfd.broadcom.net/library/debian:bookworm-slim
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
 LABEL description="The Docker image to run SHA agent for ODS runbook."
 

@@ -1,5 +1,5 @@
 # Base image is from the latest build task from https://jenkins-lastline.svc.eng.vmware.com/job/suricata-lastline/
-FROM nsx-ujo-docker-local.artifactory.vcfd.broadcom.net/antrea/suricata:6.0.4_ll-0_710-aee881a0.bionic
+FROM nsx-ujo-docker-local.packages.vcfd.broadcom.net/antrea/suricata:6.0.4_ll-0_710-aee881a0.bionic
 ARG BUILD_INFO
 
 LABEL maintainer="Antrea <projectantrea-dev@googlegroups.com>"
