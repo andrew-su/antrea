@@ -34,8 +34,8 @@ func TestNetworkPolicyDryRun(t *testing.T) {
 	t.Run("testDryRunANPAllow", func(t *testing.T) {
 		//t.Cleanup(exportLogsForSubtest(t, data))
 		applyDefaultDenyToAllNamespaces(k8sUtils, namespaces)
-		//testDryRunANPAllow(t, data)
-		testDryRunKNPAllow(t, data)
+		testDryRunANPAllow(t, data)
+		// testDryRunKNPAllow(t, data)
 		cleanupDefaultDenyNPs(k8sUtils, namespaces)
 	})
 	// t.Run("testDryRunANPDrop", func(t *testing.T) { testDryRunANPDrop(t, data) })
@@ -69,21 +69,22 @@ func expectedError() string {
 }
 
 func testDryRunANPAllow(t *testing.T, data *TestData) {
-	builder1 := &AntreaNetworkPolicySpecBuilder{}
-	builder1 = builder1.SetName(getNS("x"), "dryrun-allow").
+	dryRunANP := &AntreaNetworkPolicySpecBuilder{}
+	dryRunANP = dryRunANP.SetName(getNS("x"), "dryrun-allow").
 		SetPriority(1.0).
-		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}})
-	builder1.AddEgress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "b"}, map[string]string{"ns": getNS("y")}, nil,
-		nil, nil, nil, nil, crdv1beta1.RuleActionAllow, "", "")
+		SetDryRun(true).
+		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}}).
+		AddEgress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "b"}, map[string]string{"ns": getNS("y")}, nil,
+			nil, nil, nil, nil, crdv1beta1.RuleActionAllow, "", "")
 
-	builder2 := &AntreaNetworkPolicySpecBuilder{}
-	builder2 = builder2.SetName(getNS("y"), "non-dryrun-allow").
+	allowANP := &AntreaNetworkPolicySpecBuilder{}
+	allowANP = allowANP.SetName(getNS("y"), "non-dryrun-allow").
 		SetPriority(1.0).
-		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "b"}}})
-	builder2.AddIngress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "a"}, map[string]string{"ns": getNS("x")}, nil,
-		nil, nil, nil, nil, crdv1beta1.RuleActionAllow, "", "")
+		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "b"}}}).
+		AddIngress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "a"}, map[string]string{"ns": getNS("x")}, nil,
+			nil, nil, nil, nil, crdv1beta1.RuleActionAllow, "", "")
 
-	testInfo := getDryRunANPTestCaseInfo(builder1.GetWithDryRun(true), false)
+	testInfo := getDryRunANPTestCaseInfo(dryRunANP.Get(), false)
 	testInfo.expectedOutput = successOutput
 
 	testStep := []*TestStep{
@@ -91,8 +92,8 @@ func testDryRunANPAllow(t *testing.T, data *TestData) {
 			Name:  "dryrun-allow",
 			Ports: []int32{80},
 			TestResources: []metav1.Object{
-				builder1.GetWithDryRun(true),
-				builder2.Get(),
+				dryRunANP.Get(),
+				allowANP.Get(),
 			},
 			Protocol: ProtocolTCP,
 		},
@@ -104,14 +105,14 @@ func testDryRunANPAllow(t *testing.T, data *TestData) {
 }
 
 func testDryRunANPDrop(t *testing.T, data *TestData) {
-	builder := &AntreaNetworkPolicySpecBuilder{}
-	builder = builder.SetName(getNS("x"), "dryrun-drop").
+	dryRunANP := &AntreaNetworkPolicySpecBuilder{}
+	dryRunANP = dryRunANP.SetName(getNS("x"), "dryrun-drop").
 		SetPriority(1.0).
-		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}})
-	builder.AddEgress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "b"}, map[string]string{"ns": getNS("y")}, nil,
-		nil, nil, nil, nil, crdv1beta1.RuleActionDrop, "", "")
+		SetDryRun(true).
+		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}}).
+		AddEgress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "b"}, map[string]string{"ns": getNS("y")}, nil, nil, nil, nil, nil, crdv1beta1.RuleActionDrop, "", "")
 
-	dryRunPolicy := builder.GetWithDryRun(true)
+	dryRunPolicy := dryRunANP.Get()
 	testInfo := getDryRunANPTestCaseInfo(dryRunPolicy, false)
 	testInfo.expectedOutput = failureProgressOutput
 	testInfo.expectedError = expectedError
@@ -134,15 +135,15 @@ func testDryRunANPDrop(t *testing.T, data *TestData) {
 }
 
 func testDryRunANPReject(t *testing.T, data *TestData) {
-	builder := &AntreaNetworkPolicySpecBuilder{}
-	builder = builder.SetName(getNS("x"), "dryrun-reject").
+	dryRunANP := &AntreaNetworkPolicySpecBuilder{}
+	dryRunANP = dryRunANP.SetName(getNS("x"), "dryrun-reject").
 		SetPriority(1.0).
-		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}})
-	builder.AddEgress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "b"}, map[string]string{"ns": getNS("y")}, nil,
-		nil, nil, nil, nil, crdv1beta1.RuleActionReject, "", "")
+		SetDryRun(true).
+		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}}).
+		AddEgress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "b"}, map[string]string{"ns": getNS("y")}, nil,
+			nil, nil, nil, nil, crdv1beta1.RuleActionReject, "", "")
 
-	dryRunPolicy := builder.GetWithDryRun(true)
-	testInfo := getDryRunANPTestCaseInfo(dryRunPolicy, false)
+	testInfo := getDryRunANPTestCaseInfo(dryRunANP.Get(), false)
 	testInfo.expectedOutput = failureRefusedOutput
 	testInfo.expectedError = expectedError
 	fmt.Printf("DBUG: testInfo: %+v\n", testInfo)
@@ -152,7 +153,7 @@ func testDryRunANPReject(t *testing.T, data *TestData) {
 			Name:  "dryrun-reject",
 			Ports: []int32{80},
 			TestResources: []metav1.Object{
-				dryRunPolicy,
+				dryRunANP.Get(),
 			},
 			Protocol: ProtocolTCP,
 		},
@@ -164,21 +165,22 @@ func testDryRunANPReject(t *testing.T, data *TestData) {
 }
 
 func testDryRunANPPass(t *testing.T, data *TestData) {
-	builder1 := &AntreaNetworkPolicySpecBuilder{}
-	builder1 = builder1.SetName(getNS("x"), "non-dryrun-reject").
+	rejectANP := &AntreaNetworkPolicySpecBuilder{}
+	rejectANP = rejectANP.SetName(getNS("x"), "non-dryrun-reject").
 		SetPriority(2.0).
 		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}})
-	builder1.AddEgress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "b"}, map[string]string{"ns": getNS("y")}, nil,
+	rejectANP.AddEgress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "b"}, map[string]string{"ns": getNS("y")}, nil,
 		nil, nil, nil, nil, crdv1beta1.RuleActionReject, "", "")
 
-	builder2 := &AntreaNetworkPolicySpecBuilder{}
-	builder2 = builder2.SetName(getNS("y"), "dryrun-pass").
+	dryRunBuilderPolicy := &AntreaNetworkPolicySpecBuilder{}
+	dryRunBuilderPolicy = dryRunBuilderPolicy.SetName(getNS("y"), "dryrun-pass").
 		SetPriority(1.0).
-		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "b"}}})
-	builder2.AddEgress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "a"}, map[string]string{"ns": getNS("x")}, nil,
-		nil, nil, nil, nil, crdv1beta1.RuleActionPass, "", "")
+		SetDryRun(true).
+		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "b"}}}).
+		AddEgress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "a"}, map[string]string{"ns": getNS("x")}, nil,
+			nil, nil, nil, nil, crdv1beta1.RuleActionPass, "", "")
 
-	testInfo1 := getDryRunANPTestCaseInfo(builder2.GetWithDryRun(true), false)
+	testInfo1 := getDryRunANPTestCaseInfo(dryRunBuilderPolicy.Get(), false)
 	testInfo1.expectedOutput = failureProgressOutput
 	testInfo1.expectedError = expectedError
 
@@ -187,8 +189,8 @@ func testDryRunANPPass(t *testing.T, data *TestData) {
 			Name:  "dryrun-pass",
 			Ports: []int32{80},
 			TestResources: []metav1.Object{
-				builder1.Get(),
-				builder2.GetWithDryRun(true),
+				rejectANP.Get(),
+				dryRunBuilderPolicy.Get(),
 			},
 			Protocol: ProtocolTCP,
 		},
@@ -226,7 +228,7 @@ func testDryRunANPPass(t *testing.T, data *TestData) {
 		}
 	}()
 
-	testInfo2 := getDryRunANPTestCaseInfo(builder2.GetWithDryRun(true), false)
+	testInfo2 := getDryRunANPTestCaseInfo(dryRunBuilderPolicy.Get(), false)
 	testInfo2.expectedOutput = failureProgressOutput
 	testInfo2.expectedError = expectedError
 
@@ -236,7 +238,7 @@ func testDryRunANPPass(t *testing.T, data *TestData) {
 			Ports: []int32{80},
 			TestResources: []metav1.Object{
 				np,
-				builder2.GetWithDryRun(true),
+				dryRunBuilderPolicy.Get(),
 			},
 			Protocol: ProtocolTCP,
 		},
@@ -248,21 +250,22 @@ func testDryRunANPPass(t *testing.T, data *TestData) {
 }
 
 func testDryRunANPUpdate(t *testing.T, data *TestData) {
-	builder1 := &AntreaNetworkPolicySpecBuilder{}
-	builder1 = builder1.SetName(getNS("x"), "dryrun-allow").
+	dryRunANP := &AntreaNetworkPolicySpecBuilder{}
+	dryRunANP = dryRunANP.SetName(getNS("x"), "dryrun-allow").
 		SetPriority(1.0).
-		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}})
-	builder1.AddEgress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "b"}, map[string]string{"ns": getNS("y")}, nil,
-		nil, nil, nil, nil, crdv1beta1.RuleActionAllow, "", "")
+		SetDryRun(true).
+		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}}).
+		AddEgress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "b"}, map[string]string{"ns": getNS("y")}, nil,
+			nil, nil, nil, nil, crdv1beta1.RuleActionAllow, "", "")
 
-	builder2 := &AntreaNetworkPolicySpecBuilder{}
-	builder2 = builder2.SetName(getNS("y"), "non-dryrun-allow").
+	allowANP := &AntreaNetworkPolicySpecBuilder{}
+	allowANP = allowANP.SetName(getNS("y"), "non-dryrun-allow").
 		SetPriority(1.0).
 		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "b"}}})
-	builder2.AddIngress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "a"}, map[string]string{"ns": getNS("x")}, nil,
+	allowANP.AddIngress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "a"}, map[string]string{"ns": getNS("x")}, nil,
 		nil, nil, nil, nil, crdv1beta1.RuleActionAllow, "", "")
 
-	testInfo := getDryRunANPTestCaseInfo(builder1.GetWithDryRun(true), false)
+	testInfo := getDryRunANPTestCaseInfo(dryRunANP.Get(), false)
 	testInfo.expectedOutput = successOutput
 
 	testStep := []*TestStep{
@@ -270,11 +273,11 @@ func testDryRunANPUpdate(t *testing.T, data *TestData) {
 			Name:  "dryrun-allow",
 			Ports: []int32{80},
 			CustomSetup: func() {
-				k8sUtils.CreateOrUpdateANNP(builder1.GetWithDryRun(true))
+				k8sUtils.CreateOrUpdateANNP(dryRunANP.Get())
 			},
 			TestResources: []metav1.Object{
-				builder1.GetWithDryRun(false),
-				builder2.Get(),
+				dryRunANP.Get(),
+				allowANP.Get(),
 			},
 			Protocol: ProtocolTCP,
 		},
