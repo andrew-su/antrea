@@ -18,6 +18,91 @@ import (
 	. "antrea.io/antrea/test/e2e/utils"
 )
 
+func TestDryRunNetworkPolicies(t *testing.T) {
+	skipIfHasWindowsNodes(t)
+	skipIfAntreaPolicyDisabled(t)
+
+	data, err := setupTest(t)
+	if err != nil {
+		t.Fatalf("Error when setting up test: %v", err)
+	}
+	defer teardownTest(t, data)
+
+	initialize(t, data, nil)
+	defer k8sUtils.Cleanup(namespaces)
+
+	t.Run("TestGroupDefaultDENY", func(t *testing.T) {
+		// testcases below require default-deny k8s NetworkPolicies to work
+		applyDefaultDenyToAllNamespaces(k8sUtils, namespaces)
+		defer cleanupDefaultDenyNPs(k8sUtils, namespaces)
+
+		t.Run("Case=ANNPAllowXBtoA", func(t *testing.T) { testDryRunANNPAllowXBtoA(t) })
+		t.Run("Case=NPAllowXBtoA", func(t *testing.T) { testDryRunK8sNPAllowXBtoA(t) })
+	})
+
+	t.Run("TestGroupK8sNP", func(t *testing.T) {
+		t.Run("Case=NPAllowXBtoA", func(t *testing.T) {})
+		t.Run("Case=NP", func(t *testing.T) {})
+	})
+}
+
+// testDryRunANNPAllowXBtoA tests traffic from X/B to pods with label A, after applying the default deny
+// k8s NetworkPolicies in all namespaces and a dry-run ANNP to allow X/B to A. Traffic should remain denied.
+func testDryRunANNPAllowXBtoA(t *testing.T) {
+	builder := &AntreaNetworkPolicySpecBuilder{}
+	builder = builder.SetName(getNS("x"), "annp-allow-xb-to-a").
+		SetDryRun(true).
+		SetPriority(1.0).
+		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}})
+	builder.AddIngress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "a"}, map[string]string{"ns": getNS("x")}, nil,
+		nil, nil, nil, nil, crdv1beta1.RuleActionAllow, "", "")
+
+	reachability := NewReachability(allPods, Dropped)
+	reachability.ExpectSelf(allPods, Connected)
+
+	testStep := []*TestStep{
+		{
+			Name:          "Port 80",
+			Reachability:  reachability,
+			TestResources: []metav1.Object{builder.Get()},
+			Ports:         []int32{80},
+			Protocol:      ProtocolTCP,
+		},
+	}
+	testCase := []*TestCase{
+		{"ACNP Allow X/B to A", testStep},
+	}
+	executeTests(t, testCase)
+}
+
+// testACNPAllowXBtoA tests traffic from X/B to pods with label A, after applying the default deny
+// k8s NetworkPolicies in all namespaces and ACNP to allow X/B to A.
+func testDryRunK8sNPAllowXBtoA(t *testing.T) {
+	builder := &NetworkPolicySpecBuilder{}
+	builder = builder.SetName(getNS("x"), "k8snp-allow-xb-to-a").
+		SetDryRun(true).
+		SetPodSelector(map[string]string{"pod": "a"}).
+		SetTypeIngress()
+		
+
+	reachability := NewReachability(allPods, Dropped)
+	reachability.ExpectSelf(allPods, Connected)
+
+	testStep := []*TestStep{
+		{
+			Name:          "Port 80",
+			Reachability:  reachability,
+			TestResources: []metav1.Object{builder.Get()},
+			Ports:         []int32{80},
+			Protocol:      ProtocolTCP,
+		},
+	}
+	testCase := []*TestCase{
+		{"ACNP Allow X/B to A", testStep},
+	}
+	executeTests(t, testCase)
+}
+
 func TestNetworkPolicyDryRun(t *testing.T) {
 	skipIfHasWindowsNodes(t)
 	skipIfAntreaPolicyDisabled(t)
@@ -26,9 +111,10 @@ func TestNetworkPolicyDryRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error when setting up test: %v", err)
 	}
-	//defer teardownTest(t, data)
+	defer teardownTest(t, data)
 
 	initialize(t, data, nil)
+	defer k8sUtils.Cleanup(namespaces)
 
 	// tests which need default deny
 	t.Run("testDryRunANPAllow", func(t *testing.T) {
@@ -38,6 +124,7 @@ func TestNetworkPolicyDryRun(t *testing.T) {
 		// testDryRunKNPAllow(t, data)
 		cleanupDefaultDenyNPs(k8sUtils, namespaces)
 	})
+
 	// t.Run("testDryRunANPDrop", func(t *testing.T) { testDryRunANPDrop(t, data) })
 	// t.Run("testDryRunANPReject", func(t *testing.T) { testDryRunANPReject(t, data) })
 	// t.Run("testDryRunANPPass", func(t *testing.T) { testDryRunANPPass(t, data) })
