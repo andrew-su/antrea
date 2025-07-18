@@ -64,16 +64,17 @@ type TestCase struct {
 // TestStep is a single unit of testing spec. It includes the policy specs that need to be
 // applied for this test, the port to test traffic on and the expected Reachability matrix.
 type TestStep struct {
-	Name           string
-	Reachability   *Reachability
-	NPEvaluation   *NPEvaluation
-	TestResources  []metav1.Object
-	Ports          []int32
-	Protocol       utils.AntreaPolicyProtocol
-	Duration       time.Duration
-	CustomProbes   []*CustomProbe
-	CustomSetup    func()
-	CustomTeardown func()
+	Name                   string
+	Reachability           *Reachability
+	NetworkStatExpectation *NetworkPolicyStatExpectation
+	NPEvaluation           *NPEvaluation
+	TestResources          []metav1.Object
+	Ports                  []int32
+	Protocol               utils.AntreaPolicyProtocol
+	Duration               time.Duration
+	CustomProbes           []*CustomProbe
+	CustomSetup            func()
+	CustomTeardown         func()
 }
 
 // CustomProbe will spin up (or update) SourcePod and DestPod such that Add event of Pods
@@ -937,6 +938,7 @@ func (data *TestData) createOrUpdateACNPAsUser(cnp *crdv1beta1.ClusterNetworkPol
 	} else if cnpReturned.Name != "" {
 		log.Debugf("ClusterNetworkPolicy with name %s already exists, updating", cnp.Name)
 		cnpReturned.Spec = cnp.Spec
+		cnpReturned.Annotations = cnp.Annotations
 		cnp, err = client.CrdV1beta1().ClusterNetworkPolicies().Update(context.TODO(), cnpReturned, metav1.UpdateOptions{})
 		return cnp, err
 	}

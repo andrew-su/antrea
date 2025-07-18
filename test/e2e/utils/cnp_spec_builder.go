@@ -15,8 +15,6 @@
 package utils
 
 import (
-	"strconv"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -26,6 +24,8 @@ import (
 type ClusterNetworkPolicySpecBuilder struct {
 	Spec crdv1beta1.ClusterNetworkPolicySpec
 	Name string
+
+	dryRun bool
 }
 
 type ACNPAppliedToSpec struct {
@@ -46,30 +46,26 @@ func (b *ClusterNetworkPolicySpecBuilder) Get() *crdv1beta1.ClusterNetworkPolicy
 	if b.Spec.Egress == nil {
 		b.Spec.Egress = []crdv1beta1.Rule{}
 	}
+
+	var annotations map[string]string
+	if b.dryRun {
+		annotations = map[string]string{
+			"antrea.io/dry-run": "true",
+		}
+	}
+
 	return &crdv1beta1.ClusterNetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: b.Name,
+			Name:        b.Name,
+			Annotations: annotations,
 		},
 		Spec: b.Spec,
 	}
 }
 
-func (b *ClusterNetworkPolicySpecBuilder) GetWithDryRun(dryRun bool) *crdv1beta1.ClusterNetworkPolicy {
-	if b.Spec.Ingress == nil {
-		b.Spec.Ingress = []crdv1beta1.Rule{}
-	}
-	if b.Spec.Egress == nil {
-		b.Spec.Egress = []crdv1beta1.Rule{}
-	}
-	return &crdv1beta1.ClusterNetworkPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: b.Name,
-			Annotations: map[string]string{
-				"antrea.io/dry-run": strconv.FormatBool(dryRun),
-			},
-		},
-		Spec: b.Spec,
-	}
+func (b *ClusterNetworkPolicySpecBuilder) SetDryRun(v bool) *ClusterNetworkPolicySpecBuilder {
+	b.dryRun = v
+	return b
 }
 
 func (b *ClusterNetworkPolicySpecBuilder) SetName(name string) *ClusterNetworkPolicySpecBuilder {

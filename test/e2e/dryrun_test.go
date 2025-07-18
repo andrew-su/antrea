@@ -1,19 +1,11 @@
 package e2e
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"strings"
 	"testing"
-	"time"
 
 	crdv1beta1 "antrea.io/antrea/pkg/apis/crd/v1beta1"
-	log "github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
-	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 
 	. "antrea.io/antrea/test/e2e/utils"
 )
@@ -32,533 +24,329 @@ func TestDryRunNetworkPolicies(t *testing.T) {
 	defer k8sUtils.Cleanup(namespaces)
 
 	t.Run("TestGroupDefaultDENY", func(t *testing.T) {
-		// testcases below require default-deny k8s NetworkPolicies to work
+		// 	// testcases below require default-deny k8s NetworkPolicies to work
 		applyDefaultDenyToAllNamespaces(k8sUtils, namespaces)
 		defer cleanupDefaultDenyNPs(k8sUtils, namespaces)
 
-		t.Run("Case=ANNPAllowXBtoA", func(t *testing.T) { testDryRunANNPAllowXBtoA(t) })
-		t.Run("Case=NPAllowXBtoA", func(t *testing.T) { testDryRunK8sNPAllowXBtoA(t) })
+		t.Run("Case=ACNPAllowXBtoA", func(t *testing.T) { testDryRunACNPAllowXBtoA(t, data) })
+		t.Run("Case=NPAllowAnytoA", func(t *testing.T) { testDryRunK8sNPAllowAnytoA(t, data) })
 	})
 
-	t.Run("TestGroupK8sNP", func(t *testing.T) {
-		t.Run("Case=NPAllowXBtoA", func(t *testing.T) {})
-		t.Run("Case=NP", func(t *testing.T) {})
-	})
+	t.Run("Case=ACNPPass", func(t *testing.T) { testDryRunACNPPass(t, data) })
+	// t.Run("TestGroupK8sNP", func(t *testing.T) {})
+	t.Run("Case=ACNPDenyAnytoA", func(t *testing.T) { testDryRunACNPDenyAnytoA(t, data) })
+	t.Run("Case=K8sNPDenyAll", func(t *testing.T) { testDryRunK8sNPDenyAnyToA(t, data) })
 }
 
-// testDryRunANNPAllowXBtoA tests traffic from X/B to pods with label A, after applying the default deny
-// k8s NetworkPolicies in all namespaces and a dry-run ANNP to allow X/B to A. Traffic should remain denied.
-func testDryRunANNPAllowXBtoA(t *testing.T) {
-	builder := &AntreaNetworkPolicySpecBuilder{}
-	builder = builder.SetName(getNS("x"), "annp-allow-xb-to-a").
+func dryRunResult(nps *NetworkPolicyStatExpectation) func() {
+	return func() {
+		passed, failed := nps.GetSummary()
+		fmt.Printf("Summary: passed %d, failed %d\n", passed, failed)
+		if failed > 0 {
+			for _, ex := range nps.Expectations {
+				fmt.Printf("expectation %#v\n", ex)
+				ex.PrintSummary()
+			}
+		}
+	}
+}
+
+// testDryRunACNPAllowXBtoA tests traffic from X/B to pods with label A, after applying the default deny
+// k8s NetworkPolicies in all namespaces and a dry-run ACNP to allow X/B to A. Traffic should remain denied.
+// Additionally it tests for switching off dry-run for the policy and it should update appropriately
+func testDryRunACNPAllowXBtoA(t *testing.T, data *TestData) {
+	builder := &ClusterNetworkPolicySpecBuilder{}
+	builder = builder.SetName("acnp-allow-xb-to-a").
 		SetDryRun(true).
 		SetPriority(1.0).
-		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}})
-	builder.AddIngress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "a"}, map[string]string{"ns": getNS("x")}, nil,
-		nil, nil, nil, nil, crdv1beta1.RuleActionAllow, "", "")
+		SetAppliedToGroup([]ACNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}})
+	builder.AddIngress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "b"}, nil, map[string]string{"ns": getNS("x")},
+		nil, nil, nil, nil, nil, crdv1beta1.RuleActionAllow, "", "", nil)
+
+	dryRunReachability := NewReachability(allPods, Dropped)
+	dryRunReachability.ExpectSelf(allPods, Connected)
+	dryRunPolicy := builder.Get()
+
+	updateReachability := NewReachability(allPods, Dropped)
+	updateReachability.Expect(getPod("x", "b"), getPod("x", "a"), Connected)
+	updateReachability.Expect(getPod("x", "b"), getPod("y", "a"), Connected)
+	updateReachability.Expect(getPod("x", "b"), getPod("z", "a"), Connected)
+	updateReachability.ExpectSelf(allPods, Connected)
+	builder.SetDryRun(false)
+	updatedPolicy := builder.Get()
+
+	nps := &NetworkPolicyStatExpectation{}
+	nps.WithExpectation(&AntreaClusterNetworkPolicyStatExpectation{
+		PolicyStatExpectation: &PolicyStatExpectation{
+			Name: dryRunPolicy.Name,
+			TrafficExpectations: []*TrafficExpectation{
+				{
+					operation: func(want int64, got int64) bool {
+						return got >= want
+					},
+					field: TrafficPackets,
+					want:  int64(1),
+				},
+			},
+		},
+	})
+
+	testStep := []*TestStep{
+		{
+			Name:                   "Port 80",
+			Reachability:           dryRunReachability,
+			NetworkStatExpectation: nps,
+			TestResources:          []metav1.Object{dryRunPolicy},
+			Ports:                  []int32{80},
+			Protocol:               ProtocolTCP,
+		}, {
+			Name:           "Remove Dry-Run",
+			Reachability:   updateReachability,
+			TestResources:  []metav1.Object{updatedPolicy},
+			Ports:          []int32{80},
+			Protocol:       ProtocolTCP,
+			CustomTeardown: dryRunResult(nps),
+		},
+	}
+	testCase := []*TestCase{
+		{"ACNP Allow X/B to A then Update", testStep},
+	}
+	executeTestsWithData(t, testCase, data)
+}
+
+// testACNPAllowAnytoA tests traffic from any pod to pods with label A, after applying the default deny
+// k8s NetworkPolicies in all namespaces and ACNP to allow Any to A.
+func testDryRunK8sNPAllowAnytoA(t *testing.T, data *TestData) {
+	builder := &NetworkPolicySpecBuilder{}
+	builder = builder.SetName(getNS("x"), "k8snp-allow-any-to-a").
+		SetDryRun(true).
+		SetPodSelector(map[string]string{"pod": "a"}).
+		SetTypeIngress().
+		AddIngress("", nil, nil, nil, nil, map[string]string{}, nil, nil, nil)
 
 	reachability := NewReachability(allPods, Dropped)
 	reachability.ExpectSelf(allPods, Connected)
 
+	policy := builder.Get()
+
+	nps := &NetworkPolicyStatExpectation{}
+	nps.WithExpectation(&K8sNetworkPolicyStatExpectation{
+		PolicyStatExpectation: &PolicyStatExpectation{
+			Name:      policy.Name,
+			Namespace: policy.Namespace,
+			TrafficExpectations: []*TrafficExpectation{
+				{
+					operation: func(want int64, got int64) bool {
+						return got >= want
+					},
+					field: TrafficPackets,
+					want:  int64(1),
+				},
+			},
+		},
+	})
+
 	testStep := []*TestStep{
 		{
-			Name:          "Port 80",
-			Reachability:  reachability,
-			TestResources: []metav1.Object{builder.Get()},
-			Ports:         []int32{80},
-			Protocol:      ProtocolTCP,
+			Name:                   "Port 80",
+			Reachability:           reachability,
+			NetworkStatExpectation: nps,
+			TestResources:          []metav1.Object{builder.Get()},
+			Ports:                  []int32{80},
+			Protocol:               ProtocolTCP,
+			CustomTeardown:         dryRunResult(nps),
 		},
 	}
 	testCase := []*TestCase{
-		{"ACNP Allow X/B to A", testStep},
+		{"K8sNP Allow Any to A", testStep},
 	}
-	executeTests(t, testCase)
+	executeTestsWithData(t, testCase, data)
 }
 
-// testACNPAllowXBtoA tests traffic from X/B to pods with label A, after applying the default deny
-// k8s NetworkPolicies in all namespaces and ACNP to allow X/B to A.
-func testDryRunK8sNPAllowXBtoA(t *testing.T) {
+// testDryRunACNPDenyAnytoA tests traffic from Any pod to pods with label A. With dry-run drop
+// rules, the traffic should connect.
+func testDryRunACNPDenyAnytoA(t *testing.T, data *TestData) {
+	builder := &ClusterNetworkPolicySpecBuilder{}
+	builder = builder.SetName("acnp-deny-any-to-a").
+		SetDryRun(true).
+		SetPriority(1.0).
+		SetAppliedToGroup([]ACNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}})
+	builder.AddIngress(ProtocolTCP, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		nil, nil, nil, nil, nil, crdv1beta1.RuleActionDrop, "", "", nil)
+
+	reachability := NewReachability(allPods, Connected)
+	reachability.ExpectSelf(allPods, Connected)
+
+	policy := builder.Get()
+
+	nps := &NetworkPolicyStatExpectation{}
+	nps.WithExpectation(&AntreaClusterNetworkPolicyStatExpectation{
+		PolicyStatExpectation: &PolicyStatExpectation{
+			Name: policy.Name,
+			TrafficExpectations: []*TrafficExpectation{
+				{
+					operation: func(want int64, got int64) bool {
+						return got >= want
+					},
+					field: TrafficPackets,
+					want:  int64(1),
+				},
+			},
+		},
+	})
+
+	testStep := []*TestStep{
+		{
+			Name:                   "Port 80",
+			Reachability:           reachability,
+			NetworkStatExpectation: nps,
+			TestResources:          []metav1.Object{policy},
+			Ports:                  []int32{80},
+			Protocol:               ProtocolTCP,
+			CustomTeardown:         dryRunResult(nps),
+		},
+	}
+	testCase := []*TestCase{
+		{"ACNP Deny any to A", testStep},
+	}
+	executeTestsWithData(t, testCase, data)
+}
+
+// testDryRunK8sNPDenyAnyToA tests traffic from any pod to X/A. The dry-run policy does not trigger
+// default drop rules and everything can connect
+func testDryRunK8sNPDenyAnyToA(t *testing.T, data *TestData) {
 	builder := &NetworkPolicySpecBuilder{}
-	builder = builder.SetName(getNS("x"), "k8snp-allow-xb-to-a").
+	builder = builder.SetName(getNS("x"), "k8snp-deny-any-to-a").
 		SetDryRun(true).
 		SetPodSelector(map[string]string{"pod": "a"}).
 		SetTypeIngress()
-		
 
-	reachability := NewReachability(allPods, Dropped)
+	reachability := NewReachability(allPods, Connected)
 	reachability.ExpectSelf(allPods, Connected)
+
+	policy := builder.Get()
+
+	// Drop rules for k8s network policies do not log any stats.
 
 	testStep := []*TestStep{
 		{
 			Name:          "Port 80",
 			Reachability:  reachability,
-			TestResources: []metav1.Object{builder.Get()},
+			TestResources: []metav1.Object{policy},
 			Ports:         []int32{80},
 			Protocol:      ProtocolTCP,
 		},
 	}
 	testCase := []*TestCase{
-		{"ACNP Allow X/B to A", testStep},
+		{"K8sNP Deny Any to A", testStep},
 	}
-	executeTests(t, testCase)
+	executeTestsWithData(t, testCase, data)
 }
 
-func TestNetworkPolicyDryRun(t *testing.T) {
-	skipIfHasWindowsNodes(t)
-	skipIfAntreaPolicyDisabled(t)
+// testDryRunACNPPass tests traffic from pods with label B to pod X/A.
+// d a dry-run ACNP to allow X/B to A. Traffic should remain denied.
+func testDryRunACNPPass(t *testing.T, data *TestData) {
+	appliedToGroup := []ACNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}, NSSelector: map[string]string{"ns": getNS("x")}}}
+	acnpPolicyPassBuilder := &ClusterNetworkPolicySpecBuilder{}
+	acnpPolicyPassBuilder = acnpPolicyPassBuilder.SetName("acnp-pass").
+		SetPriority(5).
+		SetDryRun(true).
+		SetAppliedToGroup(appliedToGroup).
+		AddIngress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "b"}, nil, nil,
+			nil, nil, nil, nil, nil, crdv1beta1.RuleActionPass, "", "", nil)
 
-	data, err := setupTest(t)
-	if err != nil {
-		t.Fatalf("Error when setting up test: %v", err)
-	}
-	defer teardownTest(t, data)
+	acnpPolicyBuilder := &ClusterNetworkPolicySpecBuilder{}
+	acnpPolicyBuilder = acnpPolicyBuilder.SetName("acnp-policy-to-hit").
+		SetPriority(1).
+		SetAppliedToGroup(appliedToGroup).
+		AddIngress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "b"}, nil, nil,
+			nil, nil, nil, nil, nil, crdv1beta1.RuleActionDrop, "", "", nil)
 
-	initialize(t, data, nil)
-	defer k8sUtils.Cleanup(namespaces)
+	skipK8sNP := &NetworkPolicySpecBuilder{}
+	skipK8sNP = skipK8sNP.SetName(getNS("x"), "k8snp-allow-b-to-a").
+		SetPodSelector(map[string]string{"pod": "a"}).
+		SetTypeIngress().
+		AddIngress("", nil, nil, nil, nil, map[string]string{"pod": "b"}, nil, nil, nil)
 
-	// tests which need default deny
-	t.Run("testDryRunANPAllow", func(t *testing.T) {
-		//t.Cleanup(exportLogsForSubtest(t, data))
-		applyDefaultDenyToAllNamespaces(k8sUtils, namespaces)
-		testDryRunANPAllow(t, data)
-		// testDryRunKNPAllow(t, data)
-		cleanupDefaultDenyNPs(k8sUtils, namespaces)
+	target := getPod("x", "a")
+	reachability := NewReachability(allPods, Connected)
+
+	reachability.Expect(getPod("x", "b"), target, Dropped)
+	reachability.Expect(getPod("y", "b"), target, Dropped)
+	reachability.Expect(getPod("z", "b"), target, Dropped)
+
+	reachability.Expect(getPod("y", "a"), target, Dropped)
+	reachability.Expect(getPod("z", "a"), target, Dropped)
+
+	reachability.Expect(getPod("x", "c"), target, Dropped)
+	reachability.Expect(getPod("y", "c"), target, Dropped)
+	reachability.Expect(getPod("z", "c"), target, Dropped)
+	reachability.ExpectSelf(allPods, Connected)
+
+	passPolicy := acnpPolicyPassBuilder.Get()
+	hitPolicy := acnpPolicyBuilder.Get()
+	skipPolicy := skipK8sNP.Get()
+
+	nps := &NetworkPolicyStatExpectation{}
+	nps.WithExpectation(&AntreaClusterNetworkPolicyStatExpectation{
+		PolicyStatExpectation: &PolicyStatExpectation{
+			Name: passPolicy.Name,
+			TrafficExpectations: []*TrafficExpectation{
+				{
+					operation: func(want int64, got int64) bool {
+						return got == want
+					},
+					field: TrafficPackets,
+					want:  int64(0),
+				},
+			},
+		},
+	}).WithExpectation(&AntreaClusterNetworkPolicyStatExpectation{
+		PolicyStatExpectation: &PolicyStatExpectation{
+			Name: hitPolicy.Name,
+			TrafficExpectations: []*TrafficExpectation{
+				{
+					operation: func(want int64, got int64) bool {
+						return got >= want
+					},
+					field: TrafficPackets,
+					want:  int64(9),
+				},
+			},
+		},
+	}).WithExpectation(&K8sNetworkPolicyStatExpectation{
+		PolicyStatExpectation: &PolicyStatExpectation{
+			Name:      skipPolicy.Name,
+			Namespace: skipPolicy.Namespace,
+			TrafficExpectations: []*TrafficExpectation{
+				{
+					operation: func(want int64, got int64) bool {
+						return got == want
+					},
+					field: TrafficPackets,
+					want:  int64(0),
+				},
+			},
+		},
 	})
 
-	// t.Run("testDryRunANPDrop", func(t *testing.T) { testDryRunANPDrop(t, data) })
-	// t.Run("testDryRunANPReject", func(t *testing.T) { testDryRunANPReject(t, data) })
-	// t.Run("testDryRunANPPass", func(t *testing.T) { testDryRunANPPass(t, data) })
-	// t.Run("testDryRunANPUpdate", func(t *testing.T) { testDryRunANPUpdate(t, data) })
-}
-
-type dryRunTestCaseInfo struct {
-	// all abbreviated i.e. a and b instead of a-uuid and b-uuid
-	sourcePod            string
-	sourceNamespace      string
-	destinationPod       string
-	destinationNamespace string
-	port                 string
-	expectedOutput       func(string) string
-	expectedError        func() string
-}
-
-func successOutput(ip string) string {
-	return fmt.Sprintf("Connection to %s 80 port [tcp/http] succeeded!\n", ip)
-}
-func failureProgressOutput(ip string) string {
-	return fmt.Sprintf("nc: connect to %s port 80 (tcp) timed out: Operation in progress\n", ip)
-}
-func failureRefusedOutput(ip string) string {
-	return fmt.Sprintf("nc: connect to %s port 80 (tcp) failed: Connection refused\n", ip)
-}
-func expectedError() string {
-	return "command terminated with exit code 1"
-}
-
-func testDryRunANPAllow(t *testing.T, data *TestData) {
-	dryRunANP := &AntreaNetworkPolicySpecBuilder{}
-	dryRunANP = dryRunANP.SetName(getNS("x"), "dryrun-allow").
-		SetPriority(1.0).
-		SetDryRun(true).
-		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}}).
-		AddEgress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "b"}, map[string]string{"ns": getNS("y")}, nil,
-			nil, nil, nil, nil, crdv1beta1.RuleActionAllow, "", "")
-
-	allowANP := &AntreaNetworkPolicySpecBuilder{}
-	allowANP = allowANP.SetName(getNS("y"), "non-dryrun-allow").
-		SetPriority(1.0).
-		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "b"}}}).
-		AddIngress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "a"}, map[string]string{"ns": getNS("x")}, nil,
-			nil, nil, nil, nil, crdv1beta1.RuleActionAllow, "", "")
-
-	testInfo := getDryRunANPTestCaseInfo(dryRunANP.Get(), false)
-	testInfo.expectedOutput = successOutput
-
 	testStep := []*TestStep{
 		{
-			Name:  "dryrun-allow",
-			Ports: []int32{80},
+			Name:                   "Port 80",
+			Reachability:           reachability,
+			NetworkStatExpectation: nps,
 			TestResources: []metav1.Object{
-				dryRunANP.Get(),
-				allowANP.Get(),
+				passPolicy,
+				hitPolicy,
+				skipPolicy,
 			},
-			Protocol: ProtocolTCP,
+			Ports:          []int32{80},
+			Protocol:       ProtocolTCP,
+			CustomTeardown: dryRunResult(nps),
 		},
 	}
 	testCase := []*TestCase{
-		{"ANNP dry run Allow X/A to Y/B", testStep},
+		{"ACNP pass any to A, K8sNP Allow XB to A", testStep},
 	}
-	executeDryRunTests(t, testCase, []dryRunTestCaseInfo{testInfo}, data)
-}
-
-func testDryRunANPDrop(t *testing.T, data *TestData) {
-	dryRunANP := &AntreaNetworkPolicySpecBuilder{}
-	dryRunANP = dryRunANP.SetName(getNS("x"), "dryrun-drop").
-		SetPriority(1.0).
-		SetDryRun(true).
-		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}}).
-		AddEgress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "b"}, map[string]string{"ns": getNS("y")}, nil, nil, nil, nil, nil, crdv1beta1.RuleActionDrop, "", "")
-
-	dryRunPolicy := dryRunANP.Get()
-	testInfo := getDryRunANPTestCaseInfo(dryRunPolicy, false)
-	testInfo.expectedOutput = failureProgressOutput
-	testInfo.expectedError = expectedError
-	fmt.Printf("DBUG: testInfo: %+v\n", testInfo)
-
-	testStep := []*TestStep{
-		{
-			Name:  "dryrun-drop",
-			Ports: []int32{80},
-			TestResources: []metav1.Object{
-				dryRunPolicy,
-			},
-			Protocol: ProtocolTCP,
-		},
-	}
-	testCase := []*TestCase{
-		{"ANNP dry run Drop X/A to Y/B", testStep},
-	}
-	executeDryRunTests(t, testCase, []dryRunTestCaseInfo{testInfo}, data)
-}
-
-func testDryRunANPReject(t *testing.T, data *TestData) {
-	dryRunANP := &AntreaNetworkPolicySpecBuilder{}
-	dryRunANP = dryRunANP.SetName(getNS("x"), "dryrun-reject").
-		SetPriority(1.0).
-		SetDryRun(true).
-		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}}).
-		AddEgress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "b"}, map[string]string{"ns": getNS("y")}, nil,
-			nil, nil, nil, nil, crdv1beta1.RuleActionReject, "", "")
-
-	testInfo := getDryRunANPTestCaseInfo(dryRunANP.Get(), false)
-	testInfo.expectedOutput = failureRefusedOutput
-	testInfo.expectedError = expectedError
-	fmt.Printf("DBUG: testInfo: %+v\n", testInfo)
-
-	testStep := []*TestStep{
-		{
-			Name:  "dryrun-reject",
-			Ports: []int32{80},
-			TestResources: []metav1.Object{
-				dryRunANP.Get(),
-			},
-			Protocol: ProtocolTCP,
-		},
-	}
-	testCase := []*TestCase{
-		{"ANNP dry run Reject X/A to Y/B", testStep},
-	}
-	executeDryRunTests(t, testCase, []dryRunTestCaseInfo{testInfo}, data)
-}
-
-func testDryRunANPPass(t *testing.T, data *TestData) {
-	rejectANP := &AntreaNetworkPolicySpecBuilder{}
-	rejectANP = rejectANP.SetName(getNS("x"), "non-dryrun-reject").
-		SetPriority(2.0).
-		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}})
-	rejectANP.AddEgress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "b"}, map[string]string{"ns": getNS("y")}, nil,
-		nil, nil, nil, nil, crdv1beta1.RuleActionReject, "", "")
-
-	dryRunBuilderPolicy := &AntreaNetworkPolicySpecBuilder{}
-	dryRunBuilderPolicy = dryRunBuilderPolicy.SetName(getNS("y"), "dryrun-pass").
-		SetPriority(1.0).
-		SetDryRun(true).
-		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "b"}}}).
-		AddEgress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "a"}, map[string]string{"ns": getNS("x")}, nil,
-			nil, nil, nil, nil, crdv1beta1.RuleActionPass, "", "")
-
-	testInfo1 := getDryRunANPTestCaseInfo(dryRunBuilderPolicy.Get(), false)
-	testInfo1.expectedOutput = failureProgressOutput
-	testInfo1.expectedError = expectedError
-
-	testStep1 := []*TestStep{
-		{
-			Name:  "dryrun-pass",
-			Ports: []int32{80},
-			TestResources: []metav1.Object{
-				rejectANP.Get(),
-				dryRunBuilderPolicy.Get(),
-			},
-			Protocol: ProtocolTCP,
-		},
-	}
-	testCases := []*TestCase{
-		{"ANNP dry run Pass X/A to Y/B", testStep1},
-	}
-
-	spec := &networkingv1.NetworkPolicySpec{
-		PodSelector: metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"pod": "b",
-			},
-		},
-		Egress: []networkingv1.NetworkPolicyEgressRule{
-			{
-				To: []networkingv1.NetworkPolicyPeer{
-					{
-						PodSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								"pod": "c",
-							},
-						},
-					},
-				},
-			},
-		},
-		PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
-	}
-	np, err := k8sUtils.createNetworkPolicyWithDryRun("deny-all", getNS("y"), false, spec)
-	assert.NoError(t, err)
-	defer func() {
-		if err = data.deleteNetworkpolicy(np); err != nil {
-			t.Fatalf("Error when deleting network policy: %v", err)
-		}
-	}()
-
-	testInfo2 := getDryRunANPTestCaseInfo(dryRunBuilderPolicy.Get(), false)
-	testInfo2.expectedOutput = failureProgressOutput
-	testInfo2.expectedError = expectedError
-
-	testStep2 := []*TestStep{
-		{
-			Name:  "dryrun-pass",
-			Ports: []int32{80},
-			TestResources: []metav1.Object{
-				np,
-				dryRunBuilderPolicy.Get(),
-			},
-			Protocol: ProtocolTCP,
-		},
-	}
-	testCases = append(testCases,
-		&TestCase{"ANNP dry run Pass X/A to Y/B", testStep2},
-	)
-	executeDryRunTests(t, testCases, []dryRunTestCaseInfo{testInfo1, testInfo2}, data)
-}
-
-func testDryRunANPUpdate(t *testing.T, data *TestData) {
-	dryRunANP := &AntreaNetworkPolicySpecBuilder{}
-	dryRunANP = dryRunANP.SetName(getNS("x"), "dryrun-allow").
-		SetPriority(1.0).
-		SetDryRun(true).
-		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "a"}}}).
-		AddEgress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "b"}, map[string]string{"ns": getNS("y")}, nil,
-			nil, nil, nil, nil, crdv1beta1.RuleActionAllow, "", "")
-
-	allowANP := &AntreaNetworkPolicySpecBuilder{}
-	allowANP = allowANP.SetName(getNS("y"), "non-dryrun-allow").
-		SetPriority(1.0).
-		SetAppliedToGroup([]ANNPAppliedToSpec{{PodSelector: map[string]string{"pod": "b"}}})
-	allowANP.AddIngress(ProtocolTCP, &p80, nil, nil, nil, nil, nil, nil, nil, nil, map[string]string{"pod": "a"}, map[string]string{"ns": getNS("x")}, nil,
-		nil, nil, nil, nil, crdv1beta1.RuleActionAllow, "", "")
-
-	testInfo := getDryRunANPTestCaseInfo(dryRunANP.Get(), false)
-	testInfo.expectedOutput = successOutput
-
-	testStep := []*TestStep{
-		{
-			Name:  "dryrun-allow",
-			Ports: []int32{80},
-			CustomSetup: func() {
-				k8sUtils.CreateOrUpdateANNP(dryRunANP.Get())
-			},
-			TestResources: []metav1.Object{
-				dryRunANP.Get(),
-				allowANP.Get(),
-			},
-			Protocol: ProtocolTCP,
-		},
-	}
-	testCase := []*TestCase{
-		{"ANNP dry run Allow X/A to Y/B", testStep},
-	}
-	executeDryRunTests(t, testCase, []dryRunTestCaseInfo{testInfo}, data)
-}
-
-func testDryRunKNPAllow(t *testing.T, data *TestData) {
-	spec := &networkingv1.NetworkPolicySpec{
-		PodSelector: metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"pod": "b",
-			},
-		},
-		Egress: []networkingv1.NetworkPolicyEgressRule{
-			{
-				To: []networkingv1.NetworkPolicyPeer{
-					{
-						PodSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								"pod": "c",
-							},
-						},
-					},
-				},
-			},
-		},
-		PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
-	}
-	np, err := k8sUtils.createNetworkPolicyWithDryRun("deny-all", getNS("y"), false, spec)
-	assert.NoError(t, err)
-	defer func() {
-		if err = data.deleteNetworkpolicy(np); err != nil {
-			t.Fatalf("Error when deleting network policy: %v", err)
-		}
-	}()
-
-	testStep1 := []*TestStep{
-		{
-			Name:  "dryrun-pass",
-			Ports: []int32{80},
-			TestResources: []metav1.Object{
-				np,
-				np,
-			},
-			Protocol: ProtocolTCP,
-		},
-	}
-	testCases := []*TestCase{
-		{"ANNP dry run Pass X/A to Y/B", testStep1},
-	}
-	testInfo := getDryRunNPTestCaseInfo(np, false)
-	testInfo.expectedOutput = failureProgressOutput
-	testInfo.expectedError = expectedError
-
-	executeDryRunTests(t, testCases, []dryRunTestCaseInfo{testInfo}, data)
-}
-
-// executeTests runs all the tests in testList and prints results
-func executeDryRunTests(t *testing.T, testList []*TestCase, testInfo []dryRunTestCaseInfo, data *TestData) {
-	executeDryRunTestsWithData(t, testList, testInfo, data)
-}
-
-// custom func based on antreapolicy_test to run dryrun specific tests
-func executeDryRunTestsWithData(t *testing.T, testList []*TestCase, testInfo []dryRunTestCaseInfo, data *TestData) {
-	// one testInfo for every case->step
-	testInfoIndex := 0
-	for _, testCase := range testList {
-		log.Infof("Running test case %s", testCase.Name)
-		for _, step := range testCase.Steps {
-			log.Infof("Running step %s of test case %s", step.Name, testCase.Name)
-			applyTestStepResources(t, step)
-			if step.CustomSetup != nil {
-				step.CustomSetup()
-			}
-
-			// send packet from pod A to B
-			fmt.Printf("DBUG: post-testInfoIndex: %d \n", testInfoIndex)
-			sourcePodNamespace, err := sendPacket(data, testInfo[testInfoIndex])
-			fmt.Printf("DBUG: pre-testInfoIndex: %d \n", testInfoIndex)
-			testInfoIndex++
-			assert.NoError(t, err)
-
-			// sleep for a bit to let the stats refresh
-			time.Sleep(time.Second * 60)
-
-			// check NetworkPolicyStats
-			if err := wait.PollUntilContextTimeout(context.Background(), 5*time.Second, defaultTimeout, false, func(ctx context.Context) (bool, error) {
-				// fmt.Printf("DBUG: stats from namespace(%s) for anp name(%s)\n", sourcePodNamespace, step.Name)
-				stats, err := data.crdClient.StatsV1alpha1().AntreaNetworkPolicyStats(sourcePodNamespace).Get(context.TODO(), step.Name, metav1.GetOptions{})
-				if err != nil {
-					return false, err
-				}
-				// can't check for packetCount on a Pass rule, as it doesn't generate a metric table rule
-				if !strings.Contains(step.Name, "pass") {
-					assert.True(t, stats.TrafficStats.Packets > 0)
-				}
-				return true, nil
-			}); err != nil {
-				t.Fatalf("Error when waiting for NetworkPolicy stats: %v", err)
-			}
-
-			if step.CustomTeardown != nil {
-				step.CustomTeardown()
-			}
-		}
-		log.Debug("Cleaning-up all policies and groups created by this Testcase")
-		cleanupTestCaseResources(t, testCase)
-	}
-	allTestList = append(allTestList, testList...)
-}
-
-func getDryRunANPTestCaseInfo(dryRunPolicy *crdv1beta1.NetworkPolicy, ingress bool) dryRunTestCaseInfo {
-	if ingress {
-		return dryRunTestCaseInfo{
-			sourcePod:            dryRunPolicy.Spec.AppliedTo[0].PodSelector.MatchLabels["pod"],
-			sourceNamespace:      strings.Split(dryRunPolicy.Namespace, "-")[0],
-			destinationPod:       dryRunPolicy.Spec.Ingress[0].From[0].PodSelector.MatchLabels["pod"],
-			destinationNamespace: strings.Split(dryRunPolicy.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels["ns"], "-")[0],
-			port:                 dryRunPolicy.Spec.Ingress[0].Ports[0].Port.StrVal,
-		}
-	}
-	return dryRunTestCaseInfo{
-		sourcePod:            dryRunPolicy.Spec.AppliedTo[0].PodSelector.MatchLabels["pod"],
-		sourceNamespace:      strings.Split(dryRunPolicy.Namespace, "-")[0],
-		destinationPod:       dryRunPolicy.Spec.Egress[0].To[0].PodSelector.MatchLabels["pod"],
-		destinationNamespace: strings.Split(dryRunPolicy.Spec.Egress[0].To[0].NamespaceSelector.MatchLabels["ns"], "-")[0],
-		port:                 dryRunPolicy.Spec.Egress[0].Ports[0].Port.StrVal,
-	}
-}
-
-func getDryRunNPTestCaseInfo(dryRunPolicy *networkingv1.NetworkPolicy, ingress bool) dryRunTestCaseInfo {
-	if ingress {
-		return dryRunTestCaseInfo{
-			sourcePod:            dryRunPolicy.Spec.PodSelector.MatchLabels["pod"],
-			sourceNamespace:      strings.Split(dryRunPolicy.Namespace, "-")[0],
-			destinationPod:       dryRunPolicy.Spec.Ingress[0].From[0].PodSelector.MatchLabels["pod"],
-			destinationNamespace: strings.Split(dryRunPolicy.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels["ns"], "-")[0],
-			port:                 dryRunPolicy.Spec.Ingress[0].Ports[0].Port.StrVal,
-		}
-	}
-	return dryRunTestCaseInfo{
-		sourcePod:            dryRunPolicy.Spec.PodSelector.MatchLabels["pod"],
-		sourceNamespace:      strings.Split(dryRunPolicy.Namespace, "-")[0],
-		destinationPod:       dryRunPolicy.Spec.Egress[0].To[0].PodSelector.MatchLabels["pod"],
-		destinationNamespace: strings.Split(dryRunPolicy.Spec.Egress[0].To[0].NamespaceSelector.MatchLabels["ns"], "-")[0],
-		port:                 dryRunPolicy.Spec.Egress[0].Ports[0].Port.StrVal,
-	}
-}
-
-// sends packets based on abbreviated pod names (a, b, c) and namespace names (x, y, z) and
-// checks for the expected response, either showing successful or unsuccessful connection
-// returns the source pod's namespace (non abbreviated)
-func sendPacket(data *TestData, info dryRunTestCaseInfo) (string, error) {
-	fmt.Printf("DBUG: info: %+v\n", info)
-	sourcePodName, sourcePodNamespace, dstPodIP, err := getPodsAndIPs(info.sourcePod, info.sourceNamespace, info.destinationPod, info.destinationNamespace)
-	if err != nil {
-		return "", err
-	}
-
-	ncCmd := []string{"nc", "-vz", "-w", "4", dstPodIP, "80"}
-	fmt.Printf("DBUG: kubectl exec -n %s %s -- %s\n", sourcePodNamespace, sourcePodName, strings.Join(ncCmd, " "))
-	_, testErr, err := data.RunCommandFromPod(sourcePodNamespace, sourcePodName, "c80", ncCmd)
-	if err != nil && info.expectedError != nil && info.expectedError() != err.Error() {
-		return "", errors.New("error - unexpected error received: " + err.Error())
-	}
-	if info.expectedOutput(dstPodIP) != testErr {
-		fmt.Printf("DBUG: info.expected:\n[%s]\nerr:\n[%s]\n", info.expectedOutput(dstPodIP), testErr)
-		return "", errors.New("error - unexpected result of sending packet: " + testErr)
-	}
-	return sourcePodNamespace, nil
-}
-
-func getPodsAndIPs(sourcePodPrefix, sourceNamespacePrefix, dstPodPrefix, dstNamespacePrefix string) (string, string, string, error) {
-	sourcePodNamespace := getNS(sourceNamespacePrefix)
-	for _, pod1 := range allPods {
-		if pod1.PodName() == sourcePodPrefix {
-			for _, pod2 := range allPods {
-				if pod2.PodName() == dstPodPrefix && pod2.Namespace() == getNS(dstNamespacePrefix) {
-					dstPod, err := k8sUtils.GetPodsByLabel(pod2.Namespace(), "pod", dstPodPrefix)
-					if err != nil {
-						return "", "", "", err
-					}
-					srcPod, err := k8sUtils.GetPodsByLabel(sourcePodNamespace, "pod", sourcePodPrefix)
-					if err != nil {
-						return "", "", "", err
-					}
-					return srcPod[0].Name, sourcePodNamespace, dstPod[0].Status.PodIPs[0].IP, nil
-				}
-			}
-		}
-	}
-	return "", "", "", errors.New("Error - could not find specified pods")
+	executeTestsWithData(t, testCase, data)
 }
