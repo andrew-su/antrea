@@ -64,6 +64,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&TraceflowList{},
 		&IPPool{},
 		&IPPoolList{},
+		&FlowExporterTarget{},
 	)
 
 	metav1.AddToGroupVersion(
