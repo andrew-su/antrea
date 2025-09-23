@@ -27,3 +27,8 @@ type ConnTrackDumper interface {
 	// GetMaxConnections returns the size of the connection tracking table.
 	GetMaxConnections() (int, error)
 }
+
+type AugmentOpt func(*connection.Connection)
+type Augmenter interface {
+	Augment(conn *connection.Connection, opts ...AugmentOpt) *connection.Connection
+}

@@ -25,21 +25,21 @@ import (
 	"antrea.io/antrea/pkg/agent/flowexporter/options"
 	"antrea.io/antrea/pkg/agent/flowexporter/priorityqueue"
 	"antrea.io/antrea/pkg/agent/metrics"
-	"antrea.io/antrea/pkg/agent/openflow"
 	"antrea.io/antrea/pkg/agent/proxy"
-	"antrea.io/antrea/pkg/util/ip"
 	"antrea.io/antrea/pkg/util/objectstore"
 )
 
 type DenyConnectionStore struct {
 	connectionStore
 	protocolFilter filter.ProtocolFilter
+	augmenter      Augmenter
 }
 
 func NewDenyConnectionStore(podStore objectstore.PodStore, proxier proxy.Proxier, o *options.FlowExporterOptions, protocolFilter filter.ProtocolFilter) *DenyConnectionStore {
 	return &DenyConnectionStore{
 		connectionStore: NewConnectionStore(podStore, proxier, o),
 		protocolFilter:  protocolFilter,
+		augmenter:       NewDenyConnectionAugmenter(podStore, proxier),
 	}
 }
 
@@ -85,17 +85,14 @@ func (ds *DenyConnectionStore) AddOrUpdateConn(conn *connection.Connection, time
 		conn.OriginalBytes += bytes
 		conn.OriginalPackets += 1
 		conn.StopTime = timeSeen
-		conn.IsActive = true
-		existingItem, exists := ds.expirePriorityQueue.KeyToItem[connKey]
-		if !exists {
-			ds.expirePriorityQueue.WriteItemToQueue(connKey, conn)
-		} else {
-			ds.connectionStore.expirePriorityQueue.Update(existingItem, existingItem.ActiveExpireTime,
-				time.Now().Add(ds.connectionStore.expirePriorityQueue.IdleFlowTimeout))
-		}
 		klog.V(4).InfoS("Deny connection has been updated", "connection", conn)
 	} else {
 		if !ds.protocolFilter.Allow(conn.FlowKey.Protocol) {
+			return
+		}
+
+		updatedConn := ds.augmenter.Augment(conn)
+		if updatedConn == nil {
 			return
 		}
 
@@ -104,23 +101,20 @@ func (ds *DenyConnectionStore) AddOrUpdateConn(conn *connection.Connection, time
 		conn.LastExportTime = timeSeen
 		conn.OriginalBytes = bytes
 		conn.OriginalPackets = uint64(1)
-		ds.fillPodInfo(conn)
-		if conn.SourcePodName == "" && conn.DestinationPodName == "" {
-			// We don't add connections to connection map or expirePriorityQueue if we can't find the pod
-			// information for both srcPod and dstPod
-			klog.V(5).InfoS("Skip this connection as we cannot map any of the connection IPs to a local Pod", "srcIP", conn.FlowKey.SourceAddress.String(), "dstIP", conn.FlowKey.DestinationAddress.String())
-			return
-		}
-		protocolStr := ip.IPProtocolNumberToString(conn.FlowKey.Protocol, "UnknownProtocol")
-		serviceStr := fmt.Sprintf("%s:%d/%s", conn.OriginalDestinationAddress, conn.OriginalDestinationPort, protocolStr)
-		if conn.Mark&openflow.ServiceCTMark.GetRange().ToNXRange().ToUint32Mask() == openflow.ServiceCTMark.GetValue() {
-			ds.fillServiceInfo(conn, serviceStr)
-		}
+
 		metrics.TotalDenyConnections.Inc()
-		conn.IsActive = true
 		ds.connections[connKey] = conn
-		ds.expirePriorityQueue.WriteItemToQueue(connKey, conn)
 		klog.V(4).InfoS("New deny connection added", "connection", conn)
+	}
+
+	ds.UpsertConnWithoutLock(conn)
+
+	existingItem, exists := ds.expirePriorityQueue.KeyToItem[connKey]
+	if !exists {
+		ds.expirePriorityQueue.WriteItemToQueue(connKey, conn)
+	} else {
+		ds.connectionStore.expirePriorityQueue.Update(existingItem, existingItem.ActiveExpireTime,
+			time.Now().Add(ds.connectionStore.expirePriorityQueue.IdleFlowTimeout))
 	}
 }
 

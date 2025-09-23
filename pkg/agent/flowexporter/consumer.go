@@ -7,6 +7,7 @@ import (
 
 	"antrea.io/antrea/pkg/agent/flowexporter/connection"
 	"antrea.io/antrea/pkg/agent/flowexporter/exporter"
+	"antrea.io/antrea/pkg/agent/flowexporter/priorityqueue"
 	api "antrea.io/antrea/pkg/apis/crd/v1beta1"
 	k8sutil "antrea.io/antrea/pkg/util/k8s"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +33,8 @@ type Consumer struct {
 	*ConsumerConfig
 
 	k8sClient kubernetes.Interface
+
+	expirePriorityQueue *priorityqueue.ExpirePriorityQueue
 
 	exp       exporter.Interface
 	connected bool

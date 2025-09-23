@@ -15,12 +15,10 @@
 package connections
 
 import (
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/vmware/go-ipfix/pkg/registry"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 
@@ -49,6 +47,7 @@ type ConntrackConnectionStore struct {
 	pollInterval          time.Duration
 	connectUplinkToBridge bool
 	l7EventMapGetter      L7EventMapGetter
+	augmenter             Augmenter
 	connectionStore
 }
 
@@ -74,6 +73,7 @@ func NewConntrackConnectionStore(
 		pollInterval:          o.PollInterval,
 		connectionStore:       NewConnectionStore(podStore, proxier, o),
 		connectUplinkToBridge: o.ConnectUplinkToBridge,
+		augmenter:             NewConntrackConnectionAugmenter(podStore, proxier, npQuerier),
 		l7EventMapGetter:      l7EventMapGetterFunc,
 	}
 }
@@ -196,51 +196,10 @@ func (cs *ConntrackConnectionStore) Poll() ([]int, error) {
 	return connsLens, nil
 }
 
-func (cs *ConntrackConnectionStore) addNetworkPolicyMetadata(conn *connection.Connection) {
-	// Retrieve NetworkPolicy Name and Namespace by using the ingress and egress
-	// IDs stored in the connection label.
-	if len(conn.Labels) != 0 {
-		klog.V(4).Infof("connection label: %x; label masks: %x", conn.Labels, conn.LabelsMask)
-		ingressOfID := binary.LittleEndian.Uint32(conn.Labels[:4])
-		egressOfID := binary.LittleEndian.Uint32(conn.Labels[4:8])
-		if ingressOfID != 0 {
-			policy := cs.networkPolicyQuerier.GetNetworkPolicyByRuleFlowID(ingressOfID)
-			rule := cs.networkPolicyQuerier.GetRuleByFlowID(ingressOfID)
-			if policy == nil || rule == nil {
-				// This should not happen because the rule flow ID to rule mapping is
-				// preserved for max(5s, flowPollInterval) even after the rule deletion.
-				klog.Warningf("Cannot find NetworkPolicy or rule with ingressOfID %v", ingressOfID)
-			} else {
-				conn.IngressNetworkPolicyName = policy.Name
-				conn.IngressNetworkPolicyNamespace = policy.Namespace
-				conn.IngressNetworkPolicyUID = string(policy.UID)
-				conn.IngressNetworkPolicyType = utils.PolicyTypeToUint8(policy.Type)
-				conn.IngressNetworkPolicyRuleName = rule.Name
-				conn.IngressNetworkPolicyRuleAction = registry.NetworkPolicyRuleActionAllow
-			}
-		}
-		if egressOfID != 0 {
-			policy := cs.networkPolicyQuerier.GetNetworkPolicyByRuleFlowID(egressOfID)
-			rule := cs.networkPolicyQuerier.GetRuleByFlowID(egressOfID)
-			if policy == nil || rule == nil {
-				// This should not happen because the rule flow ID to rule mapping is
-				// preserved for max(5s, flowPollInterval) even after the rule deletion.
-				klog.Warningf("Cannot find NetworkPolicy or rule with egressOfID %v", egressOfID)
-			} else {
-				conn.EgressNetworkPolicyName = policy.Name
-				conn.EgressNetworkPolicyNamespace = policy.Namespace
-				conn.EgressNetworkPolicyUID = string(policy.UID)
-				conn.EgressNetworkPolicyType = utils.PolicyTypeToUint8(policy.Type)
-				conn.EgressNetworkPolicyRuleName = rule.Name
-				conn.EgressNetworkPolicyRuleAction = registry.NetworkPolicyRuleActionAllow
-			}
-		}
-	}
-}
-
 // AddOrUpdateConn updates the connection if it is already present, i.e., update timestamp, counters etc.,
 // or adds a new connection with the resolved K8s metadata.
 func (cs *ConntrackConnectionStore) AddOrUpdateConn(conn *connection.Connection) {
+	conn2 := conn
 	conn.IsPresent = true
 	connKey := connection.NewConnectionKey(conn)
 
@@ -259,50 +218,34 @@ func (cs *ConntrackConnectionStore) AddOrUpdateConn(conn *connection.Connection)
 		existingConn.ReversePackets = conn.ReversePackets
 		existingConn.TCPState = conn.TCPState
 		existingConn.IsActive = utils.CheckConntrackConnActive(existingConn)
-		if existingConn.IsActive {
-			existingItem, exists := cs.expirePriorityQueue.KeyToItem[connKey]
-			if !exists {
-				// If the connKey:pqItem pair does not exist in the map, it shows the
-				// conn was inactive, and was removed from PQ and map. Since it becomes
-				// active again now, we create a new pqItem and add it to PQ and map.
-				cs.expirePriorityQueue.WriteItemToQueue(connKey, existingConn)
-			} else {
-				cs.connectionStore.expirePriorityQueue.Update(existingItem, existingItem.ActiveExpireTime,
-					time.Now().Add(cs.connectionStore.expirePriorityQueue.IdleFlowTimeout))
-			}
-		}
+
 		klog.V(4).InfoS("Antrea flow updated", "connection", existingConn)
+		conn2 = existingConn
 	} else {
-		cs.fillPodInfo(conn)
-		if conn.SourcePodName == "" && conn.DestinationPodName == "" {
-			// We don't add connections to connection map or expirePriorityQueue if we can't find the pod
-			// information for both srcPod and dstPod
-			klog.V(5).InfoS("Skip this connection as we cannot map any of the connection IPs to a local Pod", "srcIP", conn.FlowKey.SourceAddress.String(), "dstIP", conn.FlowKey.DestinationAddress.String())
+		updatedConn := cs.augmenter.Augment(conn)
+		if updatedConn == nil { // Connection was discarded.
 			return
 		}
-		if conn.Mark&openflow.ServiceCTMark.GetRange().ToNXRange().ToUint32Mask() == openflow.ServiceCTMark.GetValue() {
-			clusterIP := conn.OriginalDestinationAddress.String()
-			svcPort := conn.OriginalDestinationPort
-			protocol, err := lookupServiceProtocol(conn.FlowKey.Protocol)
-			if err != nil {
-				klog.InfoS("Could not retrieve Service protocol", "error", err)
-			} else {
-				serviceStr := fmt.Sprintf("%s:%d/%s", clusterIP, svcPort, protocol)
-				cs.fillServiceInfo(conn, serviceStr)
-			}
-		}
-		cs.addNetworkPolicyMetadata(conn)
-		if conn.StartTime.IsZero() {
-			conn.StartTime = time.Now()
-			conn.StopTime = time.Now()
-		}
-		conn.LastExportTime = conn.StartTime
+
 		metrics.TotalAntreaConnectionsInConnTrackTable.Inc()
-		conn.IsActive = true
 		// Add new antrea connection to connection store and PQ.
-		cs.connections[connKey] = conn
-		cs.expirePriorityQueue.WriteItemToQueue(connKey, conn)
+
+		conn2 = updatedConn
 		klog.V(4).InfoS("New Antrea flow added", "connection", conn)
+	}
+
+	cs.connections[connKey] = conn2
+	if conn2.IsActive {
+		existingItem, exists := cs.expirePriorityQueue.KeyToItem[connKey]
+		if !exists {
+			// If the connKey:pqItem pair does not exist in the map, it shows the
+			// conn was inactive, and was removed from PQ and map. Since it becomes
+			// active again now, we create a new pqItem and add it to PQ and map.
+			cs.expirePriorityQueue.WriteItemToQueue(connKey, existingConn)
+		} else {
+			cs.connectionStore.expirePriorityQueue.Update(existingItem, existingItem.ActiveExpireTime,
+				time.Now().Add(cs.connectionStore.expirePriorityQueue.IdleFlowTimeout))
+		}
 	}
 }
 

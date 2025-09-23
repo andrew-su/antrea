@@ -116,7 +116,7 @@ func NewFlowExporterWithInformer(podStore objectstore.PodStore, proxier proxy.Pr
 	}
 	obsDomainID := genObservationID(nodeName)
 
-	klog.InfoS("Retrieveing this Node's UID from K8s", "nodeName", nodeName)
+	klog.InfoS("Retrieving this Node's UID from K8s", "nodeName", nodeName)
 	node, err := k8sClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Node with name %s from K8s: %w", nodeName, err)
@@ -280,42 +280,6 @@ func (exp *FlowExporter) resolveCollectorAddress(ctx context.Context, collectorA
 	return addr, dns, nil
 }
 
-// func (exp *FlowExporter) initFlowExporter(ctx context.Context, target *api.FlowExporterTarget) error {
-// 	addr, name, err := exp.resolveCollectorAddress(ctx, target.Spec.Address)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	var tlsConfig *exporter.TLSConfig
-// 	if target.Spec.Protocol == api.ProtoGRPC ||
-// 		(target.Spec.Protocol == api.ProtoIPFix && target.Spec.IPFixConfig.Transport == api.ProtoTLS) {
-// 		// if CA certificate, client certificate and key do not exist during initialization,
-// 		// it will retry to obtain the credentials in next export cycle
-// 		ca, err := getCACert(ctx, exp.k8sClient)
-// 		if err != nil {
-// 			return fmt.Errorf("cannot retrieve CA cert: %w", err)
-// 		}
-// 		cert, key, err := getClientCertKey(ctx, exp.k8sClient)
-// 		if err != nil {
-// 			return fmt.Errorf("cannot retrieve client cert and key: %v", err)
-// 		}
-// 		tlsConfig = &exporter.TLSConfig{
-// 			ServerName: name,
-// 			CAData:     ca,
-// 			CertData:   cert,
-// 			KeyData:    key,
-// 		}
-// 	}
-
-// 	if err := exp.exporter.ConnectToCollector(addr, tlsConfig); err != nil {
-// 		return err
-// 	}
-
-// 	// exp.exporterConnected = true
-// 	// metrics.ReconnectionsToFlowCollector.Inc()
-
-// 	return nil
-// }
-
 func (exp *FlowExporter) findFlowType(conn connection.Connection) uint8 {
 	// TODO: support Pod-To-External flows in network policy only mode.
 	if exp.isNetworkPolicyOnly {
@@ -453,6 +417,17 @@ func getTargetKey(target *api.FlowExporterTarget) string {
 }
 
 func (fe *FlowExporter) createConsumerFromFlowExporterTarget(target *api.FlowExporterTarget) *Consumer {
+	activeFlowExportTimeout, err := time.ParseDuration(*target.Spec.ActiveFlowExportTimeout)
+	if err != nil {
+		klog.V(logLevel).ErrorS(err, "Failed to parse ActiveFlowExportTimeout from FlowExporterTarget", "FlowExporterTarget", klog.KObj(target))
+		activeFlowExportTimeout = 5 * time.Second // TODO: Create constant for default
+	}
+	idleFlowExportTimeout, err := time.ParseDuration(*target.Spec.IdleFlowExportTimeout)
+	if err != nil {
+		klog.V(logLevel).ErrorS(err, "Failed to parse IdleFlowExportTimeout from FlowExporterTarget", "FlowExporterTarget", klog.KObj(target))
+		idleFlowExportTimeout = 15 * time.Second
+	}
+
 	consumerConfig := &ConsumerConfig{
 		address:           target.Spec.Address,
 		commProtocol:      target.Spec.Protocol,
@@ -471,8 +446,8 @@ func (fe *FlowExporter) createConsumerFromFlowExporterTarget(target *api.FlowExp
 	}
 
 	return &Consumer{
-		ConsumerConfig: consumerConfig,
-		k8sClient:      fe.k8sClient,
+		ConsumerConfig:      consumerConfig,
+		k8sClient:           fe.k8sClient,
+		expirePriorityQueue: priorityqueue.NewExpirePriorityQueue(activeFlowExportTimeout, idleFlowExportTimeout),
 	}
-
 }

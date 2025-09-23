@@ -25,6 +25,7 @@ import (
 	"antrea.io/antrea/pkg/agent/flowexporter/connection"
 	"antrea.io/antrea/pkg/agent/flowexporter/options"
 	"antrea.io/antrea/pkg/agent/flowexporter/priorityqueue"
+	"antrea.io/antrea/pkg/agent/flowexporter/utils"
 	"antrea.io/antrea/pkg/agent/proxy"
 	"antrea.io/antrea/pkg/util/objectstore"
 )
@@ -67,14 +68,7 @@ func (cs *connectionStore) GetConnByKey(connKey connection.ConnectionKey) (*conn
 func (cs *connectionStore) ForAllConnectionsDo(callback connection.ConnectionMapCallBack) error {
 	cs.mutex.Lock()
 	defer cs.mutex.Unlock()
-	for k, v := range cs.connections {
-		err := callback(k, v)
-		if err != nil {
-			klog.ErrorS(err, "Callback execution failed for flow", "key", k, "conn", v)
-			return err
-		}
-	}
-	return nil
+	return cs.ForAllConnectionsDoWithoutLock(callback)
 }
 
 // ForAllConnectionsDoWithoutLock execute the callback for each connection in connection
@@ -90,47 +84,18 @@ func (cs *connectionStore) ForAllConnectionsDoWithoutLock(callback connection.Co
 	return nil
 }
 
+func (cs *connectionStore) RemoveFromMap(connKey connection.ConnectionKey) {
+	cs.mutex.Lock()
+	defer cs.mutex.Unlock()
+	delete(cs.connections, connKey)
+}
+
 // AddConnToMap adds the connection to connections map given connection key.
 // This is used only for unit tests.
 func (cs *connectionStore) AddConnToMap(connKey *connection.ConnectionKey, conn *connection.Connection) {
 	cs.mutex.Lock()
 	defer cs.mutex.Unlock()
 	cs.connections[*connKey] = conn
-}
-
-func (cs *connectionStore) fillPodInfo(conn *connection.Connection) {
-	if cs.podStore == nil {
-		klog.V(4).Info("Pod store is not available to retrieve local Pods information.")
-		return
-	}
-	// sourceIP/destinationIP are mapped only to local pods and not remote pods.
-	srcIP := conn.FlowKey.SourceAddress.String()
-	dstIP := conn.FlowKey.DestinationAddress.String()
-
-	srcPod, srcFound := cs.podStore.GetPodByIPAndTime(srcIP, conn.StartTime)
-	dstPod, dstFound := cs.podStore.GetPodByIPAndTime(dstIP, conn.StartTime)
-	if srcFound {
-		conn.SourcePodName = srcPod.Name
-		conn.SourcePodNamespace = srcPod.Namespace
-		conn.SourcePodUID = string(srcPod.UID)
-	}
-	if dstFound {
-		conn.DestinationPodName = dstPod.Name
-		conn.DestinationPodNamespace = dstPod.Namespace
-		conn.DestinationPodUID = string(dstPod.UID)
-	}
-}
-
-func (cs *connectionStore) fillServiceInfo(conn *connection.Connection, serviceStr string) {
-	// resolve destination Service information
-	if cs.antreaProxier != nil {
-		servicePortName, exists := cs.antreaProxier.GetServiceByIP(serviceStr)
-		if exists {
-			conn.DestinationServicePortName = servicePortName.String()
-		} else {
-			klog.InfoS("Could not retrieve the Service info from antrea-agent-proxier", "serviceStr", serviceStr)
-		}
-	}
 }
 
 // LookupServiceProtocol returns the corresponding Service protocol string for a given protocol identifier
@@ -171,5 +136,27 @@ func (cs *connectionStore) UpdateConnAndQueue(pqItem *priorityqueue.ItemToExpire
 		conn.PrevReverseBytes = conn.ReverseBytes
 		conn.PrevReversePackets = conn.ReversePackets
 		cs.expirePriorityQueue.ResetActiveExpireTimeAndPush(pqItem, currTime)
+	}
+}
+
+func (cs *connectionStore) UpsertConn(conn *connection.Connection) {
+	cs.mutex.Lock()
+	defer cs.mutex.Unlock()
+	cs.UpsertConnWithoutLock(conn)
+}
+
+func (cs *connectionStore) UpsertConnWithoutLock(conn *connection.Connection) {
+	connKey := connection.NewConnectionKey(conn)
+	existingConn, ok := cs.connections[connKey]
+	if !ok {
+		cs.connections[connKey] = conn
+	} else {
+		existingConn.StopTime = conn.StopTime
+		existingConn.OriginalBytes = conn.OriginalBytes
+		existingConn.OriginalPackets = conn.OriginalPackets
+		existingConn.ReverseBytes = conn.ReverseBytes
+		existingConn.ReversePackets = conn.ReversePackets
+		existingConn.TCPState = conn.TCPState
+		existingConn.IsActive = utils.CheckConntrackConnActive(existingConn)
 	}
 }
