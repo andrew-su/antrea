@@ -280,12 +280,6 @@ func (c *Consumer) Run(stopCh <-chan struct{}) {
 func (c *Consumer) sendFlowRecords() (time.Duration, error) {
 	currTime := time.Now()
 	var nextExpireTime time.Duration
-	// We export records from denyConnStore first, then conntrackConnStore. We enforce the ordering to handle a
-	// special case: for an inter-node connection with egress drop network policy, both conntrackConnStore and
-	// denyConnStore from the same Node will send out records to Flow Aggregator. If the record from conntrackConnStore
-	// arrives FA first, FA will not be able to capture the deny network policy metadata, and it will keep waiting
-	// for a record from destination Node to finish flow correlation until timeout. Later on we probably should
-	// consider doing a record deduplication between conntrackConnStore and denyConnStore before exporting records.
 	c.exportConns, nextExpireTime = c.getExpiredConns(c.exportConns, currTime, maxConnsToExport)
 	// Select the shorter time out among two connection stores to do the next round of export.
 	for i := range c.exportConns {

@@ -110,7 +110,7 @@ func TestFlowExporter_onTargetDelete(t *testing.T) {
 			fe := &FlowExporter{
 				queue: workqueue.NewTypedRateLimitingQueue(workqueue.NewTypedItemExponentialFailureRateLimiter[string](0, 0)),
 			}
-			fe.onTargetDelete(tt.obj)
+			fe.deleteDestination(tt.obj)
 			item, _ := fe.queue.Get()
 			assert.Equal(t, name, item)
 		})
@@ -163,7 +163,7 @@ func TestFlowExporter_OnUpdateTarget(t *testing.T) {
 			fe := &FlowExporter{
 				queue: workqueue.NewTypedRateLimitingQueue(workqueue.NewTypedItemExponentialFailureRateLimiter[string](0, 0)),
 			}
-			fe.OnUpdateTarget(tt.old, tt.new)
+			fe.updateDestination(tt.old, tt.new)
 			if tt.shouldQueue {
 				require.Equal(t, 1, fe.queue.Len())
 				item, _ := fe.queue.Get()

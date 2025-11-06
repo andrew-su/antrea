@@ -61,10 +61,10 @@ import (
 // e.g. min(50 + 0.1 * connectionStore.size(), 200)
 const (
 	maxConnsToExport = 64
-	// How long to wait before retrying the processing of a FlowExporterTarget.
+	// How long to wait before retrying the processing of a FlowExporterDestination.
 	minRetryDelay  = 5 * time.Second
 	maxRetryDelay  = 300 * time.Second
-	defaultWorkers = 4
+	defaultWorkers = 2
 )
 
 type consumerStore struct {
@@ -177,9 +177,9 @@ func NewFlowExporter(k8sClient kubernetes.Interface, crdClient versioned.Interfa
 	}
 
 	destinationInformer.Informer().AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
-		AddFunc:    fe.onNewTarget,
-		UpdateFunc: fe.OnUpdateTarget,
-		DeleteFunc: fe.onTargetDelete,
+		AddFunc:    fe.addDestination,
+		UpdateFunc: fe.updateDestination,
+		DeleteFunc: fe.deleteDestination,
 	}, 0)
 
 	return fe, nil
@@ -308,19 +308,19 @@ func (exp *FlowExporter) processNextWorkItem() bool {
 		return false
 	}
 	defer exp.queue.Done(key)
-	if err := exp.syncFlowExporterTarget(key); err == nil {
+	if err := exp.syncFlowExporterDestination(key); err == nil {
 		// If no error occurs we Forget this item so it does not get queued again until
 		// another change happens.
 		exp.queue.Forget(key)
 	} else {
 		// Put the item back on the workqueue to handle any transient errors.
 		exp.queue.AddRateLimited(key)
-		klog.ErrorS(err, "Error syncing FlowExporterTarget", "key", key)
+		klog.ErrorS(err, "Error syncing FlowExporterDestination", "key", key)
 	}
 	return true
 }
 
-func (exp *FlowExporter) syncFlowExporterTarget(key string) error {
+func (exp *FlowExporter) syncFlowExporterDestination(key string) error {
 	klog.InfoS("Syncing FlowExporterDestination", "key", key)
 	res, err := exp.destinationLister.Get(key)
 	if err != nil {
@@ -364,13 +364,13 @@ func (fe *FlowExporter) createConsumerFromResource(res *api.FlowExporterDestinat
 	return CreateConsumer(fe.k8sClient, fe.store, consumerConfig)
 }
 
-func (fe *FlowExporter) onNewTarget(obj any) {
-	targetRes := obj.(*api.FlowExporterDestination)
-	klog.V(4).InfoS("Received new FlowExporterDestination", "resource", klog.KObj(targetRes))
-	fe.queue.Add(targetRes.Name)
+func (fe *FlowExporter) addDestination(obj any) {
+	res := obj.(*api.FlowExporterDestination)
+	klog.V(4).InfoS("Received new FlowExporterDestination", "resource", klog.KObj(res))
+	fe.queue.Add(res.Name)
 }
 
-func (fe *FlowExporter) OnUpdateTarget(old any, new any) {
+func (fe *FlowExporter) updateDestination(old any, new any) {
 	oldRes := old.(*api.FlowExporterDestination)
 	newRes := new.(*api.FlowExporterDestination)
 
@@ -383,23 +383,23 @@ func (fe *FlowExporter) OnUpdateTarget(old any, new any) {
 	fe.queue.Add(newRes.Name)
 }
 
-func (fe *FlowExporter) onTargetDelete(obj any) {
-	targetRes, ok := obj.(*api.FlowExporterDestination)
+func (fe *FlowExporter) deleteDestination(obj any) {
+	res, ok := obj.(*api.FlowExporterDestination)
 	if !ok {
 		deletedState, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			klog.Errorf("Received unexpected object: %v", obj)
 			return
 		}
-		targetRes, ok = deletedState.Obj.(*api.FlowExporterDestination)
+		res, ok = deletedState.Obj.(*api.FlowExporterDestination)
 		if !ok {
 			klog.Errorf("DeletedFinalStateUnknown contains non-FlowExporterDestination object: %v", deletedState.Obj)
 			return
 		}
 	}
 
-	klog.V(4).InfoS("FlowExporterDestination deleted", "resource", klog.KObj(targetRes))
-	fe.queue.Add(targetRes.Name)
+	klog.V(4).InfoS("FlowExporterDestination deleted", "resource", klog.KObj(res))
+	fe.queue.Add(res.Name)
 }
 
 func genObservationID(nodeName string) uint32 {
