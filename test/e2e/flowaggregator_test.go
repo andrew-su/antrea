@@ -295,9 +295,6 @@ func TestFlowAggregator(t *testing.T) {
 	data, v4Enabled, v6Enabled := setupFlowAggregatorTest(t, flowVisibilityTestOptions{
 		databaseURL: defaultCHDatabaseURL,
 	})
-	if err := getAndCheckFlowAggregatorMetrics(t, data, true); err != nil {
-		t.Fatalf("Error when checking metrics of Flow Aggregator: %v", err)
-	}
 
 	k8sUtils, err = NewKubernetesUtils(data)
 	if err != nil {
@@ -341,7 +338,7 @@ func TestFlowAggregatorProxyMode(t *testing.T) {
 				includeK8sNames: includeK8sNames,
 			},
 		})
-		require.NoError(t, getAndCheckFlowAggregatorMetrics(t, data, false), "Error when checking metrics of Flow Aggregator")
+		require.NoError(t, getAndCheckFlowAggregatorMetrics(t, data, false, 0), "Error when checking metrics of Flow Aggregator")
 
 		// UIDs are only supported when using gRPC between FE and FA.
 		if k8sUIDsInsteadOfNames {
@@ -1431,12 +1428,16 @@ func getUint64FieldFromRecord(t require.TestingT, record string, field string) u
 // and source port. We send source port to ignore the control flows during the
 // iperf test.
 func getCollectorOutput(t require.TestingT, srcIP, dstIP, srcPort string, isDstService bool, lookForFlowEnd bool, isIPv6 bool, data *TestData, labelFilter string, timeout time.Duration) []string {
+	return getCollectorOutputWithName(t, "ipfix-collector", srcIP, dstIP, srcPort, isDstService, lookForFlowEnd, isIPv6, data, labelFilter, timeout)
+}
+
+func getCollectorOutputWithName(t require.TestingT, name, srcIP, dstIP, srcPort string, isDstService bool, lookForFlowEnd bool, isIPv6 bool, data *TestData, labelFilter string, timeout time.Duration) []string {
 	var allRecords, records []string
 	err := wait.PollUntilContextTimeout(context.Background(), 500*time.Millisecond, timeout, true, func(ctx context.Context) (bool, error) {
 		var rc int
 		var err error
 		var cmd string
-		ipfixCollectorIP, err := testData.podWaitForIPs(defaultTimeout, "ipfix-collector", testData.testNamespace)
+		ipfixCollectorIP, err := testData.podWaitForIPs(defaultTimeout, name, testData.testNamespace)
 		if err != nil || len(ipfixCollectorIP.IPStrings) == 0 {
 			require.NoErrorf(t, err, "Should be able to get IP from IPFIX collector Pod")
 		}
@@ -1480,6 +1481,7 @@ func getCollectorOutput(t require.TestingT, srcIP, dstIP, srcPort string, isDstS
 			fmt.Println(allRecords[i])
 		}
 	}
+
 	require.NoErrorf(t, err, "IPFIX collector did not receive the expected records, source IP: %s, dest IP: %s, source port: %s, total records count: %d, filtered records count: %d", srcIP, dstIP, srcPort, len(allRecords), len(records))
 	return records
 }
