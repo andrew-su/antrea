@@ -207,7 +207,7 @@ func TestStoreDenyConnection(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			controller, _, _ := newTestController()
 			mockStore := connectionstesting.NewMockDenyConnectionStoreUpdater(ctrl)
-			controller.denyConnStore = mockStore
+			controller.denyConnPublisher = mockStore
 			controller.podReconciler = ruleCache
 			pktIn := &ofctrl.PacketIn{
 				PacketIn: &openflow15.PacketIn{

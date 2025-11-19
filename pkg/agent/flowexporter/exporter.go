@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"net"
-	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -28,14 +27,11 @@ import (
 
 	"antrea.io/antrea/pkg/agent/config"
 	"antrea.io/antrea/pkg/agent/controller/noderoute"
-	"antrea.io/antrea/pkg/agent/flowexporter/connection"
+	"antrea.io/antrea/pkg/agent/flowexporter/broadcaster"
 	"antrea.io/antrea/pkg/agent/flowexporter/connections"
 	"antrea.io/antrea/pkg/agent/flowexporter/exporter"
 	"antrea.io/antrea/pkg/agent/flowexporter/filter"
 	"antrea.io/antrea/pkg/agent/flowexporter/options"
-	"antrea.io/antrea/pkg/agent/flowexporter/priorityqueue"
-	"antrea.io/antrea/pkg/agent/flowexporter/utils"
-	"antrea.io/antrea/pkg/agent/metrics"
 	"antrea.io/antrea/pkg/agent/proxy"
 	"antrea.io/antrea/pkg/features"
 	"antrea.io/antrea/pkg/ovs/ovsconfig"
@@ -59,26 +55,20 @@ import (
 const maxConnsToExport = 64
 
 type FlowExporter struct {
-	collectorProto         string
-	collectorAddr          string
-	exporter               exporter.Interface
-	exporterConnected      bool
-	conntrackConnStore     *connections.ConntrackConnectionStore
-	denyConnStore          *connections.DenyConnectionStore
-	numConnsExported       uint64 // used for unit tests.
-	v4Enabled              bool
-	v6Enabled              bool
-	k8sClient              kubernetes.Interface
-	nodeRouteController    *noderoute.Controller
-	isNetworkPolicyOnly    bool
-	conntrackPriorityQueue *priorityqueue.ExpirePriorityQueue
-	denyPriorityQueue      *priorityqueue.ExpirePriorityQueue
-	expiredConns           []connection.Connection
-	egressQuerier          querier.EgressQuerier
-	podStore               objectstore.PodStore
-	l7Listener             *connections.L7Listener
-	nodeName               string
-	obsDomainID            uint32
+	collectorProto      string
+	collectorAddr       string
+	exporter            exporter.Interface
+	v4Enabled           bool
+	v6Enabled           bool
+	k8sClient           kubernetes.Interface
+	nodeRouteController *noderoute.Controller
+	isNetworkPolicyOnly bool
+	egressQuerier       querier.EgressQuerier
+	podStore            objectstore.PodStore
+	l7Listener          *connections.L7Listener
+
+	poller      *connections.Poller
+	broadcaster broadcaster.Broadcaster
 }
 
 func NewFlowExporter(podStore objectstore.PodStore, proxier proxy.ProxyQuerier, k8sClient kubernetes.Interface, nodeRouteController *noderoute.Controller,
@@ -87,16 +77,21 @@ func NewFlowExporter(podStore objectstore.PodStore, proxier proxy.ProxyQuerier, 
 	egressQuerier querier.EgressQuerier, podNetworkWait *utilwait.Group,
 	podL7FlowExporterAttrGetter connections.PodL7FlowExporterAttrGetter, l7FlowExporterEnabled bool,
 ) (*FlowExporter, error) {
-	protocolFilter := filter.NewProtocolFilter(o.ProtocolFilter)
-	connTrackDumper := connections.InitializeConnTrackDumper(nodeConfig, serviceCIDRNet, serviceCIDRNetv6, ovsDatapathType, proxyEnabled, protocolFilter)
-	denyConnStore := connections.NewDenyConnectionStore(npQuerier, podStore, proxier, o, protocolFilter)
 	var l7Listener *connections.L7Listener
 	var eventMapGetter connections.L7EventMapGetter
 	if l7FlowExporterEnabled {
 		l7Listener = connections.NewL7Listener(podL7FlowExporterAttrGetter, podStore)
 		eventMapGetter = l7Listener
 	}
-	conntrackConnStore := connections.NewConntrackConnectionStore(connTrackDumper, v4Enabled, v6Enabled, npQuerier, podStore, proxier, eventMapGetter, podNetworkWait, o)
+	connBroadcaster := broadcaster.New()
+	connTrackDumper := connections.InitializeConnTrackDumper(nodeConfig, serviceCIDRNet, serviceCIDRNetv6, ovsDatapathType, proxyEnabled, filter.NewProtocolFilter(nil)) // Use nil filter because the filter will happen per destination
+	poller := connections.NewPoller(connTrackDumper, connBroadcaster, eventMapGetter, connections.PollerConfig{
+		PollInterval:          o.PollInterval,
+		V4Enabled:             v4Enabled,
+		V6Enabled:             v6Enabled,
+		ConnectUplinkToBridge: o.ConnectUplinkToBridge,
+	})
+
 	if nodeRouteController == nil {
 		klog.InfoS("NodeRouteController is nil, will not be able to determine flow type for connections")
 	}
@@ -129,24 +124,20 @@ func NewFlowExporter(podStore objectstore.PodStore, proxier proxy.ProxyQuerier, 
 	}
 
 	return &FlowExporter{
-		collectorProto:         o.FlowCollectorProto,
-		collectorAddr:          o.FlowCollectorAddr,
-		exporter:               exp,
-		conntrackConnStore:     conntrackConnStore,
-		denyConnStore:          denyConnStore,
-		v4Enabled:              v4Enabled,
-		v6Enabled:              v6Enabled,
-		k8sClient:              k8sClient,
-		nodeRouteController:    nodeRouteController,
-		isNetworkPolicyOnly:    trafficEncapMode.IsNetworkPolicyOnly(),
-		conntrackPriorityQueue: conntrackConnStore.GetPriorityQueue(),
-		denyPriorityQueue:      denyConnStore.GetPriorityQueue(),
-		expiredConns:           make([]connection.Connection, 0, maxConnsToExport*2),
-		egressQuerier:          egressQuerier,
-		podStore:               podStore,
-		l7Listener:             l7Listener,
-		nodeName:               nodeName,
-		obsDomainID:            obsDomainID,
+		collectorProto:      o.FlowCollectorProto,
+		collectorAddr:       o.FlowCollectorAddr,
+		exporter:            exp,
+		v4Enabled:           v4Enabled,
+		v6Enabled:           v6Enabled,
+		k8sClient:           k8sClient,
+		isNetworkPolicyOnly: trafficEncapMode.IsNetworkPolicyOnly(),
+		nodeRouteController: nodeRouteController,
+		egressQuerier:       egressQuerier,
+		podStore:            podStore,
+		l7Listener:          l7Listener,
+
+		poller:      poller,
+		broadcaster: connBroadcaster,
 	}, nil
 }
 
@@ -156,8 +147,8 @@ func genObservationID(nodeName string) uint32 {
 	return h.Sum32()
 }
 
-func (exp *FlowExporter) GetDenyConnStore() *connections.DenyConnectionStore {
-	return exp.denyConnStore
+func (exp *FlowExporter) GetDenyConnPublisher() broadcaster.Publisher {
+	return exp.broadcaster
 }
 
 func (exp *FlowExporter) Run(stopCh <-chan struct{}) {
@@ -165,11 +156,6 @@ func (exp *FlowExporter) Run(stopCh <-chan struct{}) {
 	if features.DefaultFeatureGate.Enabled(features.L7FlowExporter) {
 		go exp.l7Listener.Run(stopCh)
 	}
-	// Start the goroutine to periodically delete stale deny connections.
-	go exp.denyConnStore.RunPeriodicDeletion(stopCh)
-
-	// Start the goroutine to poll conntrack flows.
-	go exp.conntrackConnStore.Run(stopCh)
 
 	if exp.nodeRouteController != nil {
 		// Wait for NodeRouteController to have processed the initial list of Nodes so that
@@ -179,68 +165,16 @@ func (exp *FlowExporter) Run(stopCh <-chan struct{}) {
 		}
 	}
 
-	defaultTimeout := exp.conntrackPriorityQueue.ActiveFlowTimeout
-	expireTimer := time.NewTimer(defaultTimeout)
+	go exp.poller.Run(stopCh)
+
+	go exp.broadcaster.Start(stopCh)
+
 	for {
 		select {
 		case <-stopCh:
-			if exp.exporterConnected {
-				exp.resetFlowExporter()
-			}
-			expireTimer.Stop()
 			return
-		case <-expireTimer.C:
-			if !exp.exporterConnected {
-				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-				err := exp.initFlowExporter(ctx)
-				cancel()
-				if err != nil {
-					klog.ErrorS(err, "Error when initializing flow exporter")
-					exp.resetFlowExporter()
-					// Initializing flow exporter fails, will retry in next cycle.
-					expireTimer.Reset(defaultTimeout)
-					continue
-				}
-			}
-			// Pop out the expired connections from the conntrack priority queue
-			// and the deny priority queue, and send the data records.
-			nextExpireTime, err := exp.sendFlowRecords()
-			if err != nil {
-				klog.ErrorS(err, "Error when sending expired flow records")
-				// If there is an error when sending flow records because of
-				// intermittent connectivity, we reset the connection to collector
-				// and retry in the next export cycle to reinitialize the connection
-				// and send flow records.
-				exp.resetFlowExporter()
-				expireTimer.Reset(defaultTimeout)
-				continue
-			}
-			expireTimer.Reset(nextExpireTime)
 		}
 	}
-}
-
-func (exp *FlowExporter) resetFlowExporter() {
-	exp.exporter.CloseConnToCollector()
-	exp.exporterConnected = false
-}
-
-func (exp *FlowExporter) sendFlowRecords() (time.Duration, error) {
-	currTime := time.Now()
-	var expireTime1, expireTime2 time.Duration
-	exp.expiredConns, expireTime1 = exp.denyConnStore.GetExpiredConns(exp.expiredConns, currTime, maxConnsToExport)
-	exp.expiredConns, expireTime2 = exp.conntrackConnStore.GetExpiredConns(exp.expiredConns, currTime, maxConnsToExport)
-	// Select the shorter time out among two connection stores to do the next round of export.
-	nextExpireTime := getMinTime(expireTime1, expireTime2)
-	for i := range exp.expiredConns {
-		if err := exp.exportConn(&exp.expiredConns[i]); err != nil {
-			klog.ErrorS(err, "Error when sending expired flow record")
-			return nextExpireTime, err
-		}
-	}
-	// Clear expiredConns slice after exporting. Allocated memory is kept.
-	exp.expiredConns = exp.expiredConns[:0]
-	return nextExpireTime, nil
 }
 
 // resolveCollectorAddress resolves the collector address provided in the config to an IP address or
@@ -267,118 +201,4 @@ func (exp *FlowExporter) resolveCollectorAddress(ctx context.Context) (string, s
 	dns := fmt.Sprintf("%s.%s.svc", name, ns)
 	klog.V(2).InfoS("Resolved Service address", "address", addr)
 	return addr, dns, nil
-}
-
-func (exp *FlowExporter) initFlowExporter(ctx context.Context) error {
-	addr, name, err := exp.resolveCollectorAddress(ctx)
-	if err != nil {
-		return err
-	}
-	var tlsConfig *exporter.TLSConfig
-	if exp.collectorProto == "tls" || exp.collectorProto == "grpc" {
-		// if CA certificate, client certificate and key do not exist during initialization,
-		// it will retry to obtain the credentials in next export cycle
-		ca, err := getCACert(ctx, exp.k8sClient)
-		if err != nil {
-			return fmt.Errorf("cannot retrieve CA cert: %w", err)
-		}
-		cert, key, err := getClientCertKey(ctx, exp.k8sClient)
-		if err != nil {
-			return fmt.Errorf("cannot retrieve client cert and key: %v", err)
-		}
-		tlsConfig = &exporter.TLSConfig{
-			ServerName: name,
-			CAData:     ca,
-			CertData:   cert,
-			KeyData:    key,
-		}
-	}
-
-	if err := exp.exporter.ConnectToCollector(addr, tlsConfig); err != nil {
-		return err
-	}
-
-	exp.exporterConnected = true
-	metrics.ReconnectionsToFlowCollector.Inc()
-
-	return nil
-}
-
-func (exp *FlowExporter) findFlowType(conn connection.Connection) uint8 {
-	// TODO: support Pod-To-External flows in network policy only mode.
-	if exp.isNetworkPolicyOnly {
-		if conn.SourcePodName == "" || conn.DestinationPodName == "" {
-			return utils.FlowTypeInterNode
-		}
-		return utils.FlowTypeIntraNode
-	}
-
-	if exp.nodeRouteController == nil {
-		klog.V(5).InfoS("Can't find flow type without nodeRouteController")
-		return utils.FlowTypeUnspecified
-	}
-	srcIsPod, srcIsGw := exp.nodeRouteController.LookupIPInPodSubnets(conn.FlowKey.SourceAddress)
-	dstIsPod, dstIsGw := exp.nodeRouteController.LookupIPInPodSubnets(conn.FlowKey.DestinationAddress)
-	if srcIsGw || dstIsGw {
-		// This matches what we do in filterAntreaConns but is more general as we consider
-		// remote gateways as well.
-		klog.V(5).InfoS("Flows where the source or destination IP is a gateway IP will not be exported")
-		return utils.FlowTypeUnsupported
-	}
-	if !srcIsPod {
-		klog.V(5).InfoS("Flows where the source is not a Pod will not be exported")
-		return utils.FlowTypeUnsupported
-	}
-	if !dstIsPod {
-		return utils.FlowTypeToExternal
-	}
-	if conn.SourcePodName == "" || conn.DestinationPodName == "" {
-		return utils.FlowTypeInterNode
-	}
-	return utils.FlowTypeIntraNode
-}
-
-func (exp *FlowExporter) fillEgressInfo(conn *connection.Connection) {
-	egress, err := exp.egressQuerier.GetEgress(conn.SourcePodNamespace, conn.SourcePodName)
-	if err != nil {
-		// Egress is not enabled or no Egress is applied to this Pod
-		return
-	}
-	conn.EgressName = egress.Name
-	conn.EgressUID = string(egress.UID)
-	conn.EgressIP = egress.EgressIP
-	conn.EgressNodeName = egress.EgressNode
-	if klog.V(5).Enabled() {
-		klog.InfoS("Filling Egress Info for flow", "Egress", conn.EgressName, "EgressIP", conn.EgressIP, "EgressNode", conn.EgressNodeName, "SourcePod", klog.KRef(conn.SourcePodNamespace, conn.SourcePodName))
-	}
-}
-
-func (exp *FlowExporter) exportConn(conn *connection.Connection) error {
-	conn.FlowType = exp.findFlowType(*conn)
-	if conn.FlowType == utils.FlowTypeUnsupported {
-		return nil
-	}
-	if conn.FlowType == utils.FlowTypeToExternal {
-		if conn.SourcePodNamespace != "" && conn.SourcePodName != "" {
-			exp.fillEgressInfo(conn)
-		} else {
-			// Skip exporting the Pod-to-External connection at the Egress Node if it's different from the Source Node
-			return nil
-		}
-	}
-	if err := exp.exporter.Export(conn); err != nil {
-		return err
-	}
-	exp.numConnsExported += 1
-	if klog.V(5).Enabled() {
-		klog.InfoS("Record for connection sent successfully", "flowKey", conn.FlowKey, "connection", conn)
-	}
-	return nil
-}
-
-func getMinTime(t1, t2 time.Duration) time.Duration {
-	if t1 <= t2 {
-		return t1
-	}
-	return t2
 }

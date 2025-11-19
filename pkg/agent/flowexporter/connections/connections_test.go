@@ -23,8 +23,6 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"antrea.io/antrea/pkg/agent/flowexporter/connection"
-	connectionstest "antrea.io/antrea/pkg/agent/flowexporter/connections/testing"
-	"antrea.io/antrea/pkg/agent/flowexporter/filter"
 	"antrea.io/antrea/pkg/agent/flowexporter/options"
 	objectstoretest "antrea.io/antrea/pkg/util/objectstore/testing"
 
@@ -108,7 +106,7 @@ func TestConnectionStore_DeleteConnWithoutLock(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	// test on deny connection store
 	mockPodStore := objectstoretest.NewMockPodStore(ctrl)
-	denyConnStore := NewDenyConnectionStore(nil, mockPodStore, nil, testFlowExporterOptions, filter.NewProtocolFilter(nil))
+	denyConnStore := NewDenyConnectionStore(nil, mockPodStore, nil, testFlowExporterOptions)
 	tuple := connection.Tuple{SourceAddress: netip.MustParseAddr("1.2.3.4"), DestinationAddress: netip.MustParseAddr("4.3.2.1"), Protocol: 6, SourcePort: 65280, DestinationPort: 255}
 	conn := &connection.Connection{
 		FlowKey: tuple,
@@ -124,8 +122,7 @@ func TestConnectionStore_DeleteConnWithoutLock(t *testing.T) {
 	checkDenyConnectionMetrics(t, len(denyConnStore.connections))
 
 	// test on conntrack connection store
-	mockConnDumper := connectionstest.NewMockConnTrackDumper(ctrl)
-	conntrackConnStore := NewConntrackConnectionStore(mockConnDumper, true, false, nil, mockPodStore, nil, nil, nil, testFlowExporterOptions)
+	conntrackConnStore := NewConntrackConnectionStore(nil, nil, mockPodStore, nil, nil, testFlowExporterOptions)
 	conntrackConnStore.connections[connKey] = conn
 
 	metrics.TotalAntreaConnectionsInConnTrackTable.Set(1)
