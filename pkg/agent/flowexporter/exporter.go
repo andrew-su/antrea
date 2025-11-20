@@ -280,8 +280,12 @@ func (exp *FlowExporter) Run(stopCh <-chan struct{}) {
 	}
 
 	if exp.staticDestinationRes != nil {
-		staticDest := exp.createDestinationFromResource(exp.staticDestinationRes)
-		go staticDest.Run(stopCh)
+		staticDest, err := exp.createDestinationFromResource(exp.staticDestinationRes)
+		if err != nil {
+			klog.ErrorS(err, "Unable to create a flow exporter destination from static configuation")
+		} else {
+			go staticDest.Run(stopCh)
+		}
 	}
 
 	<-stopCh
@@ -342,7 +346,10 @@ func (exp *FlowExporter) syncFlowExporterDestination(key string) error {
 	}
 
 	klog.V(3).InfoS("Adding consumer", "name", res.Name)
-	dest := exp.createDestinationFromResource(res)
+	dest, err := exp.createDestinationFromResource(res)
+	if err != nil {
+		return fmt.Errorf("unable to create destination from resource: %w", err)
+	}
 	stopCh := make(chan struct{})
 	go dest.Run(stopCh)
 	exp.destinations[res.Name] = destinationObj{
@@ -396,12 +403,17 @@ func resolveCollectorAddress(ctx context.Context, k8sClient kubernetes.Interface
 	return addr, dns, nil
 }
 
-func (fe *FlowExporter) createDestinationFromResource(res *api.FlowExporterDestination) *Destination {
+func (fe *FlowExporter) createDestinationFromResource(res *api.FlowExporterDestination) (*Destination, error) {
+	addr, _, err := resolveCollectorAddress(context.Background(), fe.k8sClient, res.Spec.Address)
+	if err != nil {
+		return nil, fmt.Errorf("unable to resolve FlowExporterDestination collector address (%q): %w", res.Spec.Address, err)
+	}
+
 	protocol := getExporterProtocol(res.Spec.Protocol)
 	exp := fe.createExporter(protocol)
 	config := DestinationConfig{
 		name:    res.Name,
-		address: res.Spec.Address,
+		address: addr,
 
 		activeFlowTimeout:      time.Second * time.Duration(res.Spec.ActiveFlowExportTimeoutSeconds),
 		idleFlowTimeout:        time.Second * time.Duration(res.Spec.IdleFlowExportTimeoutSeconds),
@@ -422,7 +434,7 @@ func (fe *FlowExporter) createDestinationFromResource(res *api.FlowExporterDesti
 		fe.egressQuerier,
 		fe.podNetworkWait,
 		config,
-	)
+	), nil
 }
 
 func createDestinationResFromOptions(k8sClient kubernetes.Interface, o *options.FlowExporterOptions) (*api.FlowExporterDestination, error) {
@@ -440,7 +452,7 @@ func createDestinationResFromOptions(k8sClient kubernetes.Interface, o *options.
 	if o.FlowCollectorProto == "grpc" {
 		feProtocol.GRPC = &api.FlowExporterGRPCConfig{}
 		feTLSConfig = &api.FlowExporterTLSConfig{
-			ServerName: "",
+			ServerName: name,
 			CAConfigMap: api.NamespacedName{
 				Name:      CAConfigMapName,
 				Namespace: CAConfigMapNamespace,

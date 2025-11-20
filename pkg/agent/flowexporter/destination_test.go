@@ -12,16 +12,21 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/component-base/metrics/legacyregistry"
 
 	"antrea.io/antrea/pkg/agent/flowexporter/connection"
 	"antrea.io/antrea/pkg/agent/flowexporter/connections"
+	"antrea.io/antrea/pkg/agent/flowexporter/exporter"
 	exportertesting "antrea.io/antrea/pkg/agent/flowexporter/exporter/testing"
 	"antrea.io/antrea/pkg/agent/flowexporter/priorityqueue"
 	flowexportertesting "antrea.io/antrea/pkg/agent/flowexporter/testing"
 	"antrea.io/antrea/pkg/agent/metrics"
 	agenttypes "antrea.io/antrea/pkg/agent/types"
+	"antrea.io/antrea/pkg/apis/crd/v1alpha1"
 	queriertest "antrea.io/antrea/pkg/querier/testing"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -364,4 +369,157 @@ func getNumOfDenyConns(connStore *connections.DenyConnectionStore) int {
 	}
 	connStore.ForAllConnectionsDo(countNumOfConns)
 	return count
+}
+
+func TestDestination_getExporterTLSConfig(t *testing.T) {
+	caConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ca-cm",
+			Namespace: "test-ns",
+		},
+		Data: map[string]string{
+			"ca.crt": "ca data",
+		},
+	}
+	badCAConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bad-ca-cm",
+			Namespace: "test-ns",
+		},
+		Data: map[string]string{},
+	}
+	clientTLSSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "client-tls",
+			Namespace: "test-ns",
+		},
+		Data: map[string][]byte{
+			"tls.crt": []byte("client-cert"),
+			"tls.key": []byte("client-key"),
+		},
+	}
+	badClientTLSSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bad-client-tls",
+			Namespace: "test-ns",
+		},
+		Data: map[string][]byte{
+			"tls.crt": []byte("client-cert"),
+			"tls.key": []byte("client-key"),
+		},
+	}
+	destinationAddr := "foo.example.com:4739"
+
+	tests := []struct {
+		name              string
+		tlsConfig         *v1alpha1.FlowExporterTLSConfig
+		expectedTLSConfig *exporter.TLSConfig
+		expectErr         bool
+	}{
+		{
+			name:              "no tls configuration",
+			expectedTLSConfig: nil,
+			expectErr:         false,
+		}, {
+			name: "ca configmap defined",
+			tlsConfig: &v1alpha1.FlowExporterTLSConfig{
+				ServerName: "foobar",
+				CAConfigMap: v1alpha1.NamespacedName{
+					Name:      caConfigMap.Name,
+					Namespace: caConfigMap.Namespace,
+				},
+			},
+			expectedTLSConfig: &exporter.TLSConfig{
+				ServerName: "foobar",
+				CAData:     []byte(caConfigMap.Data["ca.crt"]),
+			},
+		}, {
+			name: "ca configmap errors - does not exist",
+			tlsConfig: &v1alpha1.FlowExporterTLSConfig{
+				ServerName: "foobar",
+				CAConfigMap: v1alpha1.NamespacedName{
+					Name:      "unknown",
+					Namespace: "unknown",
+				},
+			},
+			expectErr: true,
+		}, {
+			name: "ca configmap errors - bad data",
+			tlsConfig: &v1alpha1.FlowExporterTLSConfig{
+				ServerName: "foobar",
+				CAConfigMap: v1alpha1.NamespacedName{
+					Name:      badCAConfigMap.Name,
+					Namespace: badCAConfigMap.Namespace,
+				},
+			},
+			expectErr: true,
+		}, {
+			name:      "ca configmap not defined",
+			tlsConfig: &v1alpha1.FlowExporterTLSConfig{},
+			expectErr: true,
+		}, {
+			name: "client secret defined",
+			tlsConfig: &v1alpha1.FlowExporterTLSConfig{
+				CAConfigMap: v1alpha1.NamespacedName{
+					Name:      caConfigMap.Name,
+					Namespace: caConfigMap.Namespace,
+				},
+				ClientSecret: &v1alpha1.NamespacedName{
+					Name:      clientTLSSecret.Name,
+					Namespace: clientTLSSecret.Namespace,
+				},
+			},
+			expectedTLSConfig: &exporter.TLSConfig{
+				ServerName: destinationAddr,
+				CAData:     []byte(caConfigMap.Data["ca.crt"]),
+				CertData:   clientTLSSecret.Data["tls.crt"],
+				KeyData:    clientTLSSecret.Data["tls.key"],
+			},
+		}, {
+			name: "client secret errors - bad data",
+			tlsConfig: &v1alpha1.FlowExporterTLSConfig{
+				CAConfigMap: v1alpha1.NamespacedName{
+					Name:      caConfigMap.Name,
+					Namespace: caConfigMap.Namespace,
+				},
+				ClientSecret: &v1alpha1.NamespacedName{
+					Name:      badClientTLSSecret.Name,
+					Namespace: badClientTLSSecret.Namespace,
+				},
+			},
+			expectErr: true,
+		}, {
+			name: "client secret errors - does not exist",
+			tlsConfig: &v1alpha1.FlowExporterTLSConfig{
+				CAConfigMap: v1alpha1.NamespacedName{
+					Name:      caConfigMap.Name,
+					Namespace: caConfigMap.Namespace,
+				},
+				ClientSecret: &v1alpha1.NamespacedName{
+					Name:      "unknown",
+					Namespace: "unknown",
+				},
+			},
+			expectErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeClient := fake.NewClientset(caConfigMap, clientTLSSecret)
+			d := &Destination{
+				k8sClient: fakeClient,
+				DestinationConfig: DestinationConfig{
+					address:   destinationAddr,
+					tlsConfig: tt.tlsConfig,
+				},
+			}
+			tlsConfig, err := d.getExporterTLSConfig(context.Background())
+			if tt.expectErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedTLSConfig, tlsConfig)
+		})
+	}
 }

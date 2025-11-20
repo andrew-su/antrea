@@ -94,7 +94,7 @@ func NewDestination(
 	conntrackConnStore := connections.NewConntrackConnectionStore(ctChannel, npQuerier, podStore, proxier, podNetworkWait, connectionStoreConfig)
 	denyConnStore := connections.NewDenyConnectionStore(npQuerier, podStore, proxier, connectionStoreConfig)
 
-	d := &Destination{
+	return &Destination{
 		DestinationConfig:      destinationConfig,
 		subscriber:             subscriber,
 		k8sClient:              k8sClient,
@@ -111,8 +111,6 @@ func NewDestination(
 		exp:         exporter,
 		exportConns: make([]connection.Connection, 0, maxConnsToExport*2),
 	}
-
-	return d
 }
 
 func (d *Destination) getExporterTLSConfig(ctx context.Context) (*exporter.TLSConfig, error) {
@@ -120,8 +118,13 @@ func (d *Destination) getExporterTLSConfig(ctx context.Context) (*exporter.TLSCo
 		return nil, nil
 	}
 
+	var serverName = d.tlsConfig.ServerName
+	if serverName == "" {
+		serverName = d.address
+	}
+
 	tlsConfig := &exporter.TLSConfig{
-		ServerName:    d.tlsConfig.ServerName,
+		ServerName:    serverName,
 		MinTLSVersion: d.tlsConfig.MinTLSVersion,
 	}
 
