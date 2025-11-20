@@ -85,7 +85,7 @@ func (b *broadcaster) Start(stopCh <-chan struct{}) {
 					conns := make([]*connection.Connection, 0, len(payload.Conns))
 					for idx := range payload.Conns {
 						conn := *payload.Conns[idx]
-						conns[idx] = &conn
+						conns = append(conns, &conn)
 					}
 					k.ch <- Payload{
 						Conns:  conns,

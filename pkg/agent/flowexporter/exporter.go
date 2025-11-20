@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"net"
+	"reflect"
 	"sync"
 	"time"
 
@@ -40,7 +41,6 @@ import (
 	"antrea.io/antrea/pkg/agent/flowexporter/options"
 	"antrea.io/antrea/pkg/agent/proxy"
 	api "antrea.io/antrea/pkg/apis/crd/v1alpha1"
-	"antrea.io/antrea/pkg/client/clientset/versioned"
 	crdinformers "antrea.io/antrea/pkg/client/informers/externalversions/crd/v1alpha1"
 	crdlisters "antrea.io/antrea/pkg/client/listers/crd/v1alpha1"
 	"antrea.io/antrea/pkg/features"
@@ -72,14 +72,12 @@ const (
 )
 
 type destinationObj struct {
-	generation  int64
 	stopCh      chan struct{}
 	destination *Destination
 }
 
 type FlowExporter struct {
 	k8sClient kubernetes.Interface
-	crdClient versioned.Interface
 
 	destinationInformer crdinformers.FlowExporterDestinationInformer
 	destinationLister   crdlisters.FlowExporterDestinationLister
@@ -93,9 +91,9 @@ type FlowExporter struct {
 	poller      *connections.Poller
 	broadcaster broadcaster.Broadcaster
 
-	staticDestination *api.FlowExporterDestination
-	destinations      map[string]destinationObj
-	destinationsMu    sync.Mutex
+	staticDestinationRes *api.FlowExporterDestination
+	destinations         map[string]destinationObj
+	destinationsMu       sync.Mutex
 
 	// Used to create exporter
 	nodeName    string
@@ -115,7 +113,6 @@ type FlowExporter struct {
 
 func NewFlowExporter(
 	k8sClient kubernetes.Interface,
-	crdClient versioned.Interface,
 	destinationInformer crdinformers.FlowExporterDestinationInformer,
 	nodeConfig *config.NodeConfig,
 	nodeRouteController *noderoute.Controller,
@@ -173,10 +170,11 @@ func NewFlowExporter(
 		klog.ErrorS(err, "failed to create static destination")
 	}
 
-	return &FlowExporter{
+	fe := &FlowExporter{
+		k8sClient: k8sClient,
+
 		v4Enabled:              v4Enabled,
 		v6Enabled:              v6Enabled,
-		k8sClient:              k8sClient,
 		isNetworkPolicyOnly:    trafficEncapMode.IsNetworkPolicyOnly(),
 		staleConnectionTimeout: o.StaleConnectionTimeout,
 		l7Listener:             l7Listener,
@@ -194,15 +192,61 @@ func NewFlowExporter(
 		nodeUID:     nodeUID,
 		obsDomainID: obsDomainID,
 
-		destinations:      make(map[string]destinationObj),
-		staticDestination: staticDestination,
+		destinations:         make(map[string]destinationObj),
+		staticDestinationRes: staticDestination,
 		queue: workqueue.NewTypedRateLimitingQueueWithConfig(
 			workqueue.NewTypedItemExponentialFailureRateLimiter[string](minRetryDelay, maxRetryDelay),
 			workqueue.TypedRateLimitingQueueConfig[string]{
 				Name: "flowexporterdestination",
 			},
 		),
-	}, nil
+	}
+
+	destinationInformer.Informer().AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
+		AddFunc:    fe.addDestination,
+		UpdateFunc: fe.updateDestination,
+		DeleteFunc: fe.deleteDestination,
+	}, 0)
+
+	return fe, nil
+}
+
+func (fe *FlowExporter) addDestination(obj any) {
+	res := obj.(*api.FlowExporterDestination)
+	klog.V(4).InfoS("Received new FlowExporterDestination", "resource", klog.KObj(res))
+	fe.queue.Add(res.Name)
+}
+
+func (fe *FlowExporter) updateDestination(old any, new any) {
+	oldRes := old.(*api.FlowExporterDestination)
+	newRes := new.(*api.FlowExporterDestination)
+
+	klog.V(4).InfoS("Received updated FlowExporterDestination", "resource", klog.KObj(newRes))
+
+	if reflect.DeepEqual(oldRes.Spec, newRes.Spec) {
+		return
+	}
+
+	fe.queue.Add(newRes.Name)
+}
+
+func (fe *FlowExporter) deleteDestination(obj any) {
+	res, ok := obj.(*api.FlowExporterDestination)
+	if !ok {
+		deletedState, ok := obj.(cache.DeletedFinalStateUnknown)
+		if !ok {
+			klog.Errorf("Received unexpected object: %v", obj)
+			return
+		}
+		res, ok = deletedState.Obj.(*api.FlowExporterDestination)
+		if !ok {
+			klog.Errorf("DeletedFinalStateUnknown contains non FlowExporterDestination object: %v", deletedState.Obj)
+			return
+		}
+	}
+
+	klog.V(4).InfoS("FlowExporterDestination deleted", "resource", klog.KObj(res))
+	fe.queue.Add(res.Name)
 }
 
 func (exp *FlowExporter) GetDenyConnPublisher() broadcaster.Publisher {
@@ -210,32 +254,41 @@ func (exp *FlowExporter) GetDenyConnPublisher() broadcaster.Publisher {
 }
 
 func (exp *FlowExporter) Run(stopCh <-chan struct{}) {
+	klog.Info("Flow Exporter started")
+
 	// Start L7 connection flow socket
 	if features.DefaultFeatureGate.Enabled(features.L7FlowExporter) {
 		go exp.l7Listener.Run(stopCh)
 	}
 
+	cacheSyncs := []cache.InformerSynced{exp.destinationInformer.Informer().HasSynced}
 	if exp.nodeRouteController != nil {
 		// Wait for NodeRouteController to have processed the initial list of Nodes so that
 		// the list of Pod subnets is up-to-date.
-		if !cache.WaitForCacheSync(stopCh, exp.nodeRouteController.HasSynced) {
-			return
-		}
+		cacheSyncs = append(cacheSyncs, exp.nodeRouteController.HasSynced)
+	}
+
+	if !cache.WaitForNamedCacheSync("FlowExporter", stopCh, cacheSyncs...) {
+		return
 	}
 
 	go exp.poller.Run(stopCh)
-
 	go exp.broadcaster.Start(stopCh)
 
 	for range defaultWorkers {
 		go wait.Until(exp.worker, time.Second, stopCh)
 	}
 
-	for {
-		select {
-		case <-stopCh:
-			return
-		}
+	if exp.staticDestinationRes != nil {
+		staticDest := exp.createDestinationFromResource(exp.staticDestinationRes)
+		go staticDest.Run(stopCh)
+	}
+
+	<-stopCh
+
+	for key, destination := range exp.destinations {
+		close(destination.stopCh)
+		delete(exp.destinations, key)
 	}
 }
 
@@ -283,9 +336,6 @@ func (exp *FlowExporter) syncFlowExporterDestination(key string) error {
 
 	destObj, ok := exp.destinations[key]
 	if ok {
-		if destObj.generation == res.Generation {
-			return nil // No changes nothing to do.
-		}
 		klog.V(3).InfoS("Destination was updated, removing old instance", "name", res.Name)
 		close(destObj.stopCh)
 		delete(exp.destinations, res.Name)
@@ -297,7 +347,6 @@ func (exp *FlowExporter) syncFlowExporterDestination(key string) error {
 	go dest.Run(stopCh)
 	exp.destinations[res.Name] = destinationObj{
 		destination: dest,
-		generation:  res.Generation,
 		stopCh:      stopCh,
 	}
 

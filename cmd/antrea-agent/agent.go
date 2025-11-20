@@ -162,7 +162,7 @@ func run(o *Options) error {
 	enableMulticlusterGW := features.DefaultFeatureGate.Enabled(features.Multicluster) && o.config.Multicluster.EnableGateway
 	_, multiclusterEncryptionMode := config.GetTrafficEncryptionModeFromStr(o.config.Multicluster.TrafficEncryptionMode)
 	enableMulticlusterNP := features.DefaultFeatureGate.Enabled(features.Multicluster) && o.config.Multicluster.EnableStretchedNetworkPolicy
-	enableFlowExporter := features.DefaultFeatureGate.Enabled(features.FlowExporter) && o.config.FlowExporter.Enable
+	enableFlowExporter := features.DefaultFeatureGate.Enabled(features.FlowExporter)
 	var nodeIPTracker *nodeip.Tracker
 	if o.nodeType == config.K8sNode {
 		nodeIPTracker = nodeip.NewTracker(nodeInformer)
@@ -736,7 +736,6 @@ func run(o *Options) error {
 		}
 		flowExporter, err = flowexporter.NewFlowExporter(
 			k8sClient,
-			crdClient,
 			flowExporterDestinationInformer,
 			nodeConfig,
 			nodeRouteController,
