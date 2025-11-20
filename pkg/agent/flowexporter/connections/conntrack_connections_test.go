@@ -31,7 +31,6 @@ import (
 
 	"antrea.io/antrea/pkg/agent/flowexporter/broadcaster"
 	"antrea.io/antrea/pkg/agent/flowexporter/connection"
-	"antrea.io/antrea/pkg/agent/flowexporter/options"
 	"antrea.io/antrea/pkg/agent/flowexporter/utils"
 	"antrea.io/antrea/pkg/agent/metrics"
 	"antrea.io/antrea/pkg/agent/openflow"
@@ -353,37 +352,13 @@ func TestConnectionStore_DeleteConnectionByKey(t *testing.T) {
 	}
 }
 
-func TestConnectionStore_MetricSettingInPoll(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	testFlows := make([]*connection.Connection, 0)
-	// Create connectionStore
-	mockPodStore := objectstoretest.NewMockPodStore(ctrl)
-
-	conntrackConnStore := NewConntrackConnectionStore(nil, nil, mockPodStore, nil, nil, testFlowExporterOptions)
-	// Hard-coded conntrack occupancy metrics for test
-	TotalConnections := 0
-	MaxConnections := 300000
-	err := conntrackConnStore.handlePayload(broadcaster.Payload{Conns: testFlows})
-	require.Nil(t, err, fmt.Sprintf("Failed to add connections to connection store: %v", err))
-	assert.Len(t, conntrackConnStore.connections, len(testFlows), "expected connections should be equal to number of testFlows")
-	checkTotalConnectionsMetric(t, TotalConnections)
-	checkMaxConnectionsMetric(t, MaxConnections)
-}
-
 func TestConntrackConnectionStore_Run_NetworkPolicyWait(t *testing.T) {
 	// Create a utilwait.Group and increment it to simulate waiting for NetworkPolicies
 	networkPolicyWait := utilwait.NewGroup()
 	networkPolicyWait.Increment()
 
-	testOptions := &options.FlowExporterOptions{
-		ActiveFlowTimeout:      testActiveFlowTimeout,
-		IdleFlowTimeout:        testIdleFlowTimeout,
-		StaleConnectionTimeout: testStaleConnectionTimeout,
-	}
-
 	connectionsCh := make(chan broadcaster.Payload)
-	conntrackConnStore := NewConntrackConnectionStore(connectionsCh, nil, nil, nil, networkPolicyWait, testOptions)
+	conntrackConnStore := NewConntrackConnectionStore(connectionsCh, nil, nil, nil, networkPolicyWait, testFlowExporterOptions)
 
 	// Record the time before starting Run
 	beforeRunTime := time.Now()

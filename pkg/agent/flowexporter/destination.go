@@ -10,7 +10,6 @@ import (
 	"antrea.io/antrea/pkg/agent/flowexporter/connection"
 	"antrea.io/antrea/pkg/agent/flowexporter/connections"
 	"antrea.io/antrea/pkg/agent/flowexporter/exporter"
-	"antrea.io/antrea/pkg/agent/flowexporter/options"
 	"antrea.io/antrea/pkg/agent/flowexporter/priorityqueue"
 	"antrea.io/antrea/pkg/agent/flowexporter/utils"
 	"antrea.io/antrea/pkg/agent/metrics"
@@ -37,8 +36,9 @@ type DestinationConfig struct {
 	name    string
 	address string
 
-	activeFlowTimeout time.Duration
-	idleFlowTimeout   time.Duration
+	activeFlowTimeout      time.Duration
+	idleFlowTimeout        time.Duration
+	staleConnectionTimeout time.Duration
 
 	isNetworkPolicyOnly bool
 	tlsConfig           *api.FlowExporterTLSConfig
@@ -48,7 +48,7 @@ type DestinationConfig struct {
 }
 
 type Destination struct {
-	*DestinationConfig
+	DestinationConfig
 
 	k8sClient  kubernetes.Interface
 	subscriber broadcaster.Subscriber
@@ -68,27 +68,27 @@ type Destination struct {
 	connected bool
 
 	exportConns      []connection.Connection
-	numConnsExported int64
+	numConnsExported uint64
 }
 
 func NewDestination(
 	subscriber broadcaster.Subscriber,
 	exporter exporter.Interface,
 	k8sClient kubernetes.Interface,
-	npQuerier querier.AgentNetworkPolicyInfoQuerier,
-	podStore objectstore.PodStore,
-	proxier proxy.ProxyQuerier,
+
 	nodeRouteController *noderoute.Controller,
+	podStore objectstore.PodStore,
+	npQuerier querier.AgentNetworkPolicyInfoQuerier,
+	proxier proxy.ProxyQuerier,
 	egressQuerier querier.EgressQuerier,
 	podNetworkWait *utilwait.Group,
-	o *options.FlowExporterOptions,
-	destinationConfig *DestinationConfig,
+	destinationConfig DestinationConfig,
 ) *Destination {
 	ctChannel := make(chan broadcaster.Payload, 2)
 	connectionStoreConfig := connections.ConnectionStoreConfig{
-		ActiveFlowTimeout:      o.ActiveFlowTimeout,
-		IdleFlowTimeout:        o.IdleFlowTimeout,
-		StaleConnectionTimeout: o.StaleConnectionTimeout,
+		ActiveFlowTimeout:      destinationConfig.activeFlowTimeout,
+		IdleFlowTimeout:        destinationConfig.idleFlowTimeout,
+		StaleConnectionTimeout: destinationConfig.staleConnectionTimeout,
 		AllowedProtocols:       destinationConfig.allowProtocolFilter,
 	}
 	conntrackConnStore := connections.NewConntrackConnectionStore(ctChannel, npQuerier, podStore, proxier, podNetworkWait, connectionStoreConfig)
@@ -146,10 +146,6 @@ func (d *Destination) getExporterTLSConfig(ctx context.Context) (*exporter.TLSCo
 }
 
 func (d *Destination) Connect(ctx context.Context) error {
-	if d.connected {
-		return nil
-	}
-
 	klog.V(4).Infof("Connecting consumer with address %s", d.address)
 
 	var tlsConfig *exporter.TLSConfig
@@ -185,11 +181,11 @@ func (d *Destination) Run(stopCh <-chan struct{}) {
 	go d.conntrackConnStore.Run(stopCh)
 
 	exportTicker := time.NewTicker(d.activeFlowTimeout)
+	defer exportTicker.Stop()
 	for {
 		select {
 		case <-stopCh:
 			d.resetFlowExporter()
-			exportTicker.Stop()
 			return
 		case payload := <-sub.C():
 			// It may a denied connection if the payload has a single connection.

@@ -131,12 +131,13 @@ func TestDenyConnectionStore_AddOrUpdateConn(t *testing.T) {
 				mockPodStore.EXPECT().GetPodByIPAndTime(tuple.DestinationAddress.String(), gomock.Any()).Return(pod1, true)
 			}
 
-			denyConnStore := NewDenyConnectionStore(nil, mockPodStore, mockProxier, testFlowExporterOptions)
+			config := testFlowExporterOptions
+			config.AllowedProtocols = c.protocolFilter
+			denyConnStore := NewDenyConnectionStore(nil, mockPodStore, mockProxier, config)
 
-			oflow := c.testFlow
-
-			denyConnStore.AddOrUpdateConn(&oflow)
-			expConn := oflow
+			flow1 := c.testFlow
+			denyConnStore.AddOrUpdateConn(&flow1)
+			expConn := flow1
 			if c.isSvc {
 				expConn.DestinationServicePortName = servicePortName.String()
 			}
@@ -152,9 +153,11 @@ func TestDenyConnectionStore_AddOrUpdateConn(t *testing.T) {
 			assert.Equal(t, refTime.Add(-(time.Second * 20)), actualConn.LastExportTime, "LastExportTime should be set to StartTime during Add")
 			checkDenyConnectionMetrics(t, len(denyConnStore.connections))
 
-			denyConnStore.AddOrUpdateConn(&c.testFlow)
-			expConn.OriginalBytes = uint64(120)
-			expConn.OriginalPackets = uint64(2)
+			flow2 := c.testFlow
+			flow2.StopTime = refTime.Add(-(time.Second * 10))
+			denyConnStore.AddOrUpdateConn(&flow2)
+			expConn.OriginalBytes = expConn.OriginalBytes + c.testFlow.OriginalBytes
+			expConn.OriginalPackets = expConn.OriginalPackets + c.testFlow.OriginalPackets
 			expConn.StopTime = refTime.Add(-(time.Second * 10))
 			actualConn, ok = denyConnStore.GetConnByKey(connection.NewConnectionKey(&c.testFlow))
 			assert.Equal(t, ok, true, "deny connection should be there in deny connection store")

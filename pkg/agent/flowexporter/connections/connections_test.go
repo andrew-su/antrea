@@ -23,7 +23,6 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"antrea.io/antrea/pkg/agent/flowexporter/connection"
-	"antrea.io/antrea/pkg/agent/flowexporter/options"
 	objectstoretest "antrea.io/antrea/pkg/util/objectstore/testing"
 
 	"antrea.io/antrea/pkg/agent/metrics"
@@ -32,17 +31,13 @@ import (
 const (
 	testActiveFlowTimeout      = 3 * time.Second
 	testIdleFlowTimeout        = 1 * time.Second
-	testPollInterval           = 0 // Not used in these tests, hence 0.
 	testStaleConnectionTimeout = 5 * time.Minute
 )
 
-var testFlowExporterOptions = &options.FlowExporterOptions{
-	FlowCollectorAddr:      "",
-	FlowCollectorProto:     "",
+var testFlowExporterOptions = ConnectionStoreConfig{
 	ActiveFlowTimeout:      testActiveFlowTimeout,
 	IdleFlowTimeout:        testIdleFlowTimeout,
 	StaleConnectionTimeout: testStaleConnectionTimeout,
-	PollInterval:           testPollInterval,
 }
 
 func TestConnectionStore_ForAllConnectionsDo(t *testing.T) {

@@ -64,6 +64,7 @@ func NewConntrackConnectionStore(
 	cfg ConnectionStoreConfig,
 ) *ConntrackConnectionStore {
 	return &ConntrackConnectionStore{
+		incoming:          incoming,
 		connectionStore:   NewConnectionStore(npQuerier, podStore, proxier, cfg),
 		networkPolicyWait: networkPolicyWait,
 		protocolFilter:    filter.NewProtocolFilter(cfg.AllowedProtocols),

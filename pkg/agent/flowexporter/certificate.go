@@ -23,8 +23,10 @@ import (
 )
 
 const (
+	CAConfigMapNamespace  = "flow-aggregator"
 	CAConfigMapName       = "flow-aggregator-ca"
 	CAConfigMapKey        = "ca.crt"
+	ClientSecretNamespace = "flow-aggregator"
 	// #nosec G101: false positive triggered by variable name which includes "Secret"
 	ClientSecretName = "flow-aggregator-client-tls"
 )

@@ -111,12 +111,19 @@ func (p *Poller) Poll() ([]*connection.Connection, map[connection.ConnectionKey]
 	for _, zone := range p.zones {
 		filteredConnsListPerZone, totalConnsPerZone, err := p.connTrackDumper.DumpFlows(zone)
 		if err != nil {
-			return nil, nil, []int{}, err
+			return nil, nil, nil, err
 		}
 		totalConns += totalConnsPerZone
 		filteredConnsList = append(filteredConnsList, filteredConnsListPerZone...)
 		connsLens = append(connsLens, len(filteredConnsList))
 	}
 
+	metrics.TotalConnectionsInConnTrackTable.Set(float64(totalConns))
+	maxConns, err := p.connTrackDumper.GetMaxConnections()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	metrics.MaxConnectionsInConnTrackTable.Set(float64(maxConns))
+	klog.V(2).Infof("Conntrack polling successful")
 	return filteredConnsList, l7EventMap, connsLens, nil
 }
