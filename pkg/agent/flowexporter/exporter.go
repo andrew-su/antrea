@@ -377,34 +377,47 @@ func (fe *FlowExporter) createExporter(protocol exporterProtocol) exporter.Inter
 	return exp
 }
 
+func ServiceAddressToDNS(address string) (string, error) {
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		return "", err
+	}
+
+	ns, name := k8sutil.SplitNamespacedName(host)
+	if ns == "" {
+		return "", nil
+	}
+
+	return fmt.Sprintf("%s.%s.svc", name, ns), nil
+}
+
 // resolveCollectorAddress resolves the collector address provided in the config to an IP address or
 // DNS name. The collector address can be a namespaced reference to a K8s Service, and hence needs
 // resolution (to the Service's ClusterIP). The function also returns a server name to be used in
 // the TLS handshake (when TLS is enabled).
-func resolveCollectorAddress(ctx context.Context, k8sClient kubernetes.Interface, address string) (string, string, error) {
+func resolveCollectorAddress(ctx context.Context, k8sClient kubernetes.Interface, address string) (string, error) {
 	host, port, err := net.SplitHostPort(address)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 	ns, name := k8sutil.SplitNamespacedName(host)
 	if ns == "" {
-		return address, "", nil
+		return address, nil
 	}
 	svc, err := k8sClient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
-		return "", "", fmt.Errorf("failed to resolve Service: %s/%s", ns, name)
+		return "", fmt.Errorf("failed to resolve Service: %s/%s", ns, name)
 	}
 	if svc.Spec.ClusterIP == "" {
-		return "", "", fmt.Errorf("ClusterIP is not available for Service: %s/%s", ns, name)
+		return "", fmt.Errorf("ClusterIP is not available for Service: %s/%s", ns, name)
 	}
 	addr := net.JoinHostPort(svc.Spec.ClusterIP, port)
-	dns := fmt.Sprintf("%s.%s.svc", name, ns)
 	klog.V(2).InfoS("Resolved Service address", "address", addr)
-	return addr, dns, nil
+	return addr, nil
 }
 
 func (fe *FlowExporter) createDestinationFromResource(res *api.FlowExporterDestination) (*Destination, error) {
-	addr, _, err := resolveCollectorAddress(context.Background(), fe.k8sClient, res.Spec.Address)
+	addr, err := resolveCollectorAddress(context.Background(), fe.k8sClient, res.Spec.Address)
 	if err != nil {
 		return nil, fmt.Errorf("unable to resolve FlowExporterDestination collector address (%q): %w", res.Spec.Address, err)
 	}
@@ -444,15 +457,15 @@ func createDestinationResFromOptions(k8sClient kubernetes.Interface, o *options.
 	feProtocol := api.FlowExporterProtocol{}
 	var feTLSConfig *api.FlowExporterTLSConfig
 
-	addr, name, err := resolveCollectorAddress(context.Background(), k8sClient, o.FlowCollectorAddr)
+	dnsName, err := ServiceAddressToDNS(o.FlowCollectorAddr)
 	if err != nil {
-		return nil, fmt.Errorf("unable to resolve static collector address: %w", err)
+		return nil, fmt.Errorf("fail")
 	}
 
 	if o.FlowCollectorProto == "grpc" {
 		feProtocol.GRPC = &api.FlowExporterGRPCConfig{}
 		feTLSConfig = &api.FlowExporterTLSConfig{
-			ServerName: name,
+			ServerName: dnsName,
 			CAConfigMap: api.NamespacedName{
 				Name:      CAConfigMapName,
 				Namespace: CAConfigMapNamespace,
@@ -468,7 +481,7 @@ func createDestinationResFromOptions(k8sClient kubernetes.Interface, o *options.
 		}
 		if o.FlowCollectorProto == "tls" {
 			feTLSConfig = &api.FlowExporterTLSConfig{
-				ServerName: name,
+				ServerName: dnsName,
 				CAConfigMap: api.NamespacedName{
 					Name:      CAConfigMapName,
 					Namespace: CAConfigMapNamespace,
@@ -483,7 +496,7 @@ func createDestinationResFromOptions(k8sClient kubernetes.Interface, o *options.
 
 	return &api.FlowExporterDestination{
 		Spec: api.FlowExporterDestinationSpec{
-			Address:  addr,
+			Address:  o.FlowCollectorAddr,
 			Protocol: feProtocol,
 			Filter: &api.FlowExporterFilter{
 				Protocols: o.ProtocolFilter,

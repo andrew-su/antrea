@@ -95,13 +95,12 @@ func TestFlowExporter_resolveCollectorAddress(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			addr, name, err := resolveCollectorAddress(ctx, k8sClient, tc.inputAddr)
+			addr, err := resolveCollectorAddress(ctx, k8sClient, tc.inputAddr)
 			if tc.expectedErr != "" {
 				assert.ErrorContains(t, err, tc.expectedErr)
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tc.expectedAddr, addr)
-				assert.Equal(t, tc.expectedServerName, name)
 			}
 		})
 	}

@@ -151,13 +151,18 @@ func (d *Destination) getExporterTLSConfig(ctx context.Context) (*exporter.TLSCo
 func (d *Destination) Connect(ctx context.Context) error {
 	klog.V(4).Infof("Connecting consumer with address %s", d.address)
 
-	var tlsConfig *exporter.TLSConfig
-	tlsConfig, err := d.getExporterTLSConfig(ctx)
+	addr, err := resolveCollectorAddress(ctx, d.k8sClient, d.address)
 	if err != nil {
 		return err
 	}
 
-	if err = d.exp.ConnectToCollector(d.address, tlsConfig); err != nil {
+	var tlsConfig *exporter.TLSConfig
+	tlsConfig, err = d.getExporterTLSConfig(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err = d.exp.ConnectToCollector(addr, tlsConfig); err != nil {
 		return err
 	}
 
