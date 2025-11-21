@@ -15,8 +15,6 @@
 package flowexporter
 
 import (
-	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -28,83 +26,10 @@ import (
 	crdinformers "antrea.io/antrea/pkg/client/informers/externalversions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
-
-func TestFlowExporter_resolveCollectorAddress(t *testing.T) {
-	ctx := context.Background()
-
-	k8sClient := fake.NewSimpleClientset(
-		&corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "svc1",
-				Namespace: "ns",
-			},
-			Spec: corev1.ServiceSpec{
-				Type:       corev1.ServiceTypeClusterIP,
-				ClusterIP:  "10.96.1.201",
-				ClusterIPs: []string{"10.96.1.201"},
-			},
-		},
-		&corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "svc2",
-				Namespace: "ns",
-			},
-			Spec: corev1.ServiceSpec{
-				Type: corev1.ServiceTypeClusterIP,
-				// missing ClusterIP
-			},
-		},
-	)
-
-	testCases := []struct {
-		name               string
-		inputAddr          string
-		expectedAddr       string
-		expectedServerName string
-		expectedErr        string
-	}{
-		{
-			name:         "IP address",
-			inputAddr:    "10.96.1.100:4739",
-			expectedAddr: "10.96.1.100:4739",
-		},
-		{
-			name:               "Service name",
-			inputAddr:          "ns/svc1:4739",
-			expectedAddr:       "10.96.1.201:4739",
-			expectedServerName: "svc1.ns.svc",
-		},
-		{
-			name:        "Service without ClusterIP",
-			inputAddr:   "ns/svc2:4739",
-			expectedErr: "ClusterIP is not available for Service",
-		},
-		{
-			name:        "Missing Service",
-			inputAddr:   "ns/svc3:4739",
-			expectedErr: "failed to resolve Service",
-		},
-	}
-
-	for _, tc := range testCases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			addr, err := resolveCollectorAddress(ctx, k8sClient, tc.inputAddr)
-			if tc.expectedErr != "" {
-				assert.ErrorContains(t, err, tc.expectedErr)
-			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tc.expectedAddr, addr)
-			}
-		})
-	}
-}
 
 func TestFlowExporter_createExporter(t *testing.T) {
 	tests := []struct {
@@ -132,21 +57,6 @@ func TestFlowExporter_createExporter(t *testing.T) {
 }
 
 func Test_createDestinationResFromOptions(t *testing.T) {
-	svc := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "svc1",
-			Namespace: "ns1",
-		},
-		Spec: corev1.ServiceSpec{
-			ClusterIP: "10.20.30.40",
-			Ports: []corev1.ServicePort{
-				corev1.ServicePort{
-					Port: 5678,
-				},
-			},
-		},
-	}
-
 	tests := []struct {
 		name string
 		o    *options.FlowExporterOptions
@@ -162,7 +72,7 @@ func Test_createDestinationResFromOptions(t *testing.T) {
 			name: "address is namespace/name - tcp",
 			o: &options.FlowExporterOptions{
 				EnableStaticDestination: true,
-				FlowCollectorAddr:       fmt.Sprintf("%s/%s:%d", svc.Namespace, svc.Name, svc.Spec.Ports[0].Port),
+				FlowCollectorAddr:       "ns1/svc1:5678",
 				FlowCollectorProto:      "tcp",
 				ActiveFlowTimeout:       5 * time.Second,
 				IdleFlowTimeout:         2 * time.Second,
@@ -170,7 +80,7 @@ func Test_createDestinationResFromOptions(t *testing.T) {
 			},
 			want: &v1alpha1.FlowExporterDestination{
 				Spec: v1alpha1.FlowExporterDestinationSpec{
-					Address: "10.20.30.40:5678",
+					Address: "ns1/svc1:5678",
 					Protocol: v1alpha1.FlowExporterProtocol{
 						IPFIX: &v1alpha1.FlowExporterIPFIXConfig{
 							Transport: v1alpha1.FlowExporterTransportTCP,
@@ -188,7 +98,7 @@ func Test_createDestinationResFromOptions(t *testing.T) {
 			name: "address is namespace/name - tls",
 			o: &options.FlowExporterOptions{
 				EnableStaticDestination: true,
-				FlowCollectorAddr:       fmt.Sprintf("%s/%s:%d", svc.Namespace, svc.Name, svc.Spec.Ports[0].Port),
+				FlowCollectorAddr:       "ns1/svc1:5678",
 				FlowCollectorProto:      "tls",
 				ActiveFlowTimeout:       5 * time.Second,
 				IdleFlowTimeout:         2 * time.Second,
@@ -196,7 +106,7 @@ func Test_createDestinationResFromOptions(t *testing.T) {
 			},
 			want: &v1alpha1.FlowExporterDestination{
 				Spec: v1alpha1.FlowExporterDestinationSpec{
-					Address: "10.20.30.40:5678",
+					Address: "ns1/svc1:5678",
 					Protocol: v1alpha1.FlowExporterProtocol{
 						IPFIX: &v1alpha1.FlowExporterIPFIXConfig{
 							Transport: v1alpha1.FlowExporterTransportTLS,
@@ -248,10 +158,10 @@ func Test_createDestinationResFromOptions(t *testing.T) {
 				},
 			},
 		}, {
-			name: "address is namespace/name - grpc",
+			name: "address is dns - grpc",
 			o: &options.FlowExporterOptions{
 				EnableStaticDestination: true,
-				FlowCollectorAddr:       fmt.Sprintf("%s/%s:%d", svc.Namespace, svc.Name, svc.Spec.Ports[0].Port),
+				FlowCollectorAddr:       "foo.example.com:5678",
 				FlowCollectorProto:      "grpc",
 				ActiveFlowTimeout:       5 * time.Second,
 				IdleFlowTimeout:         2 * time.Second,
@@ -259,7 +169,7 @@ func Test_createDestinationResFromOptions(t *testing.T) {
 			},
 			want: &v1alpha1.FlowExporterDestination{
 				Spec: v1alpha1.FlowExporterDestinationSpec{
-					Address: "10.20.30.40:5678",
+					Address: "foo.example.com:5678",
 					Protocol: v1alpha1.FlowExporterProtocol{
 						GRPC: &v1alpha1.FlowExporterGRPCConfig{},
 					},
@@ -269,7 +179,7 @@ func Test_createDestinationResFromOptions(t *testing.T) {
 					ActiveFlowExportTimeoutSeconds: 5,
 					IdleFlowExportTimeoutSeconds:   2,
 					TLSConfig: &v1alpha1.FlowExporterTLSConfig{
-						ServerName:    "svc1.ns1.svc",
+						ServerName:    "",
 						MinTLSVersion: "",
 						CAConfigMap: v1alpha1.NamespacedName{
 							Name:      "flow-aggregator-ca",
@@ -286,8 +196,7 @@ func Test_createDestinationResFromOptions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fakeClient := fake.NewClientset(svc)
-			dest, err := createDestinationResFromOptions(fakeClient, tt.o)
+			dest, err := createDestinationResFromOptions(tt.o)
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, dest)
 		})

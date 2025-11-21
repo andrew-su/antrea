@@ -165,7 +165,7 @@ func NewFlowExporter(
 	nodeUID := string(node.UID)
 	klog.InfoS("Retrieved this Node's UID from K8s", "nodeName", nodeName, "nodeUID", nodeUID)
 
-	staticDestination, err := createDestinationResFromOptions(k8sClient, o)
+	staticDestination, err := createDestinationResFromOptions(o)
 	if err != nil {
 		klog.ErrorS(err, "failed to create static destination")
 	}
@@ -391,42 +391,12 @@ func ServiceAddressToDNS(address string) (string, error) {
 	return fmt.Sprintf("%s.%s.svc", name, ns), nil
 }
 
-// resolveCollectorAddress resolves the collector address provided in the config to an IP address or
-// DNS name. The collector address can be a namespaced reference to a K8s Service, and hence needs
-// resolution (to the Service's ClusterIP). The function also returns a server name to be used in
-// the TLS handshake (when TLS is enabled).
-func resolveCollectorAddress(ctx context.Context, k8sClient kubernetes.Interface, address string) (string, error) {
-	host, port, err := net.SplitHostPort(address)
-	if err != nil {
-		return "", err
-	}
-	ns, name := k8sutil.SplitNamespacedName(host)
-	if ns == "" {
-		return address, nil
-	}
-	svc, err := k8sClient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
-	if err != nil {
-		return "", fmt.Errorf("failed to resolve Service: %s/%s", ns, name)
-	}
-	if svc.Spec.ClusterIP == "" {
-		return "", fmt.Errorf("ClusterIP is not available for Service: %s/%s", ns, name)
-	}
-	addr := net.JoinHostPort(svc.Spec.ClusterIP, port)
-	klog.V(2).InfoS("Resolved Service address", "address", addr)
-	return addr, nil
-}
-
 func (fe *FlowExporter) createDestinationFromResource(res *api.FlowExporterDestination) (*Destination, error) {
-	addr, err := resolveCollectorAddress(context.Background(), fe.k8sClient, res.Spec.Address)
-	if err != nil {
-		return nil, fmt.Errorf("unable to resolve FlowExporterDestination collector address (%q): %w", res.Spec.Address, err)
-	}
-
 	protocol := getExporterProtocol(res.Spec.Protocol)
 	exp := fe.createExporter(protocol)
 	config := DestinationConfig{
 		name:    res.Name,
-		address: addr,
+		address: res.Spec.Address,
 
 		activeFlowTimeout:      time.Second * time.Duration(res.Spec.ActiveFlowExportTimeoutSeconds),
 		idleFlowTimeout:        time.Second * time.Duration(res.Spec.IdleFlowExportTimeoutSeconds),
@@ -450,7 +420,7 @@ func (fe *FlowExporter) createDestinationFromResource(res *api.FlowExporterDesti
 	), nil
 }
 
-func createDestinationResFromOptions(k8sClient kubernetes.Interface, o *options.FlowExporterOptions) (*api.FlowExporterDestination, error) {
+func createDestinationResFromOptions(o *options.FlowExporterOptions) (*api.FlowExporterDestination, error) {
 	if !o.EnableStaticDestination {
 		return nil, nil
 	}

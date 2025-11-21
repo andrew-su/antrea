@@ -3,6 +3,7 @@ package flowexporter
 import (
 	"context"
 	"fmt"
+	"net"
 	"time"
 
 	"antrea.io/antrea/pkg/agent/controller/noderoute"
@@ -16,8 +17,10 @@ import (
 	"antrea.io/antrea/pkg/agent/proxy"
 	api "antrea.io/antrea/pkg/apis/crd/v1alpha1"
 	"antrea.io/antrea/pkg/querier"
+	k8sutil "antrea.io/antrea/pkg/util/k8s"
 	"antrea.io/antrea/pkg/util/objectstore"
 	utilwait "antrea.io/antrea/pkg/util/wait"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 )
@@ -330,4 +333,28 @@ func getMinTime(t1, t2 time.Duration) time.Duration {
 		return t1
 	}
 	return t2
+}
+
+// resolveCollectorAddress resolves the collector address provided to an IP address if applicable or
+// DNS name. The collector address can be a namespaced reference to a K8s Service, and hence needs
+// resolution (to the Service's ClusterIP).
+func resolveCollectorAddress(ctx context.Context, k8sClient kubernetes.Interface, address string) (string, error) {
+	host, port, err := net.SplitHostPort(address)
+	if err != nil {
+		return "", err
+	}
+	ns, name := k8sutil.SplitNamespacedName(host)
+	if ns == "" {
+		return address, nil
+	}
+	svc, err := k8sClient.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve Service: %s/%s", ns, name)
+	}
+	if svc.Spec.ClusterIP == "" {
+		return "", fmt.Errorf("ClusterIP is not available for Service: %s/%s", ns, name)
+	}
+	addr := net.JoinHostPort(svc.Spec.ClusterIP, port)
+	klog.V(2).InfoS("Resolved Service address", "address", addr)
+	return addr, nil
 }
