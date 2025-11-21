@@ -222,12 +222,27 @@ func skipIfProxyAllDisabled(t *testing.T, data *TestData) {
 }
 
 func skipIfFlowExportProtocolIsNotGRPC(t *testing.T, data *TestData) {
-	agentConf, err := data.GetAntreaAgentConf()
+	cmd := fmt.Sprintf("cat %s", flowVisibilityProtocolFile)
+	_, stdout, _, err := data.RunCommandOnNode(controlPlaneNodeName(), cmd)
 	if err != nil {
-		t.Fatalf("Error getting Antrea Agent config: %v", err)
+		t.Fatalf("Error getting flow visibility protocol file from control plane node: %v", err)
 	}
-	if !strings.HasSuffix(agentConf.FlowExporter.FlowCollectorAddr, ":grpc") {
+	// gRPC is default. If the file doesn't exist assume gRPC
+	if stdout != "" && !strings.EqualFold(stdout, "grpc") {
 		t.Skip("Skipping test because Flow Exporter does not use gRPC")
+	}
+}
+
+func skipIfFlowExportProtocolIsGRPC(t *testing.T, data *TestData) {
+	cmd := fmt.Sprintf("cat %s", flowVisibilityProtocolFile)
+	_, stdout, _, err := data.RunCommandOnNode(controlPlaneNodeName(), cmd)
+	if err != nil {
+		t.Fatalf("Error getting flow visibility protocol file from control plane node: %v", err)
+	}
+
+	// gRPC is default. If the file doesn't exist assume gRPC
+	if stdout != "" && strings.EqualFold(stdout, "grpc") {
+		t.Skip("Skipping test because Flow Exporter uses gRPC")
 	}
 }
 
