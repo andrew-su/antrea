@@ -520,7 +520,7 @@ func exportLogs(tb testing.TB, data *TestData, logsSubDir string, writeNodeLogs 
 
 func teardownFlowAggregator(tb testing.TB, data *TestData) {
 	if testOptions.enableCoverage {
-		if err := testData.gracefulExitFlowAggregator(testOptions.coverageDir); err != nil {
+		if err := testData.gracefulExitFlowAggregators(testOptions.coverageDir); err != nil {
 			tb.Fatalf("Error when gracefully exiting Flow Aggregator: %v", err)
 		}
 	}

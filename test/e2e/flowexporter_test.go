@@ -27,30 +27,34 @@ func isTestProtocolGRPC() bool {
 }
 
 // createFlowExporterTarget creates a new FlowExporterTarget and hooks it up for deletion at the end of the test.
-func createFlowExporterTarget(tb testing.TB, name string, isTLS, targetSecondFA bool) *v1alpha1.FlowExporterTarget {
+func createFlowExporterTarget(tb testing.TB, name string, isTLS bool, flowAggregatorIndex int) *v1alpha1.FlowExporterDestination {
 	serviceAddr := "flow-aggregator/flow-aggregator"
-	if targetSecondFA {
-		serviceAddr = "flow-aggregator2/flow-aggregator"
+	if flowAggregatorIndex > 0 {
+		serviceAddr = fmt.Sprintf("flow-aggregator/flow-aggregator-%d", flowAggregatorIndex)
 	}
 
-	protocol := v1alpha1.ProtoGRPC
-	var transport v1alpha1.TransportProtocol
-	if !isTestProtocolGRPC() {
-		protocol = v1alpha1.ProtoIPFix
-	}
-	if isTLS {
-		transport = v1alpha1.ProtoTLS
+	protocol := v1alpha1.FlowExporterProtocol{}
+	if isTestProtocolGRPC() {
+		protocol.GRPC = &v1alpha1.FlowExporterGRPCConfig{}
 	} else {
-		transport = v1alpha1.ProtoTCP
+		var transport v1alpha1.FlowExporterTransportProtocol
+		if isTLS {
+			transport = v1alpha1.FlowExporterTransportTLS
+		} else {
+			transport = v1alpha1.FlowExporterTransportTCP
+		}
+		protocol.IPFIX = &v1alpha1.FlowExporterIPFIXConfig{
+			Transport: transport,
+		}
 	}
 
-	target := testData.BuildFlowExporterTarget(randName(name+"-"), testData.testNamespace, serviceAddr, protocol, transport, "2s", "1s")
-	updatedTarget, err := testData.CreateOrUpdateFET(target)
+	target := testData.BuildFlowExporterDestination(randName(name+"-"), testData.testNamespace, serviceAddr, protocol, 2, 1)
+	updatedTarget, err := testData.CreateOrUpdateFlowExporterDestination(target)
 	if err != nil {
 		tb.Fatalf("failed to create FlowExporterTarget: %v", err)
 	}
 	tb.Cleanup(func() {
-		testData.DeleteFET(target.Name)
+		testData.DeleteFlowExporterDestination(target.Name)
 	})
 
 	return updatedTarget
@@ -192,11 +196,13 @@ func TestFlowExporterFlowExporterTargets(t *testing.T) {
 		mode:      flowaggregatorconfig.AggregatorModeProxy,
 		clusterID: customClusterID,
 		flowAggregator: flowAggregatorTestOptions{
-			disableTLS: true,
+			disableTLS:         true,
+			selectedAggregator: 1,
 		},
 		ipfixCollector: flowVisibilityIPFIXTestOptions{
 			name: collector1Name,
-		}}
+		},
+	}
 	// TODO: Create one for each node instead, daemonset?
 	collector1Addr = deployIPFIXCollectorOnNode(t, opt1, 1)
 
@@ -205,12 +211,13 @@ func TestFlowExporterFlowExporterTargets(t *testing.T) {
 		mode:      flowaggregatorconfig.AggregatorModeProxy,
 		clusterID: customClusterID,
 		flowAggregator: flowAggregatorTestOptions{
-			disableTLS: true,
+			disableTLS:         true,
+			selectedAggregator: 2,
 		},
-		useSecondFlowAggregator: true,
 		ipfixCollector: flowVisibilityIPFIXTestOptions{
 			name: collector2Name,
-		}}
+		},
+	}
 	collector2Addr = deployIPFIXCollectorOnNode(t, opt2, 2)
 
 	k8sUtils, err = NewKubernetesUtils(data)
@@ -221,7 +228,7 @@ func TestFlowExporterFlowExporterTargets(t *testing.T) {
 	require.NoError(t, err, "Error when creating perftest Pods")
 
 	runTests := func(t *testing.T, isIPv6 bool) {
-		data.CleanFETs()
+		data.CleanFlowExporterDestinations()
 		t.Run("no flow exporter targets", func(t *testing.T) {
 			setupFlowExporterTargetTest(t, opt1, opt2)
 			// We don't wait and verify metrics because at this point there are no consumer thus no connections.
@@ -231,8 +238,8 @@ func TestFlowExporterFlowExporterTargets(t *testing.T) {
 		t.Run("one exporter", func(t *testing.T) {
 			setupFlowExporterTargetTest(t, opt1, opt2)
 
-			createFlowExporterTarget(t, "single-exporter", false, false)
-			require.NoError(t, getAndCheckFlowAggregatorMetrics(t, data, isIPv6, flowAggregatorNamespace), "Error when checking metrics of Flow Aggregator")
+			createFlowExporterTarget(t, "single-exporter", false, 1)
+			require.NoError(t, getAndCheckFlowAggregatorMetrics(t, data, isIPv6, 1), "Error when checking metrics of Flow Aggregator")
 
 			generateTrafficAndVerify(t, data, isIPv6, verifyRecords(collector1Name) /*, verifyNoRecords(collector2Name)*/)
 		})
@@ -240,11 +247,11 @@ func TestFlowExporterFlowExporterTargets(t *testing.T) {
 		t.Run("multi exporters", func(t *testing.T) {
 			setupFlowExporterTargetTest(t, opt1, opt2)
 
-			createFlowExporterTarget(t, "multi-exporter-ag1", false, false)
-			createFlowExporterTarget(t, "multi-exporter-ag2", false, true)
+			createFlowExporterTarget(t, "multi-exporter-ag1", false, 1)
+			createFlowExporterTarget(t, "multi-exporter-ag2", false, 2)
 
-			require.NoError(t, getAndCheckFlowAggregatorMetrics(t, data, isIPv6, flowAggregatorNamespace), "Error when checking metrics of Flow Aggregator")
-			require.NoError(t, getAndCheckFlowAggregatorMetrics(t, data, isIPv6, flowAggregatorNamespace2), "Error when checking metrics of Flow Aggregator 2")
+			require.NoError(t, getAndCheckFlowAggregatorMetrics(t, data, isIPv6, 1), "Error when checking metrics of Flow Aggregator")
+			require.NoError(t, getAndCheckFlowAggregatorMetrics(t, data, isIPv6, 2), "Error when checking metrics of Flow Aggregator 2")
 			generateTrafficAndVerify(t, data, isIPv6, verifyRecords(collector1Name), verifyRecords(collector2Name))
 		})
 	}
