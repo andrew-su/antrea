@@ -88,6 +88,14 @@ type FlowExporter struct {
 	isNetworkPolicyOnly    bool
 	l7Listener             *connections.L7Listener
 
+	// Destination dependencies
+	nodeRouteController *noderoute.Controller
+	podStore            objectstore.PodStore
+	proxier             proxy.ProxyQuerier
+	egressQuerier       querier.EgressQuerier
+	npQuerier           querier.AgentNetworkPolicyInfoQuerier
+	podNetworkWait      *utilwait.Group
+
 	poller      *connections.Poller
 	broadcaster broadcaster.Broadcaster
 
@@ -99,14 +107,6 @@ type FlowExporter struct {
 	nodeName    string
 	nodeUID     string
 	obsDomainID uint32
-
-	// Destination dependencies
-	nodeRouteController *noderoute.Controller
-	podStore            objectstore.PodStore
-	npQuerier           querier.AgentNetworkPolicyInfoQuerier
-	proxier             proxy.ProxyQuerier
-	egressQuerier       querier.EgressQuerier
-	podNetworkWait      *utilwait.Group
 
 	queue workqueue.TypedRateLimitingInterface[string]
 }
@@ -173,27 +173,32 @@ func NewFlowExporter(
 	fe := &FlowExporter{
 		k8sClient: k8sClient,
 
+		destinationInformer: destinationInformer,
+		destinationLister:   destinationInformer.Lister(),
+
+		staleConnectionTimeout: o.StaleConnectionTimeout,
 		v4Enabled:              v4Enabled,
 		v6Enabled:              v6Enabled,
 		isNetworkPolicyOnly:    trafficEncapMode.IsNetworkPolicyOnly(),
-		staleConnectionTimeout: o.StaleConnectionTimeout,
 		l7Listener:             l7Listener,
-		destinationInformer:    destinationInformer,
-		destinationLister:      destinationInformer.Lister(),
 
 		nodeRouteController: nodeRouteController,
-		egressQuerier:       egressQuerier,
 		podStore:            podStore,
+		proxier:             proxier,
+		egressQuerier:       egressQuerier,
+		npQuerier:           npQuerier,
+		podNetworkWait:      podNetworkWait,
 
 		poller:      poller,
 		broadcaster: connBroadcaster,
+
+		staticDestinationRes: staticDestination,
+		destinations:         make(map[string]destinationObj),
 
 		nodeName:    nodeName,
 		nodeUID:     nodeUID,
 		obsDomainID: obsDomainID,
 
-		destinations:         make(map[string]destinationObj),
-		staticDestinationRes: staticDestination,
 		queue: workqueue.NewTypedRateLimitingQueueWithConfig(
 			workqueue.NewTypedItemExponentialFailureRateLimiter[string](minRetryDelay, maxRetryDelay),
 			workqueue.TypedRateLimitingQueueConfig[string]{
