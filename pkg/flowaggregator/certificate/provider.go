@@ -33,11 +33,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/server/dynamiccertificates"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/leaderelection"
-	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
 	"k8s.io/client-go/util/workqueue"
@@ -75,6 +74,7 @@ type Provider interface {
 	Run(stopCh <-chan struct{})
 	GetServerCertKey() (caCertPEM []byte, serverCertPEM []byte, serverKeyPEM []byte)
 	HasSynced() bool
+	AddListener(dynamiccertificates.Listener)
 }
 
 type provider struct {
@@ -92,6 +92,8 @@ type provider struct {
 	serverKeyPEM  []byte
 
 	flowAggregatorAddress string
+
+	listeners []dynamiccertificates.Listener
 }
 
 func NewProvider(k8sClient kubernetes.Interface, flowAggregatorAddress string) Provider {
@@ -121,6 +123,10 @@ func NewProvider(k8sClient kubernetes.Interface, flowAggregatorAddress string) P
 	})
 
 	return provider
+}
+
+func (p *provider) AddListener(listener dynamiccertificates.Listener) {
+	p.listeners = append(p.listeners, listener)
 }
 
 func (p *provider) worker() {
@@ -159,6 +165,9 @@ func (p *provider) processNextWorkItem() bool {
 	p.serverCertsSynced = true
 	p.serverCertsUpdated = true
 	p.certsReadyCond.Broadcast()
+	for _, listener := range p.listeners {
+		listener.Enqueue()
+	}
 	p.queue.Forget(key)
 	return true
 }
@@ -181,10 +190,7 @@ func (p *provider) Run(stopCh <-chan struct{}) {
 		return
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	go p.doLeaderWork(ctx)
+	go p.doLeaderWork()
 	go wait.Until(p.worker, time.Second, stopCh)
 	<-stopCh
 }
@@ -201,62 +207,20 @@ func (p *provider) HasSynced() bool {
 }
 
 // Returns the CA cert, server cert and server private key
-func (p *provider) doLeaderWork(ctx context.Context) {
-	// Create a Lease lock
-	lock := &resourcelock.LeaseLock{
-		LeaseMeta: metav1.ObjectMeta{
-			Name:      "flow-aggregator",
-			Namespace: getFlowAggregatorNamespace(),
-		},
-		Client: p.k8sClient.CoordinationV1(),
-		LockConfig: resourcelock.ResourceLockConfig{
-			Identity: env.GetPodName(),
-		},
+func (p *provider) doLeaderWork() error {
+	caCertPEM, _, err := p.getSecret(CASecretName)
+	if err != nil && !errors.IsNotFound(err) {
+		return fmt.Errorf("failed to get root CA certificate and key: %w", err)
 	}
 
-	// Configure leader election
-	leaderelection.RunOrDie(ctx, leaderelection.LeaderElectionConfig{
-		Lock:            lock,
-		ReleaseOnCancel: true,
-		LeaseDuration:   15 * time.Second,
-		RenewDeadline:   10 * time.Second,
-		RetryPeriod:     2 * time.Second,
-		Callbacks: leaderelection.LeaderCallbacks{
-			OnStartedLeading: func(ctx context.Context) {
-				for {
-					select {
-					case <-ctx.Done():
-						return
-					default:
-					}
+	// Certs need to be rotated?
+	if p.shouldRotateCertificate(caCertPEM) {
+		if err := p.generateCertsAndSync(); err != nil {
+			return fmt.Errorf("failed to generate/sync certificates and keys: %w", err)
+		}
+	}
 
-					caCertPEM, _, err := p.getSecret(CASecretName)
-					if err != nil && !errors.IsNotFound(err) {
-						klog.ErrorS(err, "failed to get root CA certificate and key")
-						time.Sleep(1 * time.Second)
-						continue // Retry after 1 second
-					}
-
-					// Certs need to be rotated?
-					if p.shouldRotateCertificate(caCertPEM) {
-						if err := p.generateCertsAndSync(); err != nil {
-							klog.ErrorS(err, "failed to generate/sync certificates and keys")
-						}
-					}
-
-					// We select here to ensure we run at least once unless we were started with a cancelled context.
-					select {
-					case <-ctx.Done():
-					case <-p.clock.After(24 * time.Hour): // Check again after 24h
-					}
-				}
-			},
-			OnStoppedLeading: func() {},
-			OnNewLeader: func(identity string) {
-				klog.InfoS("New leader elected", "isLeader", identity == env.GetPodName(), "leader", identity)
-			},
-		},
-	})
+	return nil
 }
 
 func (p *provider) shouldRotateCertificate(cert []byte) bool {
@@ -528,6 +492,9 @@ func syncCAConfigMap(name string, cert []byte, k8sClient kubernetes.Interface) e
 
 func syncCertsAndKeys(caCert, caKey, serverCert, serverKey, clientCert, clientKey []byte, k8sClient kubernetes.Interface) error {
 	if err := syncCAConfigMap(CAConfigMapName, caCert, k8sClient); err != nil {
+		if errors.IsAlreadyExists(err) || errors.IsConflict(err) {
+			return nil
+		}
 		return err
 	}
 

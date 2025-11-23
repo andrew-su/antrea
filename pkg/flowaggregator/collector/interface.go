@@ -18,6 +18,7 @@ type Interface interface {
 	Run(stopCh <-chan struct{})
 	GetNumRecordsReceived() int64
 	GetNumConnsToCollector() int64
+	UpdateCerts()
 }
 
 type ServerCertProvider interface {

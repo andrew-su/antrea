@@ -104,6 +104,11 @@ type flowAggregator struct {
 	certificateProvider certificate.Provider
 }
 
+func (fa *flowAggregator) Enqueue() {
+	fa.grpcCollector.UpdateCerts()
+	fa.ipfixCollector.UpdateCerts()
+}
+
 func NewFlowAggregator(
 	k8sClient kubernetes.Interface,
 	clusterUUID uuid.UUID,
@@ -267,6 +272,8 @@ func (fa *flowAggregator) Run(stopCh <-chan struct{}) {
 	if !cache.WaitForCacheSync(stopCh, fa.certificateProvider.HasSynced) {
 		return
 	}
+
+	fa.certificateProvider.AddListener(fa)
 
 	wg.Add(1)
 	go func() {

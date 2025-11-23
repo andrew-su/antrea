@@ -36,8 +36,11 @@ type ipfixCollector struct {
 	aggregatorTransportProtocol flowaggregatorconfig.AggregatorTransportProtocol
 	serverCertProvider          ServerCertProvider
 
-	collectingProcess *ipfixcollector.CollectingProcess
-	preprocessor      *preprocessor
+	waitForRestart     bool
+	collectorReadyCond *sync.Cond
+	collectingProcess  *ipfixcollector.CollectingProcess
+	preprocessor       *preprocessor
+	restartCh          chan struct{}
 }
 
 func NewIPFIXCollector(
@@ -49,6 +52,8 @@ func NewIPFIXCollector(
 		recordCh:                    recordCh,
 		aggregatorTransportProtocol: aggregatorTransportProtocol,
 		serverCertProvider:          serverCertProvider,
+		restartCh:                   make(chan struct{}),
+		collectorReadyCond:          sync.NewCond(&sync.Mutex{}),
 	}, nil
 }
 
@@ -105,6 +110,10 @@ func (c *ipfixCollector) initialize() error {
 	return nil
 }
 
+func (c *ipfixCollector) UpdateCerts() {
+	c.restartCh <- struct{}{}
+}
+
 func (c *ipfixCollector) Run(stopCh <-chan struct{}) {
 	err := c.initialize()
 	if err != nil {
@@ -112,17 +121,67 @@ func (c *ipfixCollector) Run(stopCh <-chan struct{}) {
 		return
 	}
 
+	go func() {
+		for {
+			select {
+			case <-stopCh:
+				return
+			case <-c.restartCh:
+				c.collectorReadyCond.L.Lock()
+				c.waitForRestart = true
+				oldCollectingProcess := c.collectingProcess
+				if err := c.initialize(); err != nil {
+					klog.ErrorS(err, "unable to re-initialize ipfix collector")
+				}
+				c.waitForRestart = false
+				c.collectorReadyCond.Broadcast()
+
+				if oldCollectingProcess != nil {
+					oldCollectingProcess.Stop()
+				}
+				c.collectorReadyCond.L.Unlock()
+			}
+		}
+	}()
+
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		// blocking function, will return when c.collectingProcess.Stop() is called
-		c.collectingProcess.Start()
+		for {
+			select {
+			case <-stopCh:
+				return
+			default:
+			}
+			var collectingProcess *ipfixcollector.CollectingProcess
+			func() {
+				c.collectorReadyCond.L.Lock()
+				defer c.collectorReadyCond.L.Unlock()
+				for c.waitForRestart {
+					c.collectorReadyCond.Wait()
+				}
+				collectingProcess = c.collectingProcess
+			}()
+			// blocking function, will return when c.collectingProcess.Stop() is called
+			collectingProcess.Start()
+		}
 	}()
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		c.preprocessor.Run(stopCh)
+		for {
+			var preprocessor *preprocessor
+			func() {
+				c.collectorReadyCond.L.Lock()
+				defer c.collectorReadyCond.L.Unlock()
+				for c.waitForRestart {
+					c.collectorReadyCond.Wait()
+				}
+				preprocessor = c.preprocessor
+			}()
+			preprocessor.Run(stopCh)
+		}
 	}()
 	<-stopCh
 	c.collectingProcess.Stop()
@@ -130,6 +189,8 @@ func (c *ipfixCollector) Run(stopCh <-chan struct{}) {
 }
 
 func (c *ipfixCollector) GetNumRecordsReceived() int64 {
+	c.collectorReadyCond.L.Lock()
+	defer c.collectorReadyCond.L.Unlock()
 	if c.collectingProcess == nil {
 		return 0
 	}
@@ -137,6 +198,8 @@ func (c *ipfixCollector) GetNumRecordsReceived() int64 {
 }
 
 func (c *ipfixCollector) GetNumConnsToCollector() int64 {
+	c.collectorReadyCond.L.Lock()
+	defer c.collectorReadyCond.L.Unlock()
 	if c.collectingProcess == nil {
 		return 0
 	}

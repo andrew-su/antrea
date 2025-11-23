@@ -40,21 +40,25 @@ type grpcCollector struct {
 }
 
 func NewGRPCCollector(recordCh chan *flowpb.Flow, tlsProvider ServerCertProvider) (*grpcCollector, error) {
-	caCert, serverCert, serverKey := tlsProvider.GetServerCertKey()
-	cas := x509.NewCertPool()
-	if ok := cas.AppendCertsFromPEM(caCert); !ok {
-		return nil, fmt.Errorf("error when adding generated CA cert to pool")
-	}
-	cert, err := tls.X509KeyPair(serverCert, serverKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse key pair: %w", err)
-	}
-
 	tlsConfig := &tls.Config{
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		ClientCAs:    cas,
-		MinVersion:   tls.VersionTLS12,
-		Certificates: []tls.Certificate{cert},
+		GetConfigForClient: func(chi *tls.ClientHelloInfo) (*tls.Config, error) {
+			caCert, serverCert, serverKey := tlsProvider.GetServerCertKey()
+			cas := x509.NewCertPool()
+			if ok := cas.AppendCertsFromPEM(caCert); !ok {
+				return nil, fmt.Errorf("error when adding generated CA cert to pool")
+			}
+			cert, err := tls.X509KeyPair(serverCert, serverKey)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse key pair: %w", err)
+			}
+
+			return &tls.Config{
+				ClientAuth:   tls.RequireAndVerifyClientCert,
+				ClientCAs:    cas,
+				MinVersion:   tls.VersionTLS12,
+				Certificates: []tls.Certificate{cert},
+			}, nil
+		},
 	}
 
 	service := &grpcService{
@@ -66,6 +70,10 @@ func NewGRPCCollector(recordCh chan *flowpb.Flow, tlsProvider ServerCertProvider
 		service: service,
 		server:  server,
 	}, nil
+}
+
+func (c *grpcCollector) UpdateCerts() {
+	// Nothing to do, it will update TLSConfig on new connections
 }
 
 func (c *grpcCollector) Run(stopCh <-chan struct{}) {
