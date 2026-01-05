@@ -211,3 +211,6 @@ autoscaling:
 
 # -- Replicas is the number of flow-aggregator replicas. This must be 1 for "Aggregate" mode.
 replicas: 1
+
+# -- Override the name of the chart.
+nameOverride: ""

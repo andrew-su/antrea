@@ -3,14 +3,14 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   labels:
     app: flow-aggregator
-  name: flow-aggregator-cluster-role-binding
+  name: {{ template "flow-aggregator.clusterRoleBinding" (dict "root" $) }}
 subjects:
   - kind: ServiceAccount
     name: flow-aggregator
     namespace: {{ .Release.Namespace }}
 roleRef:
   kind: ClusterRole
-  name: flow-aggregator-role
+  name: {{ template "flow-aggregator.clusterRole" (dict "root" $) }}
   apiGroup: rbac.authorization.k8s.io
 ---
 # For auth delegation to apiserver
@@ -19,7 +19,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   labels:
     app: flow-aggregator
-  name: flow-aggregator-auth-delegator-cluster-role-binding
+  name: {{ template "flow-aggregator.clusterRoleBinding" (dict "root" $ "id" "auth-delegator") }}
 subjects:
   - kind: ServiceAccount
     name: flow-aggregator

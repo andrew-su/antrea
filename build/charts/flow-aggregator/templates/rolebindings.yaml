@@ -36,7 +36,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   labels:
     app: flow-aggregator
-  name: flow-aggregator-extension-apiserver-authentication-reader-role-binding
+  name: {{ template "flow-aggregator.resourceName" (dict "root" $ "id" "extension-apiserver-authentication" "suffix" "reader") }}
   namespace: kube-system
 subjects:
   - kind: ServiceAccount

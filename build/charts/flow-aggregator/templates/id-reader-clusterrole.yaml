@@ -3,7 +3,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   labels:
     app: flow-aggregator
-  name: flow-aggregator-cluster-id-reader
+  name: {{ template "flow-aggregator.clusterRoleBinding" (dict "root" $ "id" "cluster-id-reader") }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole

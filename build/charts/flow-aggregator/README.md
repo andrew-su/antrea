@@ -69,6 +69,7 @@ Kubernetes: `>= 1.23.0-0`
 | inactiveFlowRecordTimeout | string | `"90s"` | Provide the inactive flow record timeout as a duration string. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h". |
 | logVerbosity | int | `0` | Log verbosity switch for Flow Aggregator. |
 | mode | string | `"Aggregate"` | Mode in which to run the flow aggregator. Must be one of "Aggregate" or "Proxy". In Aggregate mode, flow records received from source and destination are aggregated and sent as one flow record. In Proxy mode, flow records are enhanced with some additional information, then sent directly without buffering or aggregation. |
+| nameOverride | string | `""` | Override the name of the chart. |
 | priorityClassName | string | `"system-cluster-critical"` | Prority class to use for the flow-aggregator Pod. |
 | recordContents.podLabels | bool | `false` | Determine whether source and destination Pod labels will be included in the flow records. |
 | replicas | int | `1` | Replicas is the number of flow-aggregator replicas. This must be 1 for "Aggregate" mode. |
