@@ -1,0 +1,23 @@
+bin
+.mockgen
+.cache
+.golangci-bin
+.coverage/
+.trivy-bin
+
+.DS_Store
+
+# VIM
+.*.swp
+
+# Emacs
+*~
+
+# Common backup files
+*.bak
+
+.idea/
+.vscode/
+vendor
+
+ci/jenkins/jobs/defaults.yml
