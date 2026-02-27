@@ -17,12 +17,10 @@ package connections
 import (
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/vmware/go-ipfix/pkg/registry"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 
 	"antrea.io/antrea/pkg/agent/flowexporter/connection"
@@ -153,15 +151,6 @@ func (cs *connectionStore) fillServiceInfo(conn *connection.Connection, serviceS
 			klog.InfoS("Could not retrieve the Service info from antrea-agent-proxier", "serviceStr", serviceStr)
 		}
 	}
-}
-
-// LookupServiceProtocol returns the corresponding Service protocol string for a given protocol identifier
-func lookupServiceProtocol(protoID uint8) (corev1.Protocol, error) {
-	serviceProto, found := serviceProtocolMap[protoID]
-	if !found {
-		return "", fmt.Errorf("unknown protocol identifier: %d", protoID)
-	}
-	return serviceProto, nil
 }
 
 func (cs *connectionStore) addNetworkPolicyMetadata(conn *connection.Connection) {

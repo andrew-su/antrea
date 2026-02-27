@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 
 	"antrea.io/antrea/pkg/agent/flowexporter/connection"
@@ -31,12 +30,6 @@ import (
 	"antrea.io/antrea/pkg/querier"
 	"antrea.io/antrea/pkg/util/objectstore"
 )
-
-var serviceProtocolMap = map[uint8]corev1.Protocol{
-	6:   corev1.ProtocolTCP,
-	17:  corev1.ProtocolUDP,
-	132: corev1.ProtocolSCTP,
-}
 
 type ConntrackConnectionStore struct {
 	networkPolicyReadyTime time.Time
